@@ -1,4 +1,4 @@
-# 🕸️ WebWeave
+# WebWeave
 
 > **AI-powered web automation script generator** — scrape DOM & generate production-ready Playwright/Puppeteer/Selenium/Cypress scripts from a URL + natural language prompt.
 
@@ -10,16 +10,16 @@ Supports **5 AI Providers**: Google Gemini, OpenAI, Anthropic Claude, OpenRouter
 
 ---
 
-## ✨ Fitur Utama
+##  Fitur Utama
 
-- 🤖 **5 AI Providers** — Gemini, OpenAI, Claude, OpenRouter (100+ model), **OpenCode Go** ($5/mo)
-- 🌐 **DOM Scraping Otomatis** — Playwright headless extracts 69+ interactive elements from target site
-- 🧰 **Multi-Framework** — Playwright (JS & Python), Puppeteer (JS), Selenium (Python), Cypress (JS)
-- 📋 **Copy & Download** — Generated code copy-to-clipboard or download as `.js`/`.py`/`.cy.js`
-- 🔑 **Bring Your Own Key** — Input API Key in browser UI, stored per-provider in localStorage
-- ⚡ **Fallback Mode** — If site has bot protection, WebWeave generates generic code from URL context
-- 🐚 **Debug Endpoint** — `/api/debug` checks which environment API keys are loaded
-- 🎨 **Modern UI** — Dark theme + glassmorphism design + provider color cards
+-  **5 AI Providers** — Gemini, OpenAI, Claude, OpenRouter (100+ model), **OpenCode Go** ($5/mo)
+-  **DOM Scraping Otomatis** — Playwright headless extracts 69+ interactive elements from target site
+-  **Multi-Framework** — Playwright (JS & Python), Puppeteer (JS), Selenium (Python), Cypress (JS)
+-  **Copy & Download** — Generated code copy-to-clipboard or download as `.js`/`.py`/`.cy.js`
+-  **Bring Your Own Key** — Input API Key in browser UI, stored per-provider in localStorage
+-  **Fallback Mode** — If site has bot protection, WebWeave generates generic code from URL context
+-  **Debug Endpoint** — `/api/debug` checks which environment API keys are loaded
+-  **Modern UI** — Dark theme + glassmorphism design + provider color cards
 
 ---
 
