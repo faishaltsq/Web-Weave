@@ -165,8 +165,8 @@ export default function Home() {
     const trimmed = key.trim();
     if (trimmed.startsWith('AIza')) return 'gemini';
     if (trimmed.startsWith('sk-ant-')) return 'anthropic';
-    if (trimmed.startsWith('sk-')) return 'openai'; // OpenAI keys start with sk-
-    if (trimmed.startsWith('sk-or-')) return 'openrouter'; // OpenRouter keys start with sk-or-
+    if (trimmed.startsWith('sk-or-')) return 'openrouter'; // must come before sk- check
+    if (trimmed.startsWith('sk-')) return 'openai'; // ambiguous: OpenAI & OpenCode Go share this prefix
     return null;
   };
 
@@ -176,6 +176,19 @@ export default function Home() {
     setDetectedProvider(detected);
 
     if (detected) {
+      // kunci: jika detected='openai' tapi user sudah pilih opencode,
+      // jangan override (keduanya pakai prefix sk-)
+      if (detected === 'openai' && provider === 'opencode') {
+        // tetap set auto-detected badge tapi jangan ganti provider
+        setIsAutoDetected(false);
+        setDetectedProvider('opencode'); // visual hint: detected as code go
+        return;
+      }
+      // kunci: jika detected='openai' tapi user sudah pilih openai, tetap di openai
+      if (detected === 'openai' && provider === 'openai') {
+        setIsAutoDetected(false);
+        return;
+      }
       setProvider(detected);
       setIsAutoDetected(true);
       setSelectedModel(''); // Clear manual model selection
