@@ -119,9 +119,8 @@ Click **Generate Script**. That's it.
 ### Example
 
 ```
-URL: https://hris-staging.kantorku.id/
-Prompt: Login with email risa.stagingtest@gmail.com and password stgtest123!,
-        then show the main menu items
+URL: https://your-app.com/login
+Prompt: Login with valid credentials, verify dashboard appears with menu items
 Framework: Playwright (JavaScript)
 ```
 
@@ -206,7 +205,7 @@ webweave/
 ├── scripts/
 │   └── hris_login_menu.js       # Example: verified working Playwright script
 ├── Hasil generate/
-│   └── hris-staging_automation.py  # Example: AI-generated script output
+│   └── example_automation.py       # Example: AI-generated script output
 ├── .env.local                   # API Keys (not committed)
 ├── .env.local.example           # Example env configuration
 ├── next.config.js               # Next.js configuration
@@ -251,9 +250,9 @@ npm run lint     # ESLint linting
 
 | Test | Status | Details |
 |---|---|---|
-| DOM Scraping (HRIS KantorKu) | ✅ | 69 elements extracted, key elements highlighted |
-| Login Flow (HRIS) | ✅ | risa.stagingtest@gmail.com / stgtest123! |
-| Select Company → Dashboard | ✅ | Click Continue to Dashboard → `/home` |
+| DOM Scraping | ✅ | 69 elements extracted, key elements highlighted |
+| Login Flow | ✅ | Email + password → redirect to Select Company |
+| Select Company → Dashboard | ✅ | Multi-step navigation handled correctly |
 | Menu Extraction | ✅ | 46 menu items (Employee, Payroll, Leave, etc.) |
 | API Endpoint `/api/generate` | ✅ | Proper error/success responses |
 | Debug Endpoint `/api/debug` | ✅ | Shows loaded environment keys |
