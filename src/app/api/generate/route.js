@@ -214,6 +214,24 @@ function resolveApiKey(provider, userKey) {
   return envMapping[provider] || null;
 }
 
+// Auto-detect provider based on configured env keys (priority order)
+function autoDetectProvider() {
+  if (process.env.OPENCODE_API_KEY) return 'opencode';
+  if (process.env.OPENROUTER_API_KEY) return 'openrouter';
+  if (process.env.GEMINI_API_KEY) return 'gemini';
+  if (process.env.OPENAI_API_KEY) return 'openai';
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  return null;
+}
+
+const PROVIDER_DEFAULTS = {
+  gemini: { provider: 'gemini', modelId: 'gemini-2.0-flash' },
+  openai: { provider: 'openai', modelId: 'gpt-5.4' },
+  anthropic: { provider: 'anthropic', modelId: 'claude-opus-4-8' },
+  openrouter: { provider: 'openrouter', modelId: 'google/gemini-2.0-flash-001' },
+  opencode: { provider: 'opencode', modelId: 'deepseek-v4-flash' }
+};
+
 // ============================================================
 // Prompt Engineering
 // ============================================================
@@ -223,38 +241,49 @@ function getFrameworkDetails(framework) {
     playwright_js: {
       name: 'Playwright (JavaScript)',
       ext: 'js',
-      details: `Playwright in JavaScript (Node.js, ES modules with import syntax).
-Use modern locators: page.getByRole(), page.getByPlaceholder(), page.getByLabel(), page.getByText(), page.locator().
-Use expect() from @playwright/test for assertions.
-Structure: import { test, expect } from '@playwright/test'; test('description', async ({ page }) => { ... });`
+      details: `Playwright in JavaScript — standalone script (NOT @playwright/test runner).
+Use: const { chromium } = require('playwright'); browser = await chromium.launch(); page = await browser.newPage();
+Selectors: USE ID/name from DOM FIRST. page.fill('#exactId', val) > page.locator('#id') > page.getByRole() > page.getByPlaceholder().
+Navigation: page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 }). Never use 'networkidle'.
+Wait: await page.waitForSelector('#id', { state: 'visible' }) then interact. Avoid page.waitForTimeout() when possible.
+Assert: use if/throw for assertions (not expect from @playwright/test).
+Structure: (async () => { try { ... } catch(e) { console.error(e); } finally { await browser.close(); } })();`
     },
     playwright_python: {
       name: 'Playwright (Python)',
       ext: 'py',
-      details: `Playwright in Python (Sync API preferred).
-Use modern selectors: page.get_by_role(), page.get_by_placeholder(), page.get_by_label(), page.get_by_text(), page.locator().
-Structure: from playwright.sync_api import sync_playwright; with sync_playwright() as p: browser = p.chromium.launch(); ...`
+      details: `Playwright in Python — standalone script (NOT pytest).
+Use: from playwright.sync_api import sync_playwright; with sync_playwright() as p: browser = p.chromium.launch()
+Selectors: USE ID/name from DOM FIRST. page.fill('#exactId', val) > page.locator('#id') > page.get_by_role() > page.get_by_placeholder().
+Navigation: page.goto(url, timeout=120000). Never use wait_until='networkidle'. Use wait_until='commit' or omit it.
+Wait: page.wait_for_selector('#id', state='visible') then page.fill('#id', val). Avoid page.wait_for_timeout().
+Assert: use assert or if/raise for assertions.
+Structure: def main(): try: ... except Exception as e: print(e) finally: browser.close()`
     },
     puppeteer_js: {
       name: 'Puppeteer (JavaScript)',
       ext: 'js',
-      details: `Puppeteer in JavaScript (Node.js).
-Use page.waitForSelector(), page.$(), page.$$(), page.evaluate(), page.type(), page.click().
-Structure: import puppeteer from 'puppeteer'; const browser = await puppeteer.launch(); ...`
+      details: `Puppeteer in JavaScript.
+Selectors: USE ID from DOM FIRST. page.type('#id', val) > page.$('#id').
+Navigation: page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 }). Never use 'networkidle'.
+Wait: await page.waitForSelector('#id') before interacting.`
     },
     selenium_python: {
       name: 'Selenium (Python)',
       ext: 'py',
       details: `Selenium WebDriver in Python.
-Use: from selenium import webdriver; from selenium.webdriver.common.by import By; from selenium.webdriver.support.ui import WebDriverWait; from selenium.webdriver.support import expected_conditions as EC.
-Use WebDriverWait for explicit waits instead of time.sleep().`
+Selectors: USE ID from DOM FIRST. driver.find_element(By.ID, 'exactId').
+Navigation: driver.get(url). driver.set_page_load_timeout(60).
+Wait: WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, 'id'))).
+Always use explicit waits (WebDriverWait) over time.sleep().`
     },
     cypress_js: {
       name: 'Cypress (JavaScript)',
       ext: 'cy.js',
       details: `Cypress in JavaScript.
-Structure: describe('Test Suite', () => { it('test case', () => { cy.visit(); cy.get(); ... }); });
-Use cy.get(), cy.contains(), cy.find() for selectors. Use .should() for assertions.`
+Selectors: USE ID from DOM FIRST. cy.get('#id') > cy.contains().
+Navigation: cy.visit(url, { timeout: 60000 }).
+Wait: cy.get('#id', { timeout: 30000 }).should('be.visible').`
     }
   };
   
@@ -262,29 +291,53 @@ Use cy.get(), cy.contains(), cy.find() for selectors. Use .should() for assertio
 }
 
 function buildSystemPrompt() {
-  return `You are a world-class QA Automation Engineer. Your job is to write clean, robust, production-quality web automation scripts.
+  return `You are a world-class QA Automation Engineer. Write clean, robust automation scripts.
 
-CRITICAL RULES:
-1. Output ONLY the code inside a single markdown code block. No intro, no explanation, no outro.
-2. Write COMPLETE, RUNNABLE scripts — include all imports, setup, actions, assertions, and teardown.
-3. Choose the BEST selector strategy based on the DOM context provided:
-   - Priority order: data-testid > id > name > aria-label > role+text > placeholder > CSS selector
-   - NEVER use fragile selectors like long CSS class chains or XPath with positional indexes
-4. Add brief inline comments explaining each step.
-5. Include proper wait strategies — wait for elements to be visible/clickable before interacting.
-6. Add meaningful assertions to verify the automation goal was achieved.
-7. Handle common edge cases: page load waits, element visibility, popup/overlay dismissal.
-8. Use try-catch or equivalent error handling for the main flow.`;
+CRITICAL RULES — failure to follow = broken script:
+
+1. SELECTOR STRATEGY (strict priority):
+   a) MANDATORY: Use EXACT id/name values from the provided DOM context when they exist
+      Example: DOM shows id="email" -> use page.fill('#email', val) NOT page.getByPlaceholder()
+   b) If no id/name exists: use aria-label or data-testid from DOM
+   c) Last resort ONLY: use placeholder/text matching
+
+2. NAVIGATION STRATEGY:
+   - NEVER use wait_until='networkidle' — it will timeout on production sites
+   - Use wait_until='domcontentloaded' or omit it entirely
+   - Add retry loop (2-3 attempts) for page.goto() timeouts on slow sites
+   - After navigation: wait for a SPECIFIC element from DOM context, not generic selectors
+
+3. CODE STRUCTURE:
+   - Output ONLY a single markdown code block ```. No explanations.
+   - Write COMPLETE standalone scripts with imports, setup, actions, teardown
+   - Include try/catch error handling + error screenshot
+   - Use headless browser (headless=True/true)
+
+4. INTERACTIONS:
+   - Wait for element to be visible/clickable BEFORE interacting
+   - Use element-specific waits (waitForSelector) over time.sleep()
+   - After form submission: wait for URL change or next page element
+
+5. ASSERTIONS:
+   - Verify each step succeeded (element found, page loaded correctly)
+   - After login: verify user reached the expected page (URL contains /home, /dashboard, etc.)
+   - Extract and display relevant page data as proof the script worked`;
 }
 
 function buildUserPrompt(url, prompt, framework, domContext) {
   const fw = getFrameworkDetails(framework);
   
   return `## Task
-Write a ${fw.name} automation script for the following:
+Write a ${fw.name} automation script.
 
 **Target URL:** ${url}
 **Automation Goal:** ${prompt}
+
+## Critical Navigation Notes
+- Use EXACT id/name selectors from the DOM context below
+- Add retry for page.goto() (sites may be slow)
+- After login/submit: wait for URL change, not just time.sleep()
+- Watch for redirects to intermediate pages (e.g. /select-company, /choose-role)
 
 ## Framework Requirements
 ${fw.details}
@@ -298,13 +351,27 @@ Provide ONLY the complete, runnable code inside a single markdown code block.`;
 
 function buildDomContext(url, scrapeSuccess, interactiveData) {
   if (!scrapeSuccess || !interactiveData || !interactiveData.elements) {
-    return `Note: Live DOM scraping was not possible for ${url} (bot protection or network issue).
-Generate the script using common, expected selectors based on the URL and typical page structure.
-Use resilient selectors and add comments noting where selectors may need adjustment.`;
+    return `Note: Live DOM scraping was not possible for ${url}.
+Generate using resilient selectors. Prefer id/name-based selectors. Add comments where selectors may need adjustment.`;
   }
 
   const { title, headings, elements } = interactiveData;
-  
+
+  // Extract KEY elements (inputs with id, submit buttons, forms)
+  const keyElements = (elements || []).filter(el => {
+    const attrs = el.attributes || {};
+    const isInput = ['input', 'textarea', 'select'].includes(el.tag);
+    const isButton = el.tag === 'button' || (el.attributes || {}).role === 'button';
+    const hasId = attrs.id;
+    return (isInput && hasId) || (isButton && (attrs.type === 'submit' || (el.text && /sign|login|submit|continue/i.test(el.text))));
+  }).map(el => {
+    const a = el.attributes || {};
+    let key = `<${el.tag}${a.id ? ' id="'+a.id+'"' : ''}${a.type ? ' type="'+a.type+'"' : ''}${a.name ? ' name="'+a.name+'"' : ''}${a.placeholder ? ' placeholder="'+a.placeholder+'"' : ''}>`;
+    if (el.text) key += ` "${el.text}"`;
+    if (el.labelText) key += ` [label: ${el.labelText}]`;
+    return key;
+  });
+
   // Compact element representation to save tokens
   const compactElements = (elements || []).map(el => {
     const parts = [`<${el.tag}`];
@@ -329,14 +396,15 @@ Use resilient selectors and add comments noting where selectors may need adjustm
     ? headings.map(h => `${h.tag}: ${h.text}`).join('\n')
     : 'No headings found';
 
-  return `**Page Title:** "${title}"
-**Page Headings:**
-${headingsText}
-
-**Interactive Elements Found (${(elements || []).length} total):**
-\`\`\`
-${compactElements}
-\`\`\``;
+  let result = `**Page Title:** "${title}"\n`;
+  if (headingsText) result += `**Headings:**\n${headingsText}\n\n`;
+  if (keyElements.length > 0) {
+    result += `**KEY ELEMENTS (use these exact selectors):**\n`;
+    keyElements.forEach(ke => { result += `- ${ke}\n`; });
+    result += '\n';
+  }
+  result += `**All Interactive Elements (${(elements || []).length}):**\n\`\`\`\n${compactElements}\n\`\`\``;
+  return result;
 }
 
 // ============================================================
@@ -346,7 +414,21 @@ ${compactElements}
 export async function POST(req) {
   let browser = null;
   try {
-    const { url, prompt, framework, apiKey, provider = 'gemini', modelId } = await req.json();
+    const { url, prompt, framework, provider: userProvider, modelId: userModelId } = await req.json();
+
+    // Auto-detect provider from server env keys (user can override via request)
+    const detected = autoDetectProvider();
+    if (!detected && !userProvider) {
+      return NextResponse.json({ 
+        error: 'No AI provider configured. Set API keys in .env.local' 
+      }, { status: 500 });
+    }
+
+    const activeProvider = userProvider || detected;
+    const { modelId } = userModelId 
+      ? { modelId: userModelId } 
+      : (PROVIDER_DEFAULTS[activeProvider] || { modelId: null });
+    const activeModelId = modelId;
 
     // Validation
     if (!url) {
@@ -357,11 +439,11 @@ export async function POST(req) {
     }
 
     // Resolve API Key
-    const activeApiKey = resolveApiKey(provider, apiKey);
+    const activeApiKey = resolveApiKey(activeProvider, undefined);
     if (!activeApiKey) {
       const providerNames = { gemini: 'Gemini', openai: 'OpenAI', anthropic: 'Anthropic', openrouter: 'OpenRouter', opencode: 'OpenCode Go' };
       return NextResponse.json({ 
-        error: `API Key untuk ${providerNames[provider] || provider} tidak ditemukan. Masukkan API Key di formulir atau konfigurasi .env.local di server.` 
+        error: `API Key untuk ${providerNames[activeProvider] || activeProvider} tidak dikonfigurasi di server. Hubungi administrator.` 
       }, { status: 400 });
     }
 
@@ -415,9 +497,9 @@ export async function POST(req) {
     const userPrompt = buildUserPrompt(url, prompt, framework, domContext);
 
     const providerLabel = { gemini: 'Gemini', openai: 'OpenAI', anthropic: 'Claude', openrouter: 'OpenRouter', opencode: 'OpenCode Go' };
-    scrapeLogs.push(`Sending request to ${providerLabel[provider] || provider} API...`);
+    scrapeLogs.push(`Sending request to ${providerLabel[activeProvider] || activeProvider} API...`);
     
-    const textResponse = await callAIProvider(provider, systemPrompt, userPrompt, activeApiKey, modelId);
+    const textResponse = await callAIProvider(activeProvider, systemPrompt, userPrompt, activeApiKey, activeModelId);
     scrapeLogs.push('Code generated successfully!');
 
     // ── Phase 3: Extract code block from response ──
@@ -436,7 +518,7 @@ export async function POST(req) {
       code: generatedCode,
       fileExtension: fw.ext,
       logs: scrapeLogs,
-      provider
+      provider: activeProvider
     });
 
   } catch (error) {
