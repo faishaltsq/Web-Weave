@@ -1,295 +1,274 @@
-# 🕸️ WebWeave
+# WebWeave
 
-> **AI-powered web automation script generator** — scrape DOM & generate production-ready Playwright/Puppeteer/Selenium/Cypress scripts from a URL + natural language prompt.
+AI-assisted web automation script generator for QA workflows.
 
-WebWeave scrapes the target site with Playwright headless, extracts all interactive DOM elements, and sends the context to an AI provider to generate complete automation scripts.
+WebWeave scans a target page with Playwright Chromium, extracts interactive DOM elements, highlights locator candidates, and generates automation scripts using a server-side AI provider. It is currently positioned as a local/private-beta QA assistant, not a public SaaS-ready product yet.
 
-**Server-side AI** — provider & API keys configured via `.env.local` only. No API key input in UI. Auto-detects provider from configured keys.
+[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
+[![Playwright](https://img.shields.io/badge/Playwright-1.44-green)](https://playwright.dev/)
+[![React](https://img.shields.io/badge/React-18-blue)](https://react.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/) [![Playwright](https://img.shields.io/badge/Playwright-1.44-green)](https://playwright.dev/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+## Current Status
 
----
+| Area | Status | Notes |
+|---|---:|---|
+| V1 Safety MVP | Complete | URL validation, SSRF guardrails, request limits, rate limiting, debug route removed |
+| Locator Preview UI | Complete | Chromium screenshot is returned to UI with highlighted locator candidates |
+| Generated Script Quality | Improved | Prompt now requires locator validation helpers and dynamic-list handling |
+| Public SaaS Readiness | Not ready | Needs auth, quotas, stronger browser isolation, policies, and billing guardrails |
 
-## ✨ Features
+## What WebWeave Does
 
-- 🤖 **Server-Side AI** — Provider auto-detected from `.env.local`. No API key UI — clean SaaS-ready
-- 🌐 **DOM Scraping** — Playwright headless extracts 69+ interactive elements with key element highlighting
-- 🧰 **Multi-Framework** — Playwright (JS & Python), Puppeteer (JS), Selenium (Python), Cypress (JS)
-- 📋 **Copy & Download** — Generated code copy-to-clipboard or download as `.js`/`.py`/`.cy.js`
-- ⚡ **Smart Prompts** — AI instructed: use exact DOM ids, retry navigation, avoid `networkidle`
-- 🔄 **Auto-Detect Provider** — Priority: OpenCode Go > OpenRouter > Gemini > OpenAI > Claude
-- 🐚 **Debug Endpoint** — `/api/debug` checks which environment API keys are loaded
-- 🎨 **Modern UI** — Dark theme + glassmorphism design
+- Accepts a target URL, test objective, and automation framework.
+- Normalizes domain-only URLs, for example `www.saucedemo.com` to `https://www.saucedemo.com`.
+- Opens the target page using Playwright Chromium on the server.
+- Extracts visible interactive elements: inputs, selects, buttons, links, roles, and test attributes.
+- Captures a browser-style screenshot preview with highlighted locator candidates.
+- Sends compact DOM context and the objective to a configured server-side AI provider.
+- Returns generated automation code, logs, provider info, and preview image to the UI.
 
----
+## Key Features
 
-## 🤖 Supported AI Providers
+- Server-side AI provider keys only; no API key input in the browser.
+- Provider auto-detection from `.env.local`.
+- Multi-framework generation:
+  - Playwright JavaScript
+  - Playwright Python
+  - Puppeteer JavaScript
+  - Selenium Python
+  - Cypress JavaScript
+- Locator-aware prompting with exact `id`, `name`, `data-test`, `data-testid`, and ARIA selector preference.
+- Mandatory locator validation rules in generated scripts.
+- Dynamic-list action rules, for example repeatedly clicking current `Add to cart` buttons until none remain.
+- Copy and download generated script output.
+- Vibrant solid-color browser-lab UI with dark/light mode.
 
-| Provider | Default Model | Priority | Cost |
-|---|---|---|---|
-| **OpenCode Go** | `deepseek-v4-flash` | 1st (default) | $5 first month |
-| **OpenRouter** | `google/gemini-2.0-flash-001` | 2nd | Many free |
-| **Google Gemini** | `gemini-2.0-flash` | 3rd | Free tier |
-| **OpenAI** | `gpt-5.4` | 4th | Paid |
-| **Anthropic Claude** | `claude-opus-4-8` | 5th | Paid |
+## Supported AI Providers
 
-Configure any one provider in `.env.local`. Server auto-detects the first available.
+Configure at least one provider in `.env.local`.
 
----
+| Priority | Provider | Default Model | Environment Variable |
+|---:|---|---|---|
+| 1 | OpenCode Go | `deepseek-v4-flash` | `OPENCODE_API_KEY` |
+| 2 | OpenRouter | `google/gemini-2.0-flash-001` | `OPENROUTER_API_KEY` |
+| 3 | Google Gemini | `gemini-2.0-flash` | `GEMINI_API_KEY` |
+| 4 | OpenAI | `gpt-5.4` | `OPENAI_API_KEY` |
+| 5 | Anthropic Claude | `claude-opus-4-8` | `ANTHROPIC_API_KEY` |
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Framework | [Next.js 14](https://nextjs.org/) (App Router) |
-| AI Providers | OpenCode Go, OpenRouter, Gemini, OpenAI, Claude |
-| Scraping | [Playwright](https://playwright.dev/) (Headless Chromium) |
-| UI Icons | [Lucide React](https://lucide.dev/) |
-| Styling | CSS Modules + Glassmorphism |
+| Framework | Next.js 14 App Router |
+| UI | React 18, CSS Modules, Lucide React |
+| Browser Automation | Playwright Chromium |
+| AI SDKs | OpenAI SDK, Google Generative AI, Anthropic SDK |
+| Runtime | Node.js 18+ |
 
----
+## Project Structure
 
-## 🚀 Installation & Setup
+```text
+webweave/
+├── src/
+│   └── app/
+│       ├── api/
+│       │   └── generate/
+│       │       └── route.js        # DOM scan, safety validation, AI generation
+│       ├── globals.css             # Global CSS variables and base styles
+│       ├── layout.js               # App metadata and root layout
+│       ├── page.js                 # Main UI and generation workflow
+│       └── page.module.css         # Solid vibrant browser-lab styling
+├── .env.local.example              # Environment variable template
+├── PRODUCT_ROADMAP.md              # Product roadmap from V1 to public release
+├── webweave-roadmap.excalidraw     # Visual roadmap diagram
+├── next.config.js
+├── package.json
+├── package-lock.json
+└── README.md
+```
+
+Generated example scripts and manual HRIS scripts were removed from the repository to avoid storing credentials or sensitive customer/test data.
+
+## Setup
 
 ### Prerequisites
 
-- **[Node.js](https://nodejs.org/)** v18+
-- **npm** v9+
+- Node.js 18+
+- npm 9+
+- Playwright Chromium browser
+
+### Install
 
 ```bash
-node --version   # must be v18.x+
-npm --version    # must be v9.x+
-```
-
-### Step 1 — Clone & Install
-
-```bash
-git clone https://github.com/faishaltsq/Web-Weave.git
-cd Web-Weave
 npm install
-```
-
-### Step 2 — Install Playwright Browser
-
-```bash
 npx playwright install chromium
 ```
 
-### Step 3 — Configure API Key (`.env.local`)
+### Configure Environment
+
+Create `.env.local` from the example file:
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-Edit `.env.local` — fill **at least one** API key:
+Fill at least one provider key:
 
 ```env
-# Recommended: OpenCode Go ($5/month) — https://opencode.ai/auth
-OPENCODE_API_KEY=sk-...
-
-# Or use free alternatives:
-GEMINI_API_KEY=AIzaSy...          # Google AI Studio (free tier)
-OPENROUTER_API_KEY=sk-or-...      # OpenRouter (many free models)
-OPENAI_API_KEY=sk-...             # OpenAI
-ANTHROPIC_API_KEY=sk-ant-...      # Anthropic Claude
+OPENCODE_API_KEY=
+OPENROUTER_API_KEY=
+GEMINI_API_KEY=
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
 ```
 
-**Provider auto-detection priority:** OpenCode Go → OpenRouter → Gemini → OpenAI → Claude
-
-### Step 4 — Run
+### Run Locally
 
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3000`
+Open `http://localhost:3000`.
 
----
-
-## 📖 Usage
-
-### Simple: 3 inputs only
-
-1. **Target URL** — The website to automate
-2. **Automation Objective** — What to do (natural language)
-3. **Framework** — Pick your target framework
-
-Click **Generate Script**. That's it.
-
-### Example
-
-```
-URL: https://your-app.com/login
-Prompt: Login with valid credentials, verify dashboard appears with menu items
-Framework: Playwright (JavaScript)
-```
-
----
-
-## 📖 Getting API Keys
-
-### OpenCode Go (Recommended — $5/mo)
-
-1. Go to [OpenCode Zen](https://opencode.ai/auth)
-2. Login / create account
-3. Subscribe to **Go** ($5 first month, then $10/mo)
-4. Copy API Key from console
-5. Add to `.env.local`: `OPENCODE_API_KEY=your-key`
-
-> 30,000+ requests per 5 hours with DeepSeek V4 Flash. Models: Kimi K2.6, Qwen 3.7 Max, DeepSeek V4 Pro, MiMo V2.5, GLM-5.1, MiniMax M3.
-
-### Google Gemini (Free)
-
-1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Login with Google account
-3. Click **"Create API Key"**
-4. Copy key (format: `AIzaSy...`)
-
-> Free tier available — suitable for testing and light usage.
-
-### OpenRouter (Many Free Models)
-
-1. Go to [OpenRouter](https://openrouter.ai/keys)
-2. Login with Google/GitHub
-3. Click **"Create Key"**
-4. Copy key (format: `sk-or-...`)
-
-> Many free models: Gemini 2.0 Flash, DeepSeek V3, Llama 4, Mistral.
-
----
-
-## ⚙️ How It Works
-
-```
-User Input (URL + Prompt + Framework)
-        │
-        ▼
-┌───────────────────────────┐
-│   Phase 1: DOM Scraping   │  ← Playwright headless Chromium
-│   • Extract all inputs,   │    extracts 69-150 interactive
-│     buttons, links, forms │    elements from target page
-│   • Highlight KEY elements│    (ids, submit buttons, forms)
-└───────────────────────────┘
-        │
-        ▼
-┌───────────────────────────┐
-│   Phase 2: AI Generation  │  ← Auto-detect provider from env
-│   • Smart prompt: use     │    keys (OpenCode Go priority)
-│     exact DOM ids first   │
-│   • Navigation retries    │    Receives DOM context +
-│   • No networkidle        │    system prompt + user goal
-│   • Standalone scripts    │
-└───────────────────────────┘
-        │
-        ▼
-   Phase 3: Extract code block → Return runnable script ✅
-```
-
----
-
-## 📁 Project Structure
-
-```
-webweave/
-├── src/
-│   └── app/
-│       ├── page.js              # Main UI — URL, prompt, framework inputs
-│       ├── page.module.css      # Styling — glassmorphism
-│       ├── layout.js            # Root layout
-│       ├── globals.css          # Global CSS, design tokens
-│       └── api/
-│           ├── generate/
-│           │   └── route.js     # API Route — DOM scraping + auto-detect AI
-│           └── debug/
-│               └── route.js     # Debug endpoint — check loaded env keys
-├── scripts/
-│   └── hris_login_menu.js       # Example: verified working Playwright script
-├── Hasil generate/
-│   └── example_automation.py       # Example: AI-generated script output
-├── .env.local                   # API Keys (not committed)
-├── .env.local.example           # Example env configuration
-├── next.config.js               # Next.js configuration
-├── package.json                 # Dependencies & scripts
-└── README.md                    # This documentation
-```
-
----
-
-## 🔒 Security
-
-- API Keys stored **server-side only** in `.env.local`
-- No API keys exposed to browser — no localStorage, no client-side storage
-- `.env.local` is gitignored — never committed
-- Recommended to use API keys with quota limits
-
----
-
-## NPM Scripts
+### Build
 
 ```bash
-npm run dev      # Development server (http://localhost:3000)
-npm run build    # Production build
-npm run start    # Production server
-npm run lint     # ESLint linting
+npm run build
 ```
 
----
+## Usage Guidance
 
-## 🔧 Troubleshooting
+Use placeholders for credentials instead of real secrets.
 
-| Error | Solution |
-|---|---|
-| "No AI provider configured" | Fill at least one API key in `.env.local` |
-| "Rate limit / quota exceeded" | Wait a few minutes, or add another provider key |
-| "Scraping failed" | Site may have bot protection — install Chromium: `npx playwright install chromium` |
-| Port 3000 in use | `netstat -ano \| findstr :3000` → `taskkill /PID <PID> /F` |
+Recommended prompt style:
 
----
+```text
+Login using {{USERNAME}} standard_user and {{PASSWORD}} secret_sauce.
+Add all products to cart, open cart, checkout, fill form, continue, and finish order.
+```
 
-## ✅ Verified
+Do not submit real production passwords, tokens, customer data, or internal confidential information in prompts.
 
-| Test | Status | Details |
-|---|---|---|
-| DOM Scraping | ✅ | 69 elements extracted, key elements highlighted |
-| Login Flow | ✅ | Email + password → redirect to Select Company |
-| Select Company → Dashboard | ✅ | Multi-step navigation handled correctly |
-| Menu Extraction | ✅ | 46 menu items (Employee, Payroll, Leave, etc.) |
-| API Endpoint `/api/generate` | ✅ | Proper error/success responses |
-| Debug Endpoint `/api/debug` | ✅ | Shows loaded environment keys |
-| Manual Script | ✅ | `scripts/hris_login_menu.js` runs successfully |
+## API Behavior
 
----
+Endpoint:
 
-## 📝 Changelog
+```text
+POST /api/generate
+```
 
-### v0.3.0 (Jun 2026)
-- 🔥 **Removed API key UI** — all provider selection & key input removed from frontend
-- 🔄 **Auto-detect provider** from `.env.local` keys (OpenCode Go priority)
-- 🧠 **Improved prompt engineering** — AI now uses exact DOM ids, retry navigation, standalone scripts
-- 📋 **Key elements extraction** — highlight important DOM elements for better AI context
-- 🛑 **No more `networkidle`** — replaced with `domcontentloaded` + explicit waits
-- 📄 Reduced page.js by 200+ lines (removed provider config, model lists, auto-detect logic)
+Request body:
 
-### v0.2.0 (Jun 2026)
-- ➕ Added **OpenCode Go** as 5th AI provider
-- 🔧 Fixed Gemini default model: `gemini-3.0-flash` → `gemini-2.0-flash`
-- 🐛 Fixed OpenRouter model list
-- ➕ Added `/api/debug` endpoint
+```json
+{
+  "url": "www.saucedemo.com",
+  "prompt": "Login using {{USERNAME}} and {{PASSWORD}}, then complete checkout.",
+  "framework": "playwright_python"
+}
+```
 
-### v0.1.0 (Initial)
-- Next.js 14 + Playwright headless
-- 4 AI providers, 5 frameworks
-- Glassmorphism UI
+Successful response includes:
 
----
+```json
+{
+  "success": true,
+  "title": "Target Site",
+  "code": "...",
+  "fileExtension": "py",
+  "logs": [],
+  "provider": "opencode",
+  "browserPreview": "data:image/jpeg;base64,..."
+}
+```
 
-## 📄 License
+## Security Guardrails
 
-MIT License — free to use and modify.
+Implemented in V1:
 
----
+- `.env.local` is ignored by Git.
+- AI provider keys stay server-side.
+- `/api/debug` endpoint removed.
+- Request body size limit.
+- Prompt length limit.
+- DOM context length limit.
+- Basic per-client rate limit.
+- URL normalization for domain-only input.
+- URL validation allows only `http` and `https`.
+- Embedded URL credentials are blocked.
+- `localhost`, `.local`, private IPs, reserved IPs, and cloud metadata hosts are blocked.
+- DNS is resolved before scraping; private/reserved resolved addresses are blocked.
 
-<p align="center">
-  Built with Next.js, Playwright, and server-side AI<br/>
-  <sub>OpenCode Go • OpenRouter • Gemini • OpenAI • Claude</sub>
-</p>
+Still required before public launch:
+
+- Authentication.
+- Per-user quotas.
+- Billing guardrails.
+- Stronger browser sandbox/isolation.
+- Privacy policy and terms of service.
+- Data retention controls.
+- Abuse monitoring and audit logs.
+
+## Roadmap
+
+Detailed roadmap:
+
+- `PRODUCT_ROADMAP.md`
+- `webweave-roadmap.excalidraw`
+
+Near-term priorities:
+
+1. Selector confidence scoring.
+2. Locator candidate list in UI.
+3. Regeneration with failure feedback.
+4. Script quality checklist before returning output.
+5. Playwright-first quality pass.
+6. Private beta privacy and data retention copy.
+
+## Verification
+
+Latest verified state:
+
+- `npm run build` passes.
+- Generated SauceDemo Playwright Python script completed login, add-to-cart, checkout, and finish flow successfully.
+- Stale generated script files and hardcoded credential examples removed.
+- Excalidraw roadmap JSON validates.
+
+## Changelog
+
+### v1.0.0 - Safety MVP and UI Refresh
+
+- Removed debug endpoint.
+- Added URL validation and SSRF guardrails.
+- Added request, prompt, and DOM context limits.
+- Added basic per-client rate limiting.
+- Removed generated sample scripts and credential-bearing artifacts.
+- Added Chromium locator preview screenshot.
+- Redesigned UI with solid vibrant browser-lab styling and dark/light mode.
+- Improved generation prompt with locator validators and dynamic-list handling rules.
+- Added support for domain-only URL input by normalizing to `https://`.
+
+### v0.3.0
+
+- Removed browser-side API key UI.
+- Added server-side provider auto-detection.
+- Improved prompt engineering for DOM-grounded selectors.
+- Added key element extraction.
+- Replaced `networkidle` guidance with `domcontentloaded` and explicit waits.
+
+### v0.2.0
+
+- Added OpenCode Go provider.
+- Fixed Gemini and OpenRouter model defaults.
+- Added temporary debug endpoint for local troubleshooting, later removed in V1.
+
+### v0.1.0
+
+- Initial Next.js 14 application.
+- Playwright headless DOM scraping.
+- Multi-provider AI generation.
+- Multi-framework output.
+
+## License
+
+MIT License.

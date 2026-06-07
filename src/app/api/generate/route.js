@@ -3,6 +3,156 @@ import { chromium } from 'playwright';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import dns from 'dns/promises';
+import net from 'net';
+
+const MAX_REQUEST_BYTES = 64 * 1024;
+const MAX_URL_LENGTH = 2048;
+const MAX_PROMPT_LENGTH = 4000;
+const MAX_DOM_CONTEXT_LENGTH = 14000;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 10;
+const rateLimitStore = new Map();
+
+function getClientId(req) {
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  if (forwardedFor) return forwardedFor.split(',')[0].trim();
+  return req.headers.get('x-real-ip') || 'unknown';
+}
+
+function checkRateLimit(clientId) {
+  const now = Date.now();
+  const current = rateLimitStore.get(clientId);
+
+  if (!current || now > current.resetAt) {
+    rateLimitStore.set(clientId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return null;
+  }
+
+  current.count += 1;
+  if (current.count > RATE_LIMIT_MAX_REQUESTS) {
+    return Math.ceil((current.resetAt - now) / 1000);
+  }
+
+  return null;
+}
+
+function isPrivateIPv4(address) {
+  const parts = address.split('.').map(Number);
+  if (parts.length !== 4 || parts.some(part => Number.isNaN(part) || part < 0 || part > 255)) return true;
+  const [a, b] = parts;
+
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    a >= 224
+  );
+}
+
+function isPrivateIPv6(address) {
+  const normalized = address.toLowerCase();
+  return (
+    normalized === '::1' ||
+    normalized === '::' ||
+    normalized.startsWith('fc') ||
+    normalized.startsWith('fd') ||
+    normalized.startsWith('fe80') ||
+    normalized.startsWith('::ffff:127.') ||
+    normalized.startsWith('::ffff:10.') ||
+    normalized.startsWith('::ffff:192.168.') ||
+    normalized.startsWith('::ffff:169.254.')
+  );
+}
+
+function isBlockedIPAddress(address) {
+  const ipVersion = net.isIP(address);
+  if (ipVersion === 4) return isPrivateIPv4(address);
+  if (ipVersion === 6) return isPrivateIPv6(address);
+  return true;
+}
+
+async function validateTargetUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') {
+    throw new Error('URL is required.');
+  }
+
+  const normalizedUrl = rawUrl.trim();
+  const urlWithProtocol = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(normalizedUrl)
+    ? normalizedUrl
+    : `https://${normalizedUrl}`;
+
+  if (urlWithProtocol.length > MAX_URL_LENGTH) {
+    throw new Error(`URL is too long. Max ${MAX_URL_LENGTH} characters.`);
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(urlWithProtocol);
+  } catch {
+    throw new Error('URL is invalid. Use a domain like example.com or a full URL like https://example.com.');
+  }
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error('Only http and https URLs are allowed.');
+  }
+
+  if (parsed.username || parsed.password) {
+    throw new Error('URLs with embedded credentials are not allowed.');
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (!hostname || hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.endsWith('.local')) {
+    throw new Error('Local or private hostnames are not allowed.');
+  }
+
+  if (hostname === 'metadata.google.internal') {
+    throw new Error('Cloud metadata hosts are not allowed.');
+  }
+
+  if (net.isIP(hostname)) {
+    if (isBlockedIPAddress(hostname)) {
+      throw new Error('Private, local, or reserved IP addresses are not allowed.');
+    }
+    return parsed.toString();
+  }
+
+  let records;
+  try {
+    records = await dns.lookup(hostname, { all: true });
+  } catch {
+    throw new Error('Target hostname could not be resolved.');
+  }
+
+  if (!records.length || records.some(record => isBlockedIPAddress(record.address))) {
+    throw new Error('Target resolves to a private, local, or reserved IP address.');
+  }
+
+  return parsed.toString();
+}
+
+function validatePrompt(prompt) {
+  if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+    throw new Error('Automation goal/prompt is required.');
+  }
+
+  const trimmed = prompt.trim();
+  if (trimmed.length > MAX_PROMPT_LENGTH) {
+    throw new Error(`Prompt is too long. Max ${MAX_PROMPT_LENGTH} characters.`);
+  }
+
+  return trimmed;
+}
+
+function limitText(value, maxLength) {
+  if (!value || value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength)}\n\n[Truncated for safety and token limits]`;
+}
 
 // ============================================================
 // DOM Extraction Script — runs inside the headless browser
@@ -39,7 +189,10 @@ function getInteractiveElementsJS() {
       const role = el.getAttribute('role') || '';
       const ariaLabel = el.getAttribute('aria-label') || '';
       const href = tag === 'a' ? (el.getAttribute('href') || '') : '';
-      const dataTestId = el.getAttribute('data-testid') || el.getAttribute('data-test-id') || el.getAttribute('data-cy') || '';
+      const testAttrNames = ['data-testid', 'data-test-id', 'data-test', 'data-cy'];
+      const dataTestAttrName = testAttrNames.find(attr => el.getAttribute(attr));
+      const dataTestId = dataTestAttrName ? el.getAttribute(dataTestAttrName) : '';
+      const className = el.getAttribute('class') || '';
       
       const form = el.closest('form');
       const formId = form ? (form.getAttribute('id') || form.getAttribute('name') || form.getAttribute('action') || 'form') : '';
@@ -58,7 +211,11 @@ function getInteractiveElementsJS() {
       if (role) elementInfo.attributes.role = role;
       if (ariaLabel) elementInfo.attributes.ariaLabel = ariaLabel;
       if (href) elementInfo.attributes.href = href;
-      if (dataTestId) elementInfo.attributes.dataTestId = dataTestId;
+      if (dataTestId) {
+        elementInfo.attributes.dataTestId = dataTestId;
+        elementInfo.attributes.dataTestAttrName = dataTestAttrName;
+      }
+      if (className) elementInfo.attributes.className = className.substring(0, 120);
       if (formId) elementInfo.formContext = formId;
 
       if (['input', 'textarea', 'select'].includes(tag)) {
@@ -244,6 +401,8 @@ function getFrameworkDetails(framework) {
       details: `Playwright in JavaScript — standalone script (NOT @playwright/test runner).
 Use: const { chromium } = require('playwright'); browser = await chromium.launch(); page = await browser.newPage();
 Selectors: USE ID/name from DOM FIRST. page.fill('#exactId', val) > page.locator('#id') > page.getByRole() > page.getByPlaceholder().
+Validation: Create helper functions like waitVisible(selector, label), clickSafe(selector, label), fillSafe(selector, value, label). Each helper MUST check count/visibility before action and throw a clear error if not found.
+Fallbacks: For important actions, define candidate selectors array and validate in order before using. Never click an unvalidated selector.
 Navigation: page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 }). Never use 'networkidle'.
 Wait: await page.waitForSelector('#id', { state: 'visible' }) then interact. Avoid page.waitForTimeout() when possible.
 Assert: use if/throw for assertions (not expect from @playwright/test).
@@ -255,6 +414,9 @@ Structure: (async () => { try { ... } catch(e) { console.error(e); } finally { a
       details: `Playwright in Python — standalone script (NOT pytest).
 Use: from playwright.sync_api import sync_playwright; with sync_playwright() as p: browser = p.chromium.launch()
 Selectors: USE ID/name from DOM FIRST. page.fill('#exactId', val) > page.locator('#id') > page.get_by_role() > page.get_by_placeholder().
+Python API syntax: locator.first is a property, NOT a function. Use locator.first.click(), locator.first.fill(), locator.first.wait_for(). Never write locator.first().
+Validation: Create helper functions like wait_visible(page, selector, label), click_safe(page, selector, label), fill_safe(page, selector, value, label). Each helper MUST check count/visibility before action and raise a clear error if not found.
+Fallbacks: For important actions, define candidate selectors list and validate in order before using. Never click an unvalidated selector.
 Navigation: page.goto(url, timeout=120000). Never use wait_until='networkidle'. Use wait_until='commit' or omit it.
 Wait: page.wait_for_selector('#id', state='visible') then page.fill('#id', val). Avoid page.wait_for_timeout().
 Assert: use assert or if/raise for assertions.
@@ -298,27 +460,42 @@ CRITICAL RULES — failure to follow = broken script:
 1. SELECTOR STRATEGY (strict priority):
    a) MANDATORY: Use EXACT id/name values from the provided DOM context when they exist
       Example: DOM shows id="email" -> use page.fill('#email', val) NOT page.getByPlaceholder()
-   b) If no id/name exists: use aria-label or data-testid from DOM
+   b) If no id/name exists: use data-testid/data-test or aria-label from DOM
    c) Last resort ONLY: use placeholder/text matching
 
-2. NAVIGATION STRATEGY:
+2. LOCATOR VALIDATION (mandatory):
+   - Every locator used for click/fill/assert MUST be validated before action.
+   - Add reusable helper functions in the generated script:
+     JS: resolveLocator(page, candidates, label), clickSafe(...), fillSafe(...)
+     Python: resolve_locator(page, candidates, label), click_safe(...), fill_safe(...)
+   - Each helper must try candidate selectors in order, check count > 0, wait until visible, then act.
+   - If no candidate works, throw/raise clear error listing the label and candidates.
+   - Do NOT use raw page.click/page.fill directly outside helper functions.
+   - For assertions, validate expected element/text/URL and print proof.
+
+3. REPEATED ACTIONS / DYNAMIC LISTS:
+   - If action repeats over a changing list (example: click all "Add to cart" buttons where clicked buttons become "Remove"), DO NOT use for i in range(initial_count) with nth(i).
+   - Use a while loop that repeatedly clicks the first currently visible matching button until none remain, or collect stable selectors from data-test/id before clicking.
+   - After repeated actions, validate result count or state (cart badge count, selected items count, row count, etc.).
+
+4. NAVIGATION STRATEGY:
    - NEVER use wait_until='networkidle' — it will timeout on production sites
    - Use wait_until='domcontentloaded' or omit it entirely
    - Add retry loop (2-3 attempts) for page.goto() timeouts on slow sites
    - After navigation: wait for a SPECIFIC element from DOM context, not generic selectors
 
-3. CODE STRUCTURE:
-   - Output ONLY a single markdown code block ```. No explanations.
+5. CODE STRUCTURE:
+   - Output ONLY a single markdown code block \`\`\`. No explanations.
    - Write COMPLETE standalone scripts with imports, setup, actions, teardown
    - Include try/catch error handling + error screenshot
    - Use headless browser (headless=True/true)
 
-4. INTERACTIONS:
+6. INTERACTIONS:
    - Wait for element to be visible/clickable BEFORE interacting
    - Use element-specific waits (waitForSelector) over time.sleep()
    - After form submission: wait for URL change or next page element
 
-5. ASSERTIONS:
+7. ASSERTIONS:
    - Verify each step succeeded (element found, page loaded correctly)
    - After login: verify user reached the expected page (URL contains /home, /dashboard, etc.)
    - Extract and display relevant page data as proof the script worked`;
@@ -335,6 +512,8 @@ Write a ${fw.name} automation script.
 
 ## Critical Navigation Notes
 - Use EXACT id/name selectors from the DOM context below
+- Validate every locator before click/fill/assert; include helper functions and candidate selector fallback lists
+- For repeated buttons/items that change state after click, click the first current match until no matches remain, then validate count/state
 - Add retry for page.goto() (sites may be slow)
 - After login/submit: wait for URL change, not just time.sleep()
 - Watch for redirects to intermediate pages (e.g. /select-company, /choose-role)
@@ -366,7 +545,7 @@ Generate using resilient selectors. Prefer id/name-based selectors. Add comments
     return (isInput && hasId) || (isButton && (attrs.type === 'submit' || (el.text && /sign|login|submit|continue/i.test(el.text))));
   }).map(el => {
     const a = el.attributes || {};
-    let key = `<${el.tag}${a.id ? ' id="'+a.id+'"' : ''}${a.type ? ' type="'+a.type+'"' : ''}${a.name ? ' name="'+a.name+'"' : ''}${a.placeholder ? ' placeholder="'+a.placeholder+'"' : ''}>`;
+    let key = `<${el.tag}${a.id ? ' id="'+a.id+'"' : ''}${a.type ? ' type="'+a.type+'"' : ''}${a.name ? ' name="'+a.name+'"' : ''}${a.placeholder ? ' placeholder="'+a.placeholder+'"' : ''}${a.dataTestId ? ' '+(a.dataTestAttrName || 'data-testid')+'="'+a.dataTestId+'"' : ''}>`;
     if (el.text) key += ` "${el.text}"`;
     if (el.labelText) key += ` [label: ${el.labelText}]`;
     return key;
@@ -382,7 +561,8 @@ Generate using resilient selectors. Prefer id/name-based selectors. Add comments
     if (attrs.placeholder) parts.push(`placeholder="${attrs.placeholder}"`);
     if (attrs.role) parts.push(`role="${attrs.role}"`);
     if (attrs.ariaLabel) parts.push(`aria-label="${attrs.ariaLabel}"`);
-    if (attrs.dataTestId) parts.push(`data-testid="${attrs.dataTestId}"`);
+    if (attrs.dataTestId) parts.push(`${attrs.dataTestAttrName || 'data-testid'}="${attrs.dataTestId}"`);
+    if (attrs.className) parts.push(`class="${attrs.className}"`);
     if (attrs.href) parts.push(`href="${attrs.href}"`);
     parts.push('>');
     if (el.text) parts.push(el.text);
@@ -414,7 +594,33 @@ Generate using resilient selectors. Prefer id/name-based selectors. Add comments
 export async function POST(req) {
   let browser = null;
   try {
+    const retryAfter = checkRateLimit(getClientId(req));
+    if (retryAfter) {
+      return NextResponse.json({
+        error: `Rate limit reached. Try again in ${retryAfter} seconds.`
+      }, {
+        status: 429,
+        headers: { 'Retry-After': String(retryAfter) }
+      });
+    }
+
+    const contentLength = Number(req.headers.get('content-length') || 0);
+    if (contentLength > MAX_REQUEST_BYTES) {
+      return NextResponse.json({
+        error: `Request body is too large. Max ${MAX_REQUEST_BYTES} bytes.`
+      }, { status: 413 });
+    }
+
     const { url, prompt, framework, provider: userProvider, modelId: userModelId } = await req.json();
+
+    let safeUrl;
+    let safePrompt;
+    try {
+      safeUrl = await validateTargetUrl(url);
+      safePrompt = validatePrompt(prompt);
+    } catch (validationError) {
+      return NextResponse.json({ error: validationError.message }, { status: 400 });
+    }
 
     // Auto-detect provider from server env keys (user can override via request)
     const detected = autoDetectProvider();
@@ -430,14 +636,6 @@ export async function POST(req) {
       : (PROVIDER_DEFAULTS[activeProvider] || { modelId: null });
     const activeModelId = modelId;
 
-    // Validation
-    if (!url) {
-      return NextResponse.json({ error: 'URL is required.' }, { status: 400 });
-    }
-    if (!prompt) {
-      return NextResponse.json({ error: 'Automation goal/prompt is required.' }, { status: 400 });
-    }
-
     // Resolve API Key
     const activeApiKey = resolveApiKey(activeProvider, undefined);
     if (!activeApiKey) {
@@ -451,6 +649,7 @@ export async function POST(req) {
     let interactiveData = null;
     let scrapeLogs = [];
     let scrapeSuccess = false;
+    let browserPreview = null;
 
     // ── Phase 1: DOM Scraping with Playwright ──
     try {
@@ -465,8 +664,8 @@ export async function POST(req) {
       });
       const page = await context.newPage();
       
-      scrapeLogs.push(`Navigating to: ${url}...`);
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      scrapeLogs.push(`Navigating to: ${safeUrl}...`);
+      await page.goto(safeUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
       
       // Wait a bit for dynamic content to render
       await page.waitForTimeout(1500);
@@ -478,6 +677,21 @@ export async function POST(req) {
         pageTitle = interactiveData.title || '';
         scrapeLogs.push(`Scraped successfully! Found ${interactiveData.elements.length} interactive elements.`);
         scrapeSuccess = true;
+
+        await page.evaluate(() => {
+          const selectors = 'input, select, textarea, button, a, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [tabindex="0"]';
+          document.querySelectorAll(selectors).forEach((el) => {
+            const style = window.getComputedStyle(el);
+            if (style.display === 'none' || style.visibility === 'hidden' || el.offsetWidth === 0 || el.offsetHeight === 0) return;
+            el.style.outline = '2px solid #8b5cf6';
+            el.style.outlineOffset = '2px';
+            el.style.boxShadow = '0 0 0 4px rgba(139, 92, 246, 0.18)';
+          });
+        });
+
+        const screenshot = await page.screenshot({ type: 'jpeg', quality: 72, fullPage: false });
+        browserPreview = `data:image/jpeg;base64,${screenshot.toString('base64')}`;
+        scrapeLogs.push('Browser preview captured with locator highlights.');
       } else {
         scrapeLogs.push('Warning: DOM extraction returned empty data. Falling back to generic generation.');
       }
@@ -493,8 +707,8 @@ export async function POST(req) {
 
     // ── Phase 2: AI Code Generation ──
     const systemPrompt = buildSystemPrompt();
-    const domContext = buildDomContext(url, scrapeSuccess, interactiveData);
-    const userPrompt = buildUserPrompt(url, prompt, framework, domContext);
+    const domContext = limitText(buildDomContext(safeUrl, scrapeSuccess, interactiveData), MAX_DOM_CONTEXT_LENGTH);
+    const userPrompt = buildUserPrompt(safeUrl, safePrompt, framework, domContext);
 
     const providerLabel = { gemini: 'Gemini', openai: 'OpenAI', anthropic: 'Claude', openrouter: 'OpenRouter', opencode: 'OpenCode Go' };
     scrapeLogs.push(`Sending request to ${providerLabel[activeProvider] || activeProvider} API...`);
@@ -518,7 +732,8 @@ export async function POST(req) {
       code: generatedCode,
       fileExtension: fw.ext,
       logs: scrapeLogs,
-      provider: activeProvider
+      provider: activeProvider,
+      browserPreview
     });
 
   } catch (error) {

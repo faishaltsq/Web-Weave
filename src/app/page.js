@@ -1,84 +1,70 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  Zap,
+  AlertCircle,
+  CheckCircle,
   Copy,
   Download,
-  Terminal,
-  AlertCircle,
-  Check,
-  RefreshCw,
-  Code2
+  Loader,
+  Monitor,
+  Moon,
+  Sun,
+  Zap,
 } from 'lucide-react';
 import styles from './page.module.css';
 
-export default function Home() {
-  const [url, setUrl] = useState('');
-  const [prompt, setPrompt] = useState('');
-  const [framework, setFramework] = useState('playwright_js');
+const FRAMEWORKS = [
+  { value: 'playwright_js', label: 'Playwright JavaScript' },
+  { value: 'playwright_python', label: 'Playwright Python' },
+  { value: 'puppeteer_js', label: 'Puppeteer JavaScript' },
+  { value: 'selenium_python', label: 'Selenium Python' },
+  { value: 'cypress_js', label: 'Cypress JavaScript' },
+];
 
+export default function WebWeave() {
+  const [url, setUrl] = useState('');
+  const [objective, setObjective] = useState('');
+  const [framework, setFramework] = useState('playwright_js');
   const [loading, setLoading] = useState(false);
-  const [generatedCode, setGeneratedCode] = useState('');
-  const [fileExtension, setFileExtension] = useState('js');
+  const [result, setResult] = useState(null);
   const [logs, setLogs] = useState([]);
   const [error, setError] = useState('');
-  const [targetTitle, setTargetTitle] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isDark, setIsDark] = useState(true);
 
-  const handleCopy = async () => {
-    if (!generatedCode) return;
-    try {
-      await navigator.clipboard.writeText(generatedCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  };
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem('webweave-theme');
+    if (savedTheme) setIsDark(savedTheme === 'dark');
+  }, []);
 
-  const handleDownload = () => {
-    if (!generatedCode) return;
-    const blob = new Blob([generatedCode], { type: 'text/plain;charset=utf-8' });
-    const blobUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+  useEffect(() => {
+    window.localStorage.setItem('webweave-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
-    let domain = 'automation';
-    try {
-      const parsed = new URL(url);
-      domain = parsed.hostname.replace('www.', '').split('.')[0];
-    } catch (_) { }
+  const selectedFrameworkLabel = FRAMEWORKS.find((item) => item.value === framework)?.label || framework;
 
-    link.href = blobUrl;
-    link.download = `${domain}_automation.${fileExtension}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(blobUrl);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!url) {
+  const handleGenerate = async () => {
+    if (!url.trim()) {
       setError('Harap masukkan URL website target.');
       return;
     }
-    if (!prompt) {
+
+    if (!objective.trim()) {
       setError('Harap masukkan tujuan automasi.');
       return;
     }
 
     setLoading(true);
     setError('');
-    setGeneratedCode('');
-    setTargetTitle('');
+    setResult(null);
     setLogs(['Memulai proses generasi...']);
 
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, prompt, framework }),
+        body: JSON.stringify({ url, prompt: objective, framework }),
       });
 
       const data = await response.json();
@@ -87,122 +73,137 @@ export default function Home() {
         throw new Error(data.error || 'Terjadi kesalahan pada server.');
       }
 
-      if (data.success) {
-        setGeneratedCode(data.code);
-        setFileExtension(data.fileExtension);
-        setTargetTitle(data.title);
-        setLogs(prev => [...prev, ...data.logs]);
-      } else {
-        throw new Error('Gagal menghasilkan skrip automasi.');
+      if (!data.success) {
+        throw new Error(data.error || 'Gagal menghasilkan skrip automasi.');
       }
 
+      setResult(data);
+      setLogs(data.logs || []);
     } catch (err) {
       setError(err.message);
-      setLogs(prev => [...prev, `Error: ${err.message}`]);
+      setLogs((prev) => [...prev, `Error: ${err.message}`]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getFrameworkLabel = (fw) => {
-    switch (fw) {
-      case 'playwright_js': return 'Playwright (JS)';
-      case 'playwright_python': return 'Playwright (Python)';
-      case 'puppeteer_js': return 'Puppeteer (JS)';
-      case 'selenium_python': return 'Selenium (Python)';
-      case 'cypress_js': return 'Cypress (JS)';
-      default: return 'Playwright';
-    }
+  const handleCopyCode = async () => {
+    if (!result?.code) return;
+    await navigator.clipboard.writeText(result.code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadCode = () => {
+    if (!result?.code) return;
+
+    const ext = result.fileExtension || 'txt';
+    const blob = new Blob([result.code], { type: 'text/plain;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    let domain = 'automation';
+    try {
+      domain = new URL(url).hostname.replace('www.', '').split('.')[0];
+    } catch (_) {}
+
+    link.href = blobUrl;
+    link.download = `${domain}_automation.${ext}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
   };
 
   return (
-    <div className={styles.container}>
-      {/* Header section */}
+    <div className={`${styles.container} ${isDark ? styles.darkMode : styles.lightMode}`}>
+      <div className={styles.backgroundGlow} />
+
       <header className={styles.header}>
-        <div className={styles.logoContainer}>
-          <Zap size={36} className={styles.logoIcon} />
-          <span className={styles.title}>WebWeave</span>
+        <div className={styles.headerContent}>
+          <div className={styles.logo}>
+            <div className={styles.logoMark}>
+              <Monitor size={24} />
+            </div>
+            <div>
+              <span>WebWeave</span>
+              <p>AI Automation Lab</p>
+            </div>
+          </div>
+
+          <p className={styles.subtitle}>Generate Playwright-ready automation from DOM locator intelligence.</p>
+
+          <button
+            type="button"
+            onClick={() => setIsDark((value) => !value)}
+            className={styles.themeToggle}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
         </div>
-        <p className={styles.subtitle}>
-          Generate production-ready web automation scripts instantly from a URL and natural language prompts.
-        </p>
       </header>
 
-      {/* Main Grid: Control Panel vs Code Output */}
-      <main className={styles.mainGrid}>
+      <main className={styles.mainLayout}>
+        <aside className={styles.leftPanel}>
+          <div className={styles.formCard}>
+            <div>
+              <p className={styles.kicker}>Script Generator</p>
+              <h1 className={styles.formTitle}>Create automation script</h1>
+              <p className={styles.formDescription}>Scan target DOM, highlight locator candidates, then generate runnable automation code.</p>
+            </div>
 
-        {/* Left Side: Forms & Controls */}
-        <section className={styles.card}>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-            {/* Target URL Input */}
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>
-                Target Website URL
-              </label>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Target Website URL</label>
               <input
                 type="url"
-                required
-                className={styles.input}
-                placeholder="https://example.com/login"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(event) => setUrl(event.target.value)}
+                placeholder="https://example.com/login"
+                className={styles.input}
+                disabled={loading}
               />
+              <p className={styles.helperText}>Bisa pakai domain saja, contoh: www.saucedemo.com. WebWeave otomatis memakai https://.</p>
             </div>
 
-            {/* Automation Goal Prompt */}
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>
-                Automation Objective
-              </label>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Automation Objective</label>
               <textarea
-                required
+                value={objective}
+                onChange={(event) => setObjective(event.target.value)}
+                placeholder="Contoh: Login menggunakan {{USERNAME}} dan {{PASSWORD}}, lalu verifikasi dashboard muncul."
                 className={styles.textarea}
-                placeholder="Contoh: Login menggunakan username 'admin' dan password 'rahasia123', kemudian verifikasi bahwa teks 'Selamat Datang' muncul di dashboard."
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                disabled={loading}
               />
+              <p className={styles.warningText}>Use placeholders like {'{{USERNAME}}'} and {'{{PASSWORD}}'}. Do not enter real credentials.</p>
             </div>
 
-            {/* Framework Selector */}
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>
-                Target Automation Framework
-              </label>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Framework</label>
               <select
-                className={styles.select}
                 value={framework}
-                onChange={(e) => setFramework(e.target.value)}
+                onChange={(event) => setFramework(event.target.value)}
+                className={styles.select}
+                disabled={loading}
               >
-                <option value="playwright_js">Playwright (JavaScript - Node.js)</option>
-                <option value="playwright_python">Playwright (Python)</option>
-                <option value="puppeteer_js">Puppeteer (JavaScript - Node.js)</option>
-                <option value="selenium_python">Selenium (Python)</option>
-                <option value="cypress_js">Cypress (JavaScript)</option>
+                {FRAMEWORKS.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
               </select>
             </div>
 
-            {/* Error Banner */}
             {error && (
               <div className={styles.errorBanner}>
-                <AlertCircle className={styles.errorIcon} size={18} />
-                <div>
-                  <strong>Error: </strong>
-                  <span>{error}</span>
-                </div>
+                <AlertCircle size={18} />
+                <span>{error}</span>
               </div>
             )}
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className={styles.button}
-              disabled={loading}
-            >
+            <button type="button" onClick={handleGenerate} disabled={loading} className={styles.generateButton}>
               {loading ? (
                 <>
-                  <RefreshCw className={styles.spinner} size={18} />
-                  Mengekstrak DOM & Membuat Kode...
+                  <Loader size={18} className={styles.spinner} />
+                  Scanning DOM & Generating Code...
                 </>
               ) : (
                 <>
@@ -211,87 +212,103 @@ export default function Home() {
                 </>
               )}
             </button>
-          </form>
 
-          {/* Logs Terminal Area */}
-          {logs.length > 0 && (
-            <div className={styles.inputGroup} style={{ marginTop: '0.5rem' }}>
-              <label className={styles.label}>
-                <Terminal size={16} /> Status Proses (Console Logs)
-              </label>
-              <div className={styles.logsCard}>
-                {logs.map((log, index) => (
-                  <div key={index} className={styles.logLine}>
-                    <span className={styles.logTimestamp}>&gt;</span>
-                    <span className={styles.logText}>{log}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Right Side: Code Output Viewer */}
-        <section className={styles.codeCard}>
-          <div className={styles.codeHeader}>
-            <div className={styles.codeTitleInfo}>
-              <Code2 size={18} className={styles.logoIcon} />
-              <span className={styles.codeBadge}>{getFrameworkLabel(framework)}</span>
-              {targetTitle && (
-                <span className={styles.codeTargetTitle} title={targetTitle}>
-                  Site: {targetTitle}
-                </span>
-              )}
-            </div>
-            {generatedCode && (
-              <div className={styles.codeActions}>
-                <button
-                  onClick={handleCopy}
-                  className={`${styles.actionButton} ${copied ? styles.actionButtonActive : ''}`}
-                  title="Copy code to clipboard"
-                >
-                  {copied ? <Check size={14} /> : <Copy size={14} />}
-                  {copied ? 'Copied!' : 'Copy'}
-                </button>
-                <button
-                  onClick={handleDownload}
-                  className={styles.actionButton}
-                  title="Download script file"
-                >
-                  <Download size={14} />
-                  Download
-                </button>
+            {logs.length > 0 && (
+              <div className={styles.consoleSection}>
+                <h2 className={styles.consoleTitle}>Generation Logs</h2>
+                <div className={styles.console}>
+                  {logs.map((log, index) => (
+                    <div key={`${log}-${index}`} className={styles.consoleLine}>
+                      <span className={styles.consolePrompt}>{'>'}</span>
+                      <span>{log}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
+        </aside>
 
-          <div className={styles.codeBody}>
-            {generatedCode ? (
-              <pre className={styles.pre}>
-                <code>{generatedCode}</code>
-              </pre>
-            ) : (
-              <div className={styles.emptyCodePlaceholder}>
-                <Code2 size={64} className={styles.emptyCodeIcon} />
-                <h3>Belum Ada Kode yang Dihasilkan</h3>
-                <p style={{ maxWidth: '400px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                  Masukkan URL target, tujuan automasi, pilih framework, lalu klik <strong>Generate Script</strong>.
-                </p>
+        <section className={styles.rightPanel}>
+          <div className={styles.outputHeader}>
+            <div>
+              <p className={styles.kicker}>Locator Preview</p>
+              <h2>Chromium workspace</h2>
+            </div>
+            <span className={styles.frameworkBadge}>{selectedFrameworkLabel}</span>
+          </div>
+
+          <div className={styles.outputCard}>
+            <div className={styles.browserToolbar}>
+              <div className={styles.browserControls}>
+                <span className={styles.trafficRed} />
+                <span className={styles.trafficAmber} />
+                <span className={styles.trafficGreen} />
               </div>
-            )}
+              <div className={styles.addressBar}>{url || 'https://target-site.example'}</div>
+              <span className={styles.liveBadge}>{loading ? 'Scanning' : result?.browserPreview ? 'Captured' : 'Ready'}</span>
+            </div>
+
+            <div className={styles.previewContainer}>
+              {loading ? (
+                <div className={styles.loadingState}>
+                  <div className={styles.scanAnimation}>
+                    <div className={styles.locatorBoxOne}>button</div>
+                    <div className={styles.locatorBoxTwo}>input</div>
+                    <div className={styles.locatorBoxThree}>link</div>
+                    <div className={styles.scanLine} />
+                  </div>
+                  <p className={styles.scanningText}>Chromium scanning DOM locators...</p>
+                  <div className={styles.pulsingDots}>
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+              ) : result?.browserPreview ? (
+                <img src={result.browserPreview} alt="Locator preview" className={styles.previewImage} />
+              ) : (
+                <div className={styles.emptyState}>
+                  <Monitor size={54} />
+                  <h3>Browser preview appears here</h3>
+                  <p>Generate a script to see Chromium screenshot with highlighted locator candidates.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.outputCard}>
+            <div className={styles.codeToolbar}>
+              <div>
+                <p className={styles.kicker}>Generated Code</p>
+                <h2>Automation script</h2>
+              </div>
+              {result?.code && (
+                <div className={styles.codeActions}>
+                  <button type="button" onClick={handleCopyCode} className={styles.actionButton}>
+                    {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                  <button type="button" onClick={handleDownloadCode} className={styles.actionButton}>
+                    <Download size={16} />
+                    Download
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.codeBlock}>
+              {result?.code ? (
+                <pre className={styles.code}><code>{result.code}</code></pre>
+              ) : (
+                <div className={styles.codeEmptyState}>
+                  <p>Your generated automation script will appear here after WebWeave finishes scanning.</p>
+                </div>
+              )}
+            </div>
           </div>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer className={styles.footer}>
-        <p>
-          AI-powered web automation script generator. Powered by Playwright + server-side AI.
-        </p>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-          Note: Beberapa website yang memiliki proteksi bot sangat ketat (Cloudflare CAPTCHA) mungkin akan digenerasi menggunakan struktur DOM default.
-        </p>
-      </footer>
     </div>
   );
 }
