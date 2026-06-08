@@ -32,6 +32,7 @@ export default function WebWeave() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [isDark, setIsDark] = useState(true);
+  const [generationFeedback, setGenerationFeedback] = useState('');
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('webweave-theme');
@@ -44,7 +45,7 @@ export default function WebWeave() {
 
   const selectedFrameworkLabel = FRAMEWORKS.find((item) => item.value === framework)?.label || framework;
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (options = {}) => {
     if (!url.trim()) {
       setError('Harap masukkan URL website target.');
       return;
@@ -60,11 +61,16 @@ export default function WebWeave() {
     setResult(null);
     setLogs(['Memulai proses generasi...']);
 
+    const feedbackText = typeof options.feedback === 'string' ? options.feedback.trim() : '';
+    const requestPrompt = feedbackText
+      ? `${objective.trim()}\n\nRegeneration feedback from previous output:\n${feedbackText}`
+      : objective.trim();
+
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, prompt: objective, framework }),
+        body: JSON.stringify({ url, prompt: requestPrompt, framework }),
       });
 
       const data = await response.json();
@@ -79,6 +85,7 @@ export default function WebWeave() {
 
       setResult(data);
       setLogs(data.logs || []);
+      if (feedbackText) setGenerationFeedback('');
     } catch (err) {
       setError(err.message);
       setLogs((prev) => [...prev, `Error: ${err.message}`]);
@@ -199,7 +206,7 @@ export default function WebWeave() {
               </div>
             )}
 
-            <button type="button" onClick={handleGenerate} disabled={loading} className={styles.generateButton}>
+            <button type="button" onClick={() => handleGenerate()} disabled={loading} className={styles.generateButton}>
               {loading ? (
                 <>
                   <Loader size={18} className={styles.spinner} />
@@ -277,6 +284,31 @@ export default function WebWeave() {
             </div>
           </div>
 
+          {result?.locatorSummary?.length > 0 && (
+            <div className={styles.outputCard}>
+              <div className={styles.insightHeader}>
+                <div>
+                  <p className={styles.kicker}>Locator Intelligence</p>
+                  <h2>Top selector candidates</h2>
+                </div>
+                <span className={styles.liveBadge}>{result.locatorSummary.length} ranked</span>
+              </div>
+              <div className={styles.locatorList}>
+                {result.locatorSummary.map((item, index) => (
+                  <div key={`${item.selector}-${index}`} className={styles.locatorItem}>
+                    <div className={styles.locatorMeta}>
+                      <span className={styles.scorePill}>{item.score}</span>
+                      <span className={styles.candidateType}>{item.type}</span>
+                      <span className={styles.locatorTag}>{item.tag}</span>
+                    </div>
+                    <code className={styles.selectorText}>{item.selector}</code>
+                    {item.text && <p>{item.text}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className={styles.outputCard}>
             <div className={styles.codeToolbar}>
               <div>
@@ -297,6 +329,26 @@ export default function WebWeave() {
               )}
             </div>
 
+            {result?.qualityChecks?.length > 0 && (
+              <div className={styles.qualityPanel}>
+                <p className={styles.kicker}>Static Validation</p>
+                <div className={styles.qualityList}>
+                  {result.qualityChecks.map((check, index) => (
+                    <div
+                      key={`${check.label}-${index}`}
+                      className={`${styles.qualityItem} ${styles[`quality${check.status}`] || ''}`}
+                    >
+                      <span>{check.status}</span>
+                      <div>
+                        <strong>{check.label}</strong>
+                        <p>{check.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className={styles.codeBlock}>
               {result?.code ? (
                 <pre className={styles.code}><code>{result.code}</code></pre>
@@ -307,6 +359,34 @@ export default function WebWeave() {
               )}
             </div>
           </div>
+
+          {result?.code && (
+            <div className={styles.outputCard}>
+              <div className={styles.regeneratePanel}>
+                <div>
+                  <p className={styles.kicker}>Regenerate</p>
+                  <h2>Improve with feedback</h2>
+                  <p>Describe what failed or what should be improved. WebWeave will keep the original objective and add your feedback to the next generation.</p>
+                </div>
+                <textarea
+                  value={generationFeedback}
+                  onChange={(event) => setGenerationFeedback(event.target.value)}
+                  className={styles.feedbackTextarea}
+                  placeholder="Example: Add stronger validation for checkout badge count, avoid locator.first() mistakes, and use data-test selectors first."
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className={styles.regenerateButton}
+                  disabled={loading || !generationFeedback.trim()}
+                  onClick={() => handleGenerate({ feedback: generationFeedback })}
+                >
+                  {loading ? <Loader size={16} className={styles.spinner} /> : <Zap size={16} />}
+                  Regenerate with Feedback
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </main>
     </div>

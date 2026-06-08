@@ -10,6 +10,7 @@ const MAX_REQUEST_BYTES = 64 * 1024;
 const MAX_URL_LENGTH = 2048;
 const MAX_PROMPT_LENGTH = 4000;
 const MAX_DOM_CONTEXT_LENGTH = 14000;
+const MAX_OUTPUT_TOKENS = 8192;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
 const rateLimitStore = new Map();
@@ -277,10 +278,10 @@ async function callOpenAI(systemPrompt, userPrompt, apiKey, modelId) {
   };
   
   if (isReasoning) {
-    payload.max_completion_tokens = 4096;
+    payload.max_completion_tokens = MAX_OUTPUT_TOKENS;
   } else {
     payload.temperature = 0.2;
-    payload.max_tokens = 4096;
+    payload.max_tokens = MAX_OUTPUT_TOKENS;
   }
   
   const response = await openai.chat.completions.create(payload);
@@ -291,7 +292,7 @@ async function callAnthropic(systemPrompt, userPrompt, apiKey, modelId) {
   const client = new Anthropic({ apiKey });
   const response = await client.messages.create({
     model: modelId || 'claude-3-5-sonnet-20241022',
-    max_tokens: 4096,
+    max_tokens: MAX_OUTPUT_TOKENS,
     system: systemPrompt,
     messages: [
       { role: 'user', content: userPrompt }
@@ -316,7 +317,7 @@ async function callOpenRouter(systemPrompt, userPrompt, apiKey, modelId) {
       { role: 'user', content: userPrompt }
     ],
     temperature: 0.2,
-    max_tokens: 4096
+    max_tokens: MAX_OUTPUT_TOKENS
   });
   return response.choices[0].message.content;
 }
@@ -333,7 +334,7 @@ async function callOpenCodeGo(systemPrompt, userPrompt, apiKey, modelId) {
       { role: 'user', content: userPrompt }
     ],
     temperature: 0.2,
-    max_tokens: 4096
+    max_tokens: MAX_OUTPUT_TOKENS
   });
   return response.choices[0].message.content;
 }
@@ -406,6 +407,7 @@ Fallbacks: For important actions, define candidate selectors array and validate 
 Navigation: page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 }). Never use 'networkidle'.
 Wait: await page.waitForSelector('#id', { state: 'visible' }) then interact. Avoid page.waitForTimeout() when possible.
 Assert: use if/throw for assertions (not expect from @playwright/test).
+Post-save waits: after Save/Add actions, wait up to 30000ms for any success signal: success toast, URL containing the expected detail page, or a stable page heading. Do not rely on only waitForURL.
 Structure: (async () => { try { ... } catch(e) { console.error(e); } finally { await browser.close(); } })();`
     },
     playwright_python: {
@@ -415,28 +417,40 @@ Structure: (async () => { try { ... } catch(e) { console.error(e); } finally { a
 Use: from playwright.sync_api import sync_playwright; with sync_playwright() as p: browser = p.chromium.launch()
 Selectors: USE ID/name from DOM FIRST. page.fill('#exactId', val) > page.locator('#id') > page.get_by_role() > page.get_by_placeholder().
 Python API syntax: locator.first is a property, NOT a function. Use locator.first.click(), locator.first.fill(), locator.first.wait_for(). Never write locator.first().
-Validation: Create helper functions like wait_visible(page, selector, label), click_safe(page, selector, label), fill_safe(page, selector, value, label). Each helper MUST check count/visibility before action and raise a clear error if not found.
+Validation: Create helper functions like wait_visible(page, selector, label), click_safe(page, selector, label), fill_safe(page, selector, value, label). Each helper MUST try each candidate with page.wait_for_selector(selector, state='visible', timeout=...), then return page.locator(selector).first. Do NOT call locator.count() before waiting; it fails on slow pages.
 Fallbacks: For important actions, define candidate selectors list and validate in order before using. Never click an unvalidated selector.
-Navigation: page.goto(url, timeout=120000). Never use wait_until='networkidle'. Use wait_until='commit' or omit it.
+Navigation: page.goto(url, timeout=120000, wait_until='domcontentloaded'). Never use wait_until='networkidle'.
 Wait: page.wait_for_selector('#id', state='visible') then page.fill('#id', val). Avoid page.wait_for_timeout().
 Assert: use assert or if/raise for assertions.
-Structure: def main(): try: ... except Exception as e: print(e) finally: browser.close()`
+Post-save waits: after Save/Add actions, wait up to 30000ms for any success signal: success toast, URL containing the expected detail page, or a stable page heading. Do not rely on only wait_for_url.
+Structure: Put try/except/finally INSIDE the with sync_playwright() block. Take error screenshot before leaving the context. Then close browser in finally.`
     },
     puppeteer_js: {
       name: 'Puppeteer (JavaScript)',
       ext: 'js',
       details: `Puppeteer in JavaScript.
+Launch: use puppeteer.launch({ headless: 'shell', protocolTimeout: 180000, args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-extensions'] }) for reliable local Chrome startup.
 Selectors: USE ID from DOM FIRST. page.type('#id', val) > page.$('#id').
+Validation: Create resolveElement(page, candidates, label), clickSafe(page, candidates, label), fillSafe(page, candidates, value, label). Each helper MUST validate presence/visibility before action and throw clear error with label/candidates.
+Fallbacks: Candidate arrays must support CSS selectors first, then text/XPath fallbacks if needed. Do not use Playwright-only selectors like :has-text() in Puppeteer CSS.
+Forbidden: NEVER emit :has-text() in Puppeteer. It is Playwright-only and will fail. For text fallback, use CSS containers, hrefs, or XPath/evaluate helpers, not CSS :has-text().
+Dynamic lists: If clicking all matching buttons, repeatedly resolve and click the first current match until none remain, then verify resulting count/state.
 Navigation: page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 }). Never use 'networkidle'.
-Wait: await page.waitForSelector('#id') before interacting.`
+Wait: await page.waitForSelector('#id', { visible: true }) before interacting. Do not use page.waitForTimeout(); Puppeteer 25 removes it. If a tiny pause is unavoidable, define const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)); and await sleep(ms).`
     },
     selenium_python: {
       name: 'Selenium (Python)',
       ext: 'py',
       details: `Selenium WebDriver in Python.
 Selectors: USE ID from DOM FIRST. driver.find_element(By.ID, 'exactId').
+Locator tuples: Always use Selenium By constants imported from selenium.webdriver.common.by, e.g. (By.NAME, 'username'), (By.CSS_SELECTOR, 'button[type="submit"]'), (By.XPATH, '//button[...]'). Never use raw strings like ('by name', 'username') or ('name', 'username') in WebDriverWait locators.
+Text selectors: Avoid brittle exact text like //button[text()='Add']. Prefer contains(normalize-space(), 'Add') because buttons often include icons or whitespace.
+Validation: Safe helper functions should return the matched (By, selector, element) and waits should use the matched selector, not always the first candidate.
+Locator timing: Do NOT call driver.find_elements() before waiting. For each candidate, call WebDriverWait(driver, timeout).until(EC.visibility_of_element_located((by, selector))) and return that element. Early find_elements checks fail on slow pages.
+Forms: Do not fill optional constrained fields unless the user explicitly asks. If filling IDs/codes, keep values within visible validation limits and clear fields robustly before send_keys.
 Navigation: driver.get(url). driver.set_page_load_timeout(60).
 Wait: WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, 'id'))).
+Post-save waits: after Save/Add actions, wait for any success signal: success toast, URL containing the expected detail page, or a stable page heading. Do not rely on only URL.
 Always use explicit waits (WebDriverWait) over time.sleep().`
     },
     cypress_js: {
@@ -444,8 +458,13 @@ Always use explicit waits (WebDriverWait) over time.sleep().`
       ext: 'cy.js',
       details: `Cypress in JavaScript.
 Selectors: USE ID from DOM FIRST. cy.get('#id') > cy.contains().
+Validation: Create helper functions getByCandidates(candidates, label), clickSafe(candidates, label), fillSafe(candidates, value, label). Helpers must try selector candidates in order and assert visibility before action.
+Fallbacks: Prefer cy.get('#id')/cy.get('[data-test="..."]') candidates; use cy.contains() only as text fallback.
+Dynamic lists: If clicking all matching buttons, use a recursive/current-query pattern that clicks the first visible current match until none remain; avoid fixed index loops over changing lists.
 Navigation: cy.visit(url, { timeout: 60000 }).
-Wait: cy.get('#id', { timeout: 30000 }).should('be.visible').`
+Wait: cy.get('#id', { timeout: 30000 }).should('be.visible').
+Post-save waits: after Save/Add actions, assert any success signal: success toast, URL containing expected detail page, or stable page heading.
+Structure: Output a valid Cypress spec with describe(...) and it(...). Do not use imports. Do not return an empty code block.`
     }
   };
   
@@ -466,12 +485,17 @@ CRITICAL RULES — failure to follow = broken script:
 2. LOCATOR VALIDATION (mandatory):
    - Every locator used for click/fill/assert MUST be validated before action.
    - Add reusable helper functions in the generated script:
-     JS: resolveLocator(page, candidates, label), clickSafe(...), fillSafe(...)
-     Python: resolve_locator(page, candidates, label), click_safe(...), fill_safe(...)
-   - Each helper must try candidate selectors in order, check count > 0, wait until visible, then act.
+     Playwright JS: resolveLocator(page, candidates, label), clickSafe(...), fillSafe(...)
+     Playwright Python: resolve_locator(page, candidates, label), click_safe(...), fill_safe(...)
+     Puppeteer JS: resolveElement(page, candidates, label), clickSafe(...), fillSafe(...)
+     Selenium Python: resolve_locator(driver, candidates, label), click_safe(...), fill_safe(...)
+     Cypress JS: getByCandidates(candidates, label), clickSafe(...), fillSafe(...)
+    - Each helper must try candidate selectors in order, wait until visible/clickable, then act.
+    - For Playwright Python and Selenium, DO NOT check count/find_elements before waiting; wait for each candidate directly so slow pages still pass.
    - If no candidate works, throw/raise clear error listing the label and candidates.
-   - Do NOT use raw page.click/page.fill directly outside helper functions.
+   - Do NOT use raw page.click/page.fill/page.type/driver.find_element/cy.get directly outside helper functions for important actions.
    - For assertions, validate expected element/text/URL and print proof.
+   - Use framework-correct selector syntax. Do NOT use Playwright-only pseudo selectors like :has-text() in Puppeteer/Selenium/Cypress CSS.
 
 3. REPEATED ACTIONS / DYNAMIC LISTS:
    - If action repeats over a changing list (example: click all "Add to cart" buttons where clicked buttons become "Remove"), DO NOT use for i in range(initial_count) with nth(i).
@@ -487,13 +511,24 @@ CRITICAL RULES — failure to follow = broken script:
 5. CODE STRUCTURE:
    - Output ONLY a single markdown code block \`\`\`. No explanations.
    - Write COMPLETE standalone scripts with imports, setup, actions, teardown
-   - Include try/catch error handling + error screenshot
-   - Use headless browser (headless=True/true)
+    - Keep code concise and complete. Target under 220 lines when possible.
+    - Avoid huge optional sections, long comments, and speculative extra flows not requested by the user.
+    - Do not add extra verification journeys (searching lists, editing records, deleting records) unless the user explicitly asks. Verify the final requested page/state only.
+    - Include try/catch error handling + error screenshot
+    - On failure, exit with nonzero status: process.exit(1) for JavaScript, sys.exit(1) for Python.
+    - Playwright JS error screenshots: use the current page variable. Browser object does NOT have browser.pages().
+    - Use headless browser (headless=True/true)
+    - Use ASCII-only code, comments, and console output. No emoji, checkmarks, arrows, smart quotes, or non-ASCII dashes.
+    - Before output, self-check that every helper call references a helper actually defined in the script. Example: define click_safe before calling click_safe; never call click_save unless it exists.
 
 6. INTERACTIONS:
    - Wait for element to be visible/clickable BEFORE interacting
    - Use element-specific waits (waitForSelector) over time.sleep()
-   - After form submission: wait for URL change or next page element
+    - After form submission: wait for URL change or next page element
+    - For newly created people/items, generate unique test data with timestamp for visible required name fields when appropriate.
+    - For Save/Add completion, wait up to 30000ms for one of: success toast, expected detail URL, or stable detail page heading. If none appears, check validation error text before failing.
+   - Do not fill optional constrained fields unless user explicitly asks. Examples: Employee ID, generated ID, code fields, upload fields, optional SSN/license fields.
+   - If the app auto-fills an ID, keep it unchanged unless the task requires changing it.
 
 7. ASSERTIONS:
    - Verify each step succeeded (element found, page loaded correctly)
@@ -501,8 +536,42 @@ CRITICAL RULES — failure to follow = broken script:
    - Extract and display relevant page data as proof the script worked`;
 }
 
+function buildSiteSpecificGuidance(url, prompt, framework) {
+  const hostname = (() => {
+    try { return new URL(url).hostname; } catch { return ''; }
+  })();
+  const wantsOrangeHrmPim = hostname.includes('opensource-demo.orangehrmlive.com') && /pim|employee|orang|karyawan|person/i.test(prompt || '');
+
+  if (!wantsOrangeHrmPim) return '';
+
+  const nonPlaywrightTextRule = framework === 'puppeteer_js'
+    ? '- Puppeteer: do not use :has-text(). Prefer CSS selectors below. If text is required, implement an XPath/evaluate helper; do not pass :has-text() to waitForSelector.\n'
+    : '';
+
+  return `
+## Site-Specific Guidance: OrangeHRM PIM Add Employee
+- After login, verify dashboard with URL containing /dashboard or visible .oxd-main-menu.
+- Navigate through PIM menu using: a[href*="viewPimModule"] or a.oxd-main-menu-item[href*="viewPimModule"].
+- If the PIM menu is not visible/clickable within 15000ms after login, use a direct fallback navigation to https://opensource-demo.orangehrmlive.com/web/index.php/pim/viewEmployeeList, then continue. Still try the menu first.
+- On Employee List page, the Add button text is usually "Add" (not "Add Employee"). Robust selector examples:
+  - Playwright: div.orangehrm-header-container button:has-text("Add"), button:has-text("Add")
+  - Selenium XPath: //div[contains(@class,'orangehrm-header-container')]//button[contains(normalize-space(),'Add')]
+  - Puppeteer/Cypress CSS: div.orangehrm-header-container button.oxd-button--secondary, button.oxd-button--secondary
+- For the Add button, never put bare button.oxd-button--secondary before the scoped orangehrm-header-container selector. The search form also has secondary buttons and will click the wrong button.
+- Wait for Add Employee form with input[name="firstName"] before filling.
+- Fill only required Add Employee fields unless explicitly asked: input[name="firstName"] and input[name="lastName"]. Middle name is optional; Employee ID is auto-filled, keep unchanged.
+- Use unique first/last names with timestamp.
+- Click Save with button[type="submit"] or a Save text selector valid for the framework.
+- For Selenium Save clicks: wait until clickable, scroll to center, click normally. If intercepted, wait for overlays/spinners to disappear and retry normal click before using JavaScript click.
+- If using a Selenium spinner/overlay helper, define it before calling it and spell the name consistently. Prefer inline WebDriverWait(...).until(EC.invisibility_of_element_located(...)) over custom spinner helper names.
+- For this task, "isi form sampai selesai" means complete and save the Add Employee form, then confirm Personal Details page/success toast. Do not edit the Personal Details form unless explicitly requested.
+- Confirm completion by waiting up to 30000ms for any of: URL contains viewPersonalDetails, .oxd-toast success, or visible Personal Details heading/employee name.
+${nonPlaywrightTextRule}`;
+}
+
 function buildUserPrompt(url, prompt, framework, domContext) {
   const fw = getFrameworkDetails(framework);
+  const siteSpecificGuidance = buildSiteSpecificGuidance(url, prompt, framework);
   
   return `## Task
 Write a ${fw.name} automation script.
@@ -513,10 +582,13 @@ Write a ${fw.name} automation script.
 ## Critical Navigation Notes
 - Use EXACT id/name selectors from the DOM context below
 - Validate every locator before click/fill/assert; include helper functions and candidate selector fallback lists
+- Use the same reliability pattern for every framework: resolve candidates -> wait visible/clickable -> act -> assert result -> screenshot on error
 - For repeated buttons/items that change state after click, click the first current match until no matches remain, then validate count/state
 - Add retry for page.goto() (sites may be slow)
 - After login/submit: wait for URL change, not just time.sleep()
 - Watch for redirects to intermediate pages (e.g. /select-company, /choose-role)
+
+${siteSpecificGuidance}
 
 ## Framework Requirements
 ${fw.details}
@@ -525,7 +597,160 @@ ${fw.details}
 ${domContext}
 
 ## Output
-Provide ONLY the complete, runnable code inside a single markdown code block.`;
+Provide ONLY the complete, runnable code inside a single markdown code block.
+Do not return an empty code block.
+Keep it concise and complete; do not generate unfinished partial scripts.`;
+}
+
+function extractGeneratedCode(textResponse) {
+  const normalized = String(textResponse || '').replace(/\r\n/g, '\n');
+  const fencedMatch = normalized.match(/```[a-zA-Z0-9+#_-]*\s*\n([\s\S]*?)\n?```/);
+  if (fencedMatch && fencedMatch[1]) {
+    return fencedMatch[1].trim();
+  }
+
+  const openingFenceMatch = normalized.match(/^\s*```[a-zA-Z0-9+#_-]*\s*\n([\s\S]*)$/);
+  if (openingFenceMatch && openingFenceMatch[1]) {
+    return openingFenceMatch[1].trim();
+  }
+
+  return normalized.trim();
+}
+
+function hasBalancedSyntaxMarkers(code, framework) {
+  if (!code) return false;
+  if (framework === 'playwright_python' || framework === 'selenium_python') {
+    return !/```/.test(code) && !/\b(class|def|try|if|for|while|with)\s+[^\n]*:\s*$/.test(code.trim());
+  }
+
+  const openCurly = (code.match(/\{/g) || []).length;
+  const closeCurly = (code.match(/\}/g) || []).length;
+  const openParen = (code.match(/\(/g) || []).length;
+  const closeParen = (code.match(/\)/g) || []).length;
+  return !/```/.test(code) && openCurly === closeCurly && openParen === closeParen;
+}
+
+function stripCodeComments(code) {
+  return String(code || '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1')
+    .replace(/#.*$/gm, '');
+}
+
+function getSelectorCandidates(element) {
+  const attrs = element.attributes || {};
+  const candidates = [];
+
+  if (attrs.id) candidates.push({ selector: `#${attrs.id}`, type: 'id', score: 100 });
+  if (attrs.dataTestId) {
+    candidates.push({
+      selector: `[${attrs.dataTestAttrName || 'data-testid'}="${attrs.dataTestId}"]`,
+      type: attrs.dataTestAttrName || 'data-testid',
+      score: 96
+    });
+  }
+  if (attrs.name) candidates.push({ selector: `${element.tag}[name="${attrs.name}"]`, type: 'name', score: 88 });
+  if (attrs.ariaLabel) candidates.push({ selector: `${element.tag}[aria-label="${attrs.ariaLabel}"]`, type: 'aria-label', score: 78 });
+  if (attrs.placeholder) candidates.push({ selector: `${element.tag}[placeholder="${attrs.placeholder}"]`, type: 'placeholder', score: 68 });
+  if (attrs.role && element.text) candidates.push({ selector: `${element.tag}[role="${attrs.role}"]:has-text("${element.text}")`, type: 'role+text', score: 58 });
+  if (element.text && ['button', 'a'].includes(element.tag)) candidates.push({ selector: `${element.tag}:has-text("${element.text}")`, type: 'text', score: 48 });
+  if (attrs.className) {
+    const stableClass = attrs.className.split(/\s+/).find(className => className && !/[0-9]{3,}|css-|sc-/.test(className));
+    if (stableClass) candidates.push({ selector: `.${stableClass}`, type: 'class', score: 30 });
+  }
+
+  return candidates;
+}
+
+function buildLocatorSummary(interactiveData) {
+  if (!interactiveData || !interactiveData.elements) return [];
+
+  return interactiveData.elements
+    .map((element) => {
+      const candidates = getSelectorCandidates(element).sort((a, b) => b.score - a.score);
+      if (!candidates.length) return null;
+
+      const best = candidates[0];
+      return {
+        tag: element.tag,
+        text: element.text || element.labelText || element.attributes?.placeholder || '',
+        selector: best.selector,
+        type: best.type,
+        score: best.score,
+        candidates: candidates.slice(0, 4)
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 12);
+}
+
+function runStaticCodeChecks(code, framework) {
+  const checks = [];
+  const add = (label, status, detail) => checks.push({ label, status, detail });
+  const isPuppeteer = framework === 'puppeteer_js';
+  const isSelenium = framework === 'selenium_python';
+  const isCypress = framework === 'cypress_js';
+
+  add('Code extracted', code && code.trim().length > 0 ? 'pass' : 'fail', code ? 'Generated code block found.' : 'No generated code returned.');
+  add('Markdown fences stripped', /```/.test(code) ? 'fail' : 'pass', /```/.test(code) ? 'Generated code still contains markdown fences.' : 'No markdown fences in returned code.');
+  add('Completeness heuristic', hasBalancedSyntaxMarkers(code, framework) ? 'pass' : 'warn', hasBalancedSyntaxMarkers(code, framework) ? 'Basic syntax balance looks complete.' : 'Generated code may be truncated or structurally incomplete.');
+  add('ASCII output', /^[\x00-\x7F]*$/.test(code || '') ? 'pass' : 'warn', /^[\x00-\x7F]*$/.test(code || '') ? 'Generated code is Windows-console safe ASCII.' : 'Generated code contains non-ASCII characters that can break Windows console output.');
+  const executableCode = stripCodeComments(code);
+  add('Avoid networkidle', /networkidle/i.test(executableCode) ? 'fail' : 'pass', /networkidle/i.test(executableCode) ? 'Generated code still references networkidle.' : 'No networkidle usage found.');
+
+  let hasValidationHelpers = false;
+  if (framework === 'playwright_js') {
+    hasValidationHelpers = /(function|const)\s+(resolveLocator|clickSafe|fillSafe|waitVisible)\b|clickSafe\s*\(/.test(code);
+  } else if (framework === 'playwright_python') {
+    hasValidationHelpers = /def\s+(resolve_locator|click_safe|fill_safe|get_visible_locator|wait_visible)\b|click_safe\s*\(/.test(code);
+  } else if (isPuppeteer) {
+    hasValidationHelpers = /(function|const)\s+(resolveElement|clickSafe|fillSafe|waitVisible)\b|clickSafe\s*\(/.test(code);
+  } else if (isSelenium) {
+    hasValidationHelpers = /def\s+(resolve_locator|click_safe|fill_safe|wait_visible)\b|click_safe\s*\(/.test(code);
+  } else if (isCypress) {
+    hasValidationHelpers = /(function|const)\s+(getByCandidates|clickSafe|fillSafe)\b|Cypress\.Commands\.add|clickSafe\s*\(/.test(code);
+  }
+  add('Locator validation helpers', hasValidationHelpers ? 'pass' : 'warn', hasValidationHelpers ? 'Validation helper detected.' : 'No obvious locator validation helper detected.');
+
+  if (framework === 'playwright_python') {
+    add('Python locator.first syntax', /\.first\s*\(/.test(code) ? 'fail' : 'pass', /\.first\s*\(/.test(code) ? 'Use locator.first property, not locator.first().' : 'No locator.first() misuse detected.');
+  }
+
+  if (isPuppeteer || isSelenium || isCypress) {
+    const hasPlaywrightOnlySelector = /:has-text\s*\(/.test(code);
+    add('Framework selector syntax', hasPlaywrightOnlySelector ? 'fail' : 'pass', hasPlaywrightOnlySelector ? 'Playwright-only :has-text() selector detected in non-Playwright output.' : 'No Playwright-only selector syntax detected.');
+  }
+
+  if (isPuppeteer) {
+    add('Puppeteer modern API', /page\.waitForTimeout\s*\(/.test(code) ? 'fail' : 'pass', /page\.waitForTimeout\s*\(/.test(code) ? 'page.waitForTimeout is not available in Puppeteer 25; use selector waits or a sleep helper.' : 'No removed page.waitForTimeout usage detected.');
+  }
+
+  if (isSelenium) {
+    const brittleExactText = /\/\/\w+\s*\[\s*text\(\)\s*=/.test(code);
+    add('Selenium text locator resilience', brittleExactText ? 'warn' : 'pass', brittleExactText ? 'Exact text XPath detected; prefer contains(normalize-space(), ...).' : 'No brittle exact text XPath detected.');
+  }
+
+  const unsafeChangingListLoop = /for[\s\S]{0,180}(range\(|count\(\)|\.count\(\)|length)[\s\S]{0,260}(\.nth\(\s*i\s*\)|\.eq\(\s*i\s*\)|\[\s*i\s*\])/i.test(code);
+  add('Dynamic list handling', unsafeChangingListLoop ? 'warn' : 'pass', unsafeChangingListLoop ? 'Potential nth(i) loop over changing list detected.' : 'No obvious unsafe nth(i) dynamic-list loop detected.');
+
+  const hasScreenshot = /screenshot\s*\(|save_screenshot\s*\(/i.test(code);
+  add('Error evidence screenshot', hasScreenshot ? 'pass' : 'warn', hasScreenshot ? 'Screenshot capture detected.' : 'No screenshot capture detected.');
+
+  const hasNavigationAssertion = /wait_for_url|waitForURL|toHaveURL|url\(\)|page\.url|current_url|cy\.url|cy\.location/.test(code);
+  add('Navigation/state assertions', hasNavigationAssertion ? 'pass' : 'warn', hasNavigationAssertion ? 'Navigation or URL validation detected.' : 'No obvious navigation/state validation detected.');
+
+  const fillsOptionalId = /(employee\s*id|Employee ID|employeeId|Employee Id)/i.test(executableCode) && /(employee\s*id|Employee ID|employeeId|Employee Id)[\s\S]{0,120}(fillSafe|fill_safe|send_keys|\.type\(|\.fill\(|cy\.type)|(fillSafe|fill_safe|send_keys|\.type\(|\.fill\(|cy\.type)[\s\S]{0,120}(employee\s*id|Employee ID|employeeId|Employee Id)/i.test(executableCode);
+  add('Optional constrained fields', fillsOptionalId ? 'warn' : 'pass', fillsOptionalId ? 'Generated code may fill an optional/generated ID field; verify user requested it and value fits limits.' : 'No obvious optional/generated ID fill detected.');
+
+  const hasRawImportantActions = isSelenium
+    ? /driver\.find_element\([^\n]+\)\.(click|send_keys)\(/.test(code)
+    : isCypress
+      ? /cy\.get\([^\n]+\)\.(click|type)\(/.test(code) && !hasValidationHelpers
+      : /page\.(click|fill|type)\(/.test(code) && !hasValidationHelpers;
+  add('Safe action usage', hasRawImportantActions ? 'warn' : 'pass', hasRawImportantActions ? 'Raw important actions detected without obvious helper wrapping.' : 'No obvious unsafe raw action pattern detected.');
+
+  return checks;
 }
 
 function buildDomContext(url, scrapeSuccess, interactiveData) {
@@ -576,8 +801,17 @@ Generate using resilient selectors. Prefer id/name-based selectors. Add comments
     ? headings.map(h => `${h.tag}: ${h.text}`).join('\n')
     : 'No headings found';
 
+  const locatorSummary = buildLocatorSummary(interactiveData);
+
   let result = `**Page Title:** "${title}"\n`;
   if (headingsText) result += `**Headings:**\n${headingsText}\n\n`;
+  if (locatorSummary.length > 0) {
+    result += `**Top Locator Candidates (prefer higher confidence):**\n`;
+    locatorSummary.slice(0, 10).forEach(item => {
+      result += `- [${item.score}] ${item.selector} (${item.type})${item.text ? ` -> ${item.text}` : ''}\n`;
+    });
+    result += '\n';
+  }
   if (keyElements.length > 0) {
     result += `**KEY ELEMENTS (use these exact selectors):**\n`;
     keyElements.forEach(ke => { result += `- ${ke}\n`; });
@@ -650,6 +884,7 @@ export async function POST(req) {
     let scrapeLogs = [];
     let scrapeSuccess = false;
     let browserPreview = null;
+    let locatorSummary = [];
 
     // ── Phase 1: DOM Scraping with Playwright ──
     try {
@@ -675,7 +910,9 @@ export async function POST(req) {
       
       if (interactiveData && interactiveData.elements) {
         pageTitle = interactiveData.title || '';
+        locatorSummary = buildLocatorSummary(interactiveData);
         scrapeLogs.push(`Scraped successfully! Found ${interactiveData.elements.length} interactive elements.`);
+        scrapeLogs.push(`Ranked ${locatorSummary.length} locator candidates by confidence.`);
         scrapeSuccess = true;
 
         await page.evaluate(() => {
@@ -717,12 +954,12 @@ export async function POST(req) {
     scrapeLogs.push('Code generated successfully!');
 
     // ── Phase 3: Extract code block from response ──
-    let generatedCode = textResponse;
-    const codeBlockRegex = /```[a-zA-Z0-9+#_-]*\n([\s\S]*?)```/g;
-    const match = codeBlockRegex.exec(textResponse);
-    if (match && match[1]) {
-      generatedCode = match[1].trim();
+    const generatedCode = extractGeneratedCode(textResponse);
+    if (/```/.test(generatedCode)) {
+      scrapeLogs.push('Warning: Generated code still contains markdown fences after extraction.');
     }
+
+    const qualityChecks = runStaticCodeChecks(generatedCode, framework);
 
     const fw = getFrameworkDetails(framework);
 
@@ -733,7 +970,9 @@ export async function POST(req) {
       fileExtension: fw.ext,
       logs: scrapeLogs,
       provider: activeProvider,
-      browserPreview
+      browserPreview,
+      locatorSummary,
+      qualityChecks
     });
 
   } catch (error) {

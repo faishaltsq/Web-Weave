@@ -84,22 +84,23 @@ Do not:
 - Do not store user credentials in logs.
 - Do not claim production-ready generated scripts.
 
-### Version 2: Reliable Generation
+### Version 2: Reliable Generation - In Progress
 
 Goal: improve output quality and reduce flaky scripts.
 
 Scope:
 
-- Add script quality checklist before returning code.
+- Done: add static script quality checks before returning code.
 - Generate only one primary framework: Playwright JavaScript.
-- Add selector confidence scoring: id, name, data-test/data-testid, aria-label, text fallback.
+- Done: add selector confidence scoring: id, name, data-test/data-testid, aria-label, text fallback.
 - Add page summary before generation.
-- Improve locator preview metadata: show count, selector type, and top candidate list.
+- Done: improve locator preview metadata: selector type and top candidate list.
 - Add placeholder secret support: `{{USERNAME}}`, `{{PASSWORD}}`, `{{OTP}}`.
 - Add generated file naming and metadata.
-- Add regeneration with feedback: user can say what failed.
-- Add prompt templates: login, form submit, CRUD flow, menu verification.
-- Add optional post-generation static scan to reject common Playwright API mistakes.
+- Done: add regeneration with feedback so user can say what failed.
+- Done: add post-generation static scan for common framework API mistakes.
+- Done: add cross-framework locator/safe-action contract for Playwright, Puppeteer, Selenium, and Cypress.
+- Done: improve markdown-fence extraction and incomplete-output detection.
 
 Deliverable:
 
@@ -289,10 +290,6 @@ Start with Version 2.
 
 Immediate checklist:
 
-1. Add selector confidence scoring in DOM extraction.
-2. Show locator candidate list beside browser preview.
-3. Add output quality checklist before returning code.
-4. Add static validation for common generated-code mistakes.
-5. Add regeneration feedback field.
-6. Make Playwright JavaScript and Python the highest-quality primary paths.
-7. Draft privacy/data-retention text for private beta.
+1. Regenerate and run real sample scripts for each framework after latest extractor/token fixes.
+2. Draft privacy/data-retention text for private beta.
+3. Add optional stricter static validation mode that can block risky output.

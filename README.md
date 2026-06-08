@@ -15,8 +15,61 @@ WebWeave scans a target page with Playwright Chromium, extracts interactive DOM 
 |---|---:|---|
 | V1 Safety MVP | Complete | URL validation, SSRF guardrails, request limits, rate limiting, debug route removed |
 | Locator Preview UI | Complete | Chromium screenshot is returned to UI with highlighted locator candidates |
-| Generated Script Quality | Improved | Prompt now requires locator validation helpers and dynamic-list handling |
+| V2 Reliable Generation | Complete for local beta | Selector confidence scoring, locator candidate list, static checks, code extraction fixes, and cross-framework reliability rules added |
+| Cross-framework validation | Partially verified | Playwright JS, Playwright Python, and patched Puppeteer completed OrangeHRM add-employee flow; Selenium and Cypress exposed remaining hardening gaps |
 | Public SaaS Readiness | Not ready | Needs auth, quotas, stronger browser isolation, policies, and billing guardrails |
+
+Current project position: WebWeave is past the initial prototype and is now a local/private-beta generator with safety controls, locator preview, static quality checks, and real cross-framework test evidence. The next product-level step is a sandboxed run-and-fix validation loop inside WebWeave, not public launch.
+
+## Execution Progress V1-V6
+
+This V1-V6 list describes work already completed during the current build cycle. It is separate from the long-term product roadmap where public SaaS release is still future work.
+
+| Execution Step | Status | Result |
+|---|---:|---|
+| V1 - Safety baseline | Complete | Removed unsafe debug route, blocked private/internal targets, added request limits and rate limit, removed credential-bearing examples |
+| V2 - Browser-lab UI and locator preview | Complete | Added Chromium screenshot preview, highlighted interactive elements, ranked locator candidates, solid vibrant UI, dark/light mode |
+| V3 - Reliable generation contract | Complete | Added strict prompt rules for locator helpers, fallback candidates, dynamic-list handling, no `networkidle`, no optional generated IDs unless requested |
+| V4 - Static checks and extraction hardening | Complete | Added `qualityChecks`, markdown fence stripping, truncated-output heuristics, framework selector/API checks, ASCII output warning, increased output budget |
+| V5 - Real target framework validation | Complete with findings | Generated and ran OrangeHRM add-employee flow for Playwright JS, Playwright Python, Puppeteer, Selenium, and Cypress; fixed multiple generator issues from failures |
+| V6 - Documentation and visual roadmap | Complete in this update | README and Excalidraw now show project journey, current status, completed process, and remaining gaps clearly |
+
+## Validation Evidence
+
+Target used for framework validation:
+
+```text
+https://opensource-demo.orangehrmlive.com/web/index.php/auth/login
+```
+
+Prompt used:
+
+```text
+login menggunakan Admin dan password admin123 kemudian tambahkan orang di menu PIM dan isi form kemudian save dan isi sampai selesai
+```
+
+Framework results from the latest validation cycle:
+
+| Framework | Result | Notes |
+|---|---:|---|
+| Playwright JavaScript | Passed | Login, PIM, Add Employee, Save, and `viewPersonalDetails` confirmation completed |
+| Playwright Python | Passed | Login, PIM, Add Employee, Save, and `viewPersonalDetails` confirmation completed after selector-order fixes |
+| Puppeteer JavaScript | Passed after local script patch | Needed `headless: 'shell'` and replacement for removed `page.waitForTimeout()` in Puppeteer 25; generator guidance patched |
+| Selenium Python | Partial | Login, PIM, Add button, form fill, and save signal worked; generated script still over-verified a `Personal Details` heading and failed after success |
+| Cypress JavaScript | Failed | Cypress ran headless, but generated helper had a candidate recursion/timing bug before username fill |
+
+Important issues found and addressed in generator guidance:
+
+- Playwright Python must not call `locator.count()` before waiting on slow pages.
+- Playwright Python must use `locator.first` property, not `locator.first()`.
+- Generated code must avoid non-ASCII logs on Windows Python console.
+- Puppeteer must not use Playwright-only `:has-text()` selectors.
+- Puppeteer 25 does not support `page.waitForTimeout()`.
+- Local Puppeteer Chrome needed `headless: 'shell'` to avoid `Network.enable timed out`.
+- OrangeHRM PIM Add button must be scoped to `.orangehrm-header-container`; bare `.oxd-button--secondary` can click wrong search-form buttons.
+- Selenium locator tuples must use `By.NAME`, `By.CSS_SELECTOR`, and `By.XPATH`, not raw string locators.
+- Selenium click interception needs normal retry after overlays/spinners before JavaScript click.
+- Cypress helpers must preserve candidate arrays and wait for DOM readiness instead of exhausting candidates too early.
 
 ## What WebWeave Does
 
@@ -26,7 +79,7 @@ WebWeave scans a target page with Playwright Chromium, extracts interactive DOM 
 - Extracts visible interactive elements: inputs, selects, buttons, links, roles, and test attributes.
 - Captures a browser-style screenshot preview with highlighted locator candidates.
 - Sends compact DOM context and the objective to a configured server-side AI provider.
-- Returns generated automation code, logs, provider info, and preview image to the UI.
+- Returns generated automation code, ranked locator candidates, static quality checks, logs, provider info, and preview image to the UI.
 
 ## Key Features
 
@@ -39,7 +92,13 @@ WebWeave scans a target page with Playwright Chromium, extracts interactive DOM 
   - Selenium Python
   - Cypress JavaScript
 - Locator-aware prompting with exact `id`, `name`, `data-test`, `data-testid`, and ARIA selector preference.
+- Selector confidence scoring for top locator candidates.
+- Locator candidate list in the UI after DOM scan.
+- Static generated-code checks for common quality issues.
+- Robust markdown-fence extraction for generated code blocks.
+- Regeneration with feedback for improving generated output.
 - Mandatory locator validation rules in generated scripts.
+- Cross-framework locator helper contract for Playwright, Puppeteer, Selenium, and Cypress.
 - Dynamic-list action rules, for example repeatedly clicking current `Add to cart` buttons until none remain.
 - Copy and download generated script output.
 - Vibrant solid-color browser-lab UI with dark/light mode.
@@ -178,7 +237,9 @@ Successful response includes:
   "fileExtension": "py",
   "logs": [],
   "provider": "opencode",
-  "browserPreview": "data:image/jpeg;base64,..."
+  "browserPreview": "data:image/jpeg;base64,...",
+  "locatorSummary": [],
+  "qualityChecks": []
 }
 ```
 
@@ -216,25 +277,67 @@ Detailed roadmap:
 - `PRODUCT_ROADMAP.md`
 - `webweave-roadmap.excalidraw`
 
-Near-term priorities:
+V2 progress completed:
 
 1. Selector confidence scoring.
 2. Locator candidate list in UI.
-3. Regeneration with failure feedback.
-4. Script quality checklist before returning output.
-5. Playwright-first quality pass.
-6. Private beta privacy and data retention copy.
+3. Static generated-code quality checks.
+4. Regeneration with feedback.
+5. Cross-framework locator/safe-action rules.
+6. Framework-specific static checks for Playwright, Puppeteer, Selenium, and Cypress.
+7. OrangeHRM-specific reliability guidance discovered from real validation.
+8. Puppeteer 25 compatibility guidance.
+9. Windows-safe generated output checks.
+
+Next reliability priorities:
+
+1. Fix remaining Selenium post-save over-verification.
+2. Fix Cypress candidate-resolution helper timing.
+3. Add strict validation mode that blocks generated output with failing static checks.
+4. Add sandboxed generated-script runner and one-shot auto-fix loop.
+5. Draft private beta privacy and data retention copy.
 
 ## Verification
 
 Latest verified state:
 
 - `npm run build` passes.
-- Generated SauceDemo Playwright Python script completed login, add-to-cart, checkout, and finish flow successfully.
+- Generated SauceDemo Playwright Python script completed login, add-to-cart, checkout, and finish flow successfully in an earlier validation cycle.
+- Generated OrangeHRM Playwright JavaScript script completed login, PIM navigation, Add Employee, Save, and `viewPersonalDetails` confirmation.
+- Generated OrangeHRM Playwright Python script completed login, PIM navigation, Add Employee, Save, and `viewPersonalDetails` confirmation.
+- Generated OrangeHRM Puppeteer script completed the flow after local compatibility patch for `headless: 'shell'` and Puppeteer 25 timeout API removal.
+- Generated OrangeHRM Selenium script reached save success signal but failed later on overly strict heading verification.
+- Generated OrangeHRM Cypress spec ran under Cypress 15 but failed due to helper candidate timing.
+- V2 UI shows ranked locator candidates and static validation checks after generation.
 - Stale generated script files and hardcoded credential examples removed.
 - Excalidraw roadmap JSON validates.
 
 ## Changelog
+
+### v1.2.0 - Cross-framework Validation and Documentation Update
+
+- Ran real OrangeHRM add-employee generation across Playwright JS, Playwright Python, Puppeteer JS, Selenium Python, and Cypress JS.
+- Verified Playwright JS and Playwright Python generated flows end-to-end.
+- Identified and patched Puppeteer guidance for local Chrome startup and Puppeteer 25 API compatibility.
+- Added OrangeHRM PIM-specific guidance for menu fallback, scoped Add button selectors, required-field-only Add Employee flow, and save confirmation.
+- Added Selenium locator tuple guidance requiring `By.*` constants.
+- Added static check for removed Puppeteer `page.waitForTimeout()` usage.
+- Added README execution progress V1-V6 and framework validation evidence.
+- Updated Excalidraw roadmap with main project journey flowchart and detailed V1-V6 execution flow.
+
+### v1.1.0 - V2 Reliable Generation Progress
+
+- Added selector confidence scoring for extracted DOM elements.
+- Added `locatorSummary` response data with top ranked selector candidates.
+- Added locator candidate list in the UI.
+- Added static generated-code quality checks.
+- Added `qualityChecks` response data for validation visibility.
+- Added UI panel for generated-code static validation results.
+- Added regenerate-with-feedback workflow.
+- Added cross-framework locator helper contract for Playwright, Puppeteer, Selenium, and Cypress.
+- Expanded static checks for framework-specific selector and API mistakes.
+- Improved code extraction for CRLF/unclosed markdown fences and added truncation/completeness heuristics.
+- Increased generation output budget to reduce incomplete scripts.
 
 ### v1.0.0 - Safety MVP and UI Refresh
 
