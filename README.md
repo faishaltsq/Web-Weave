@@ -17,6 +17,7 @@ WebWeave scans a target page with Playwright Chromium, extracts interactive DOM 
 | Locator Preview UI | Complete | Chromium screenshot is returned to UI with highlighted locator candidates |
 | V2 Reliable Generation | Complete for local beta | Selector confidence scoring, locator candidate list, static checks, code extraction fixes, and cross-framework reliability rules added |
 | Cross-framework validation | Partially verified | Playwright JS, Playwright Python, and patched Puppeteer completed OrangeHRM add-employee flow; Selenium and Cypress exposed remaining hardening gaps |
+| V3 UI/UX Polish | Complete | v0-style initial prompt screen, split workspace after generation, headless runner loading state, button animations, and right-panel section scrolling |
 | Public SaaS Readiness | Not ready | Needs auth, quotas, stronger browser isolation, policies, and billing guardrails |
 
 Current project position: WebWeave is past the initial prototype and is now a local/private-beta generator with safety controls, locator preview, static quality checks, and real cross-framework test evidence. The next product-level step is a sandboxed run-and-fix validation loop inside WebWeave, not public launch.
@@ -33,6 +34,19 @@ This V1-V6 list describes work already completed during the current build cycle.
 | V4 - Static checks and extraction hardening | Complete | Added `qualityChecks`, markdown fence stripping, truncated-output heuristics, framework selector/API checks, ASCII output warning, increased output budget |
 | V5 - Real target framework validation | Complete with findings | Generated and ran OrangeHRM add-employee flow for Playwright JS, Playwright Python, Puppeteer, Selenium, and Cypress; fixed multiple generator issues from failures |
 | V6 - Documentation and visual roadmap | Complete in this update | README and Excalidraw now show project journey, current status, completed process, and remaining gaps clearly |
+| V7 - v0-style UI/UX polish | Complete | Initial page now behaves like a prompt-first AI builder; generated mode has separate left prompt/log section and right preview/code section with independent scroll |
+
+## Latest UI/UX Progress
+
+Completed after the framework validation pass:
+
+- Reworked the initial screen to match the v0-style UX reference: sidebar on the left, large centered prompt composer, URL input, framework selector, and Generate button.
+- Reworked the post-generate workspace into a split layout: prompt/log/regenerate panel on the left and browser preview plus generated code on the right.
+- Replaced generic scanning animation with a headless Playwright runner state showing `headless: true`, command execution, DOM extraction steps, locator ranking, and AI prompt handoff.
+- Added smooth appear animations when switching from prompt mode to generated workspace mode.
+- Added hover/click micro-interactions for buttons, nav items, theme toggle, copy/download, and regenerate actions.
+- Fixed scrolling behavior so the right preview/code section scrolls independently like the prompt section, instead of scrolling only the code block or the whole page.
+- Removed the Cypress artifact folder from the WebWeave project after Cypress validation testing.
 
 ## Validation Evidence
 
@@ -309,10 +323,28 @@ Latest verified state:
 - Generated OrangeHRM Selenium script reached save success signal but failed later on overly strict heading verification.
 - Generated OrangeHRM Cypress spec ran under Cypress 15 but failed due to helper candidate timing.
 - V2 UI shows ranked locator candidates and static validation checks after generation.
+- Initial UI now uses a v0-style prompt-first layout.
+- Generated workspace now separates prompt/logs from browser preview and generated code.
+- Right workspace section scrolls independently; generated code no longer traps vertical scrolling.
+- Headless loading state now visualizes Playwright `headless: true` locator discovery instead of a generic scan animation.
+- Button and navigation controls have hover/click micro-interactions.
 - Stale generated script files and hardcoded credential examples removed.
+- WebWeave `cypress` artifact folder removed.
 - Excalidraw roadmap JSON validates.
 
 ## Changelog
+
+### v1.3.0 - v0-style UI/UX Polish
+
+- Reworked the default page into a prompt-first AI builder layout inspired by v0.dev.
+- Added a left sidebar with project navigation, recent runs, and local beta status.
+- Split generated mode into left prompt/log/regenerate section and right preview/code workspace.
+- Replaced generic loading scan with a headless Playwright runner animation showing `headless: true` and locator discovery steps.
+- Added smooth workspace appear animations after clicking Generate.
+- Added hover/click/focus micro-interactions for buttons, navigation items, theme toggle, and copy/download actions.
+- Fixed generated-workspace scrolling so the right section scrolls down to preview, locator candidates, and generated code.
+- Removed the Cypress artifact folder from the project.
+- Updated README and Excalidraw with latest UI/UX progress.
 
 ### v1.2.0 - Cross-framework Validation and Documentation Update
 

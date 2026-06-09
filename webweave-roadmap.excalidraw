@@ -64,13 +64,13 @@
       "updated": 1,
       "link": null,
       "locked": false,
-      "text": "Status: local/private-beta generator. Safety, locator preview, reliable-generation rules, static checks, and real framework validation completed. Public SaaS still future.",
+      "text": "Status: local/private-beta generator. Safety, locator preview, reliable generation, framework validation, and v0-style UI/UX polish completed. Public SaaS still future.",
       "fontSize": 18,
       "fontFamily": 1,
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Status: local/private-beta generator. Safety, locator preview, reliable-generation rules, static checks, and real framework validation completed. Public SaaS still future.",
+      "originalText": "Status: local/private-beta generator. Safety, locator preview, reliable generation, framework validation, and v0-style UI/UX polish completed. Public SaaS still future.",
       "lineHeight": 1.25
     },
     {
@@ -1233,13 +1233,13 @@
       "updated": 1,
       "link": null,
       "locked": false,
-      "text": "V6 - Documentation + visual roadmap\nDone in this update:\n- README progress/evidence updated\n- Excalidraw main project flowchart\n- Detailed V1-V6 execution cards\n- Clear current status marker\n- Next step: sandboxed run + auto-fix",
+      "text": "V6/V7 - Docs + UI polish\nDone:\n- README progress/evidence updated\n- Excalidraw main project flowchart\n- v0-style prompt-first UI\n- Headless runner loading animation\n- Button micro-interactions\n- Right preview/code section scroll",
       "fontSize": 17,
       "fontFamily": 1,
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "V6 - Documentation + visual roadmap\nDone in this update:\n- README progress/evidence updated\n- Excalidraw main project flowchart\n- Detailed V1-V6 execution cards\n- Clear current status marker\n- Next step: sandboxed run + auto-fix",
+      "originalText": "V6/V7 - Docs + UI polish\nDone:\n- README progress/evidence updated\n- Excalidraw main project flowchart\n- v0-style prompt-first UI\n- Headless runner loading animation\n- Button micro-interactions\n- Right preview/code section scroll",
       "lineHeight": 1.25
     },
     {
@@ -1295,13 +1295,13 @@
       "updated": 1,
       "link": null,
       "locked": false,
-      "text": "Where we are now\nWebWeave is usable as a local/private-beta QA generator with safety guardrails and real framework test evidence. It is not public SaaS-ready yet.",
+      "text": "Where we are now\nWebWeave is usable as a local/private-beta QA generator with safety guardrails, real framework test evidence, and polished v0-style UI. It is not public SaaS-ready yet.",
       "fontSize": 20,
       "fontFamily": 1,
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Where we are now\nWebWeave is usable as a local/private-beta QA generator with safety guardrails and real framework test evidence. It is not public SaaS-ready yet.",
+      "originalText": "Where we are now\nWebWeave is usable as a local/private-beta QA generator with safety guardrails, real framework test evidence, and polished v0-style UI. It is not public SaaS-ready yet.",
       "lineHeight": 1.25
     },
     {
@@ -1357,13 +1357,13 @@
       "updated": 1,
       "link": null,
       "locked": false,
-      "text": "Next product milestone\nBuild sandboxed run validation, feed failure logs/screenshots back to AI for one repair attempt, then add auth, quotas, privacy, and billing guardrails.",
+      "text": "Next product milestone\nBuild sandboxed run validation, feed failure logs/screenshots back to AI for one repair attempt, then harden Selenium/Cypress output, auth, quotas, privacy, and billing.",
       "fontSize": 20,
       "fontFamily": 1,
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Next product milestone\nBuild sandboxed run validation, feed failure logs/screenshots back to AI for one repair attempt, then add auth, quotas, privacy, and billing guardrails.",
+      "originalText": "Next product milestone\nBuild sandboxed run validation, feed failure logs/screenshots back to AI for one repair attempt, then harden Selenium/Cypress output, auth, quotas, privacy, and billing.",
       "lineHeight": 1.25
     }
   ],

@@ -4,11 +4,20 @@ import { useEffect, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle,
+  Code2,
   Copy,
   Download,
+  Folder,
+  Globe,
+  Home,
   Loader,
+  MessageSquare,
   Monitor,
   Moon,
+  MoreHorizontal,
+  PanelLeft,
+  Search,
+  Sparkles,
   Sun,
   Zap,
 } from 'lucide-react';
@@ -122,273 +131,231 @@ export default function WebWeave() {
     URL.revokeObjectURL(blobUrl);
   };
 
+  const hasWorkspace = loading || Boolean(result);
+
   return (
     <div className={`${styles.container} ${isDark ? styles.darkMode : styles.lightMode}`}>
-      <div className={styles.backgroundGlow} />
-
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <div className={styles.logo}>
-            <div className={styles.logoMark}>
-              <Monitor size={24} />
-            </div>
-            <div>
-              <span>WebWeave</span>
-              <p>AI Automation Lab</p>
-            </div>
+      <aside className={styles.sidebar}>
+        <div className={styles.workspaceSwitch}>
+          <div className={styles.avatar}>W</div>
+          <div>
+            <strong>WebWeave</strong>
+            <span>Personal Lab</span>
           </div>
-
-          <p className={styles.subtitle}>Generate Playwright-ready automation from DOM locator intelligence.</p>
-
-          <button
-            type="button"
-            onClick={() => setIsDark((value) => !value)}
-            className={styles.themeToggle}
-            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {isDark ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+          <PanelLeft size={17} />
         </div>
-      </header>
 
-      <main className={styles.mainLayout}>
-        <aside className={styles.leftPanel}>
-          <div className={styles.formCard}>
-            <div>
-              <p className={styles.kicker}>Script Generator</p>
-              <h1 className={styles.formTitle}>Create automation script</h1>
-              <p className={styles.formDescription}>Scan target DOM, highlight locator candidates, then generate runnable automation code.</p>
-            </div>
+        <button type="button" className={styles.newChatButton} onClick={() => { setResult(null); setLogs([]); setError(''); }}>
+          New Automation
+          <Sparkles size={16} />
+        </button>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Target Website URL</label>
-              <input
-                type="url"
-                value={url}
-                onChange={(event) => setUrl(event.target.value)}
-                placeholder="https://example.com/login"
-                className={styles.input}
-                disabled={loading}
-              />
-              <p className={styles.helperText}>Bisa pakai domain saja, contoh: www.saucedemo.com. WebWeave otomatis memakai https://.</p>
-            </div>
+        <nav className={styles.navList}>
+          <a className={styles.navActive}><Home size={18} /> Home</a>
+          <a><Search size={18} /> Search</a>
+          <a><Folder size={18} /> Projects</a>
+          <a><MessageSquare size={18} /> Runs</a>
+          <a><Code2 size={18} /> Templates</a>
+        </nav>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Automation Objective</label>
-              <textarea
-                value={objective}
-                onChange={(event) => setObjective(event.target.value)}
-                placeholder="Contoh: Login menggunakan {{USERNAME}} dan {{PASSWORD}}, lalu verifikasi dashboard muncul."
-                className={styles.textarea}
-                disabled={loading}
-              />
-              <p className={styles.warningText}>Use placeholders like {'{{USERNAME}}'} and {'{{PASSWORD}}'}. Do not enter real credentials.</p>
-            </div>
+        <div className={styles.sidebarSection}>
+          <div className={styles.sidebarHeading}>Recent runs</div>
+          <button type="button" className={styles.recentItem}>OrangeHRM PIM flow <MoreHorizontal size={15} /></button>
+          <button type="button" className={styles.recentItem}>SauceDemo checkout <MoreHorizontal size={15} /></button>
+          <button type="button" className={styles.recentItem}>Framework validation <MoreHorizontal size={15} /></button>
+        </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Framework</label>
-              <select
-                value={framework}
-                onChange={(event) => setFramework(event.target.value)}
-                className={styles.select}
-                disabled={loading}
-              >
-                {FRAMEWORKS.map((item) => (
-                  <option key={item.value} value={item.value}>{item.label}</option>
-                ))}
-              </select>
-            </div>
+        <div className={styles.sidebarFooter}>
+          <span>Local beta</span>
+          <strong>{selectedFrameworkLabel}</strong>
+        </div>
+      </aside>
 
-            {error && (
-              <div className={styles.errorBanner}>
-                <AlertCircle size={18} />
-                <span>{error}</span>
+      <section className={styles.appSurface}>
+        {hasWorkspace ? (
+          <>
+            <header className={styles.workspaceHeader}>
+              <div className={styles.breadcrumbs}>
+                <span>Drafts</span>
+                <span>/</span>
+                <strong>Automation run</strong>
               </div>
-            )}
+              <div className={styles.headerActions}>
+                <button type="button" onClick={() => setIsDark((value) => !value)} className={styles.iconButton} title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+                  {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+                <span className={styles.publishPill}>Private beta</span>
+              </div>
+            </header>
 
-            <button type="button" onClick={() => handleGenerate()} disabled={loading} className={styles.generateButton}>
-              {loading ? (
-                <>
-                  <Loader size={18} className={styles.spinner} />
-                  Scanning DOM & Generating Code...
-                </>
-              ) : (
-                <>
-                  <Zap size={18} />
-                  Generate Script
-                </>
-              )}
+            <main className={styles.workspaceLayout}>
+              <section className={`${styles.promptRail} ${styles.appearIn}`}>
+                <div className={styles.chatCard}>
+                  <p className={styles.kicker}>Prompt</p>
+                  <h1>Automation objective</h1>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Target URL</label>
+                    <input type="url" value={url} onChange={(event) => setUrl(event.target.value)} className={styles.input} disabled={loading} />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Objective</label>
+                    <textarea value={objective} onChange={(event) => setObjective(event.target.value)} className={styles.textarea} disabled={loading} />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Framework</label>
+                    <select value={framework} onChange={(event) => setFramework(event.target.value)} className={styles.select} disabled={loading}>
+                      {FRAMEWORKS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                  </div>
+                  {error && <div className={styles.errorBanner}><AlertCircle size={18} /><span>{error}</span></div>}
+                  <button type="button" onClick={() => handleGenerate()} disabled={loading} className={styles.generateButton}>
+                    {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
+                    {loading ? 'Generating...' : 'Generate again'}
+                  </button>
+                </div>
+
+                <div className={styles.chatCard}>
+                  <p className={styles.kicker}>Run logs</p>
+                  <div className={styles.console}>
+                    {(logs.length ? logs : ['Waiting for generation...']).map((log, index) => (
+                      <div key={`${log}-${index}`} className={styles.consoleLine}>
+                        <span className={styles.consolePrompt}>{'>'}</span>
+                        <span>{log}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {result?.code && (
+                  <div className={styles.chatCard}>
+                    <p className={styles.kicker}>Regenerate</p>
+                    <h2>Improve with feedback</h2>
+                    <textarea value={generationFeedback} onChange={(event) => setGenerationFeedback(event.target.value)} className={styles.feedbackTextarea} placeholder="Tell WebWeave what failed or what should be stricter." disabled={loading} />
+                    <button type="button" className={styles.regenerateButton} disabled={loading || !generationFeedback.trim()} onClick={() => handleGenerate({ feedback: generationFeedback })}>
+                      {loading ? <Loader size={16} className={styles.spinner} /> : <Zap size={16} />}
+                      Regenerate with Feedback
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              <section className={`${styles.workspacePanel} ${styles.appearInDelayed}`}>
+                <div className={`${styles.previewShell} ${loading ? styles.loadingPreviewShell : ''}`}>
+                  <div className={styles.previewTopbar}>
+                    <div className={styles.previewTabs}>
+                      <span className={styles.activeTool}><Monitor size={16} /> Preview</span>
+                      <span><Code2 size={16} /> Code</span>
+                      <span><Globe size={16} /> DOM</span>
+                    </div>
+                    <div className={styles.addressBar}>{url || 'https://target-site.example'}</div>
+                    <span className={styles.liveBadge}>{loading ? 'Scanning' : result?.browserPreview ? 'Captured' : 'Ready'}</span>
+                  </div>
+                  <div className={styles.previewContainer}>
+                    {loading ? (
+                      <div className={styles.loadingState}>
+                        <div className={styles.headlessRunner}>
+                          <div className={styles.runnerHeader}>
+                            <span className={styles.runnerDot} />
+                            <strong>Playwright Chromium</strong>
+                            <code>headless: true</code>
+                          </div>
+                          <div className={styles.runnerBody}>
+                            <div className={styles.runnerCommand}>await chromium.launch({'{ headless: true }'})</div>
+                            <div className={styles.runnerStep}><span />Opening target URL</div>
+                            <div className={styles.runnerStep}><span />Extracting interactive DOM</div>
+                            <div className={styles.runnerStep}><span />Ranking locator candidates</div>
+                            <div className={styles.runnerStep}><span />Sending grounded prompt to AI</div>
+                            <div className={styles.locatorRadar}>
+                              <div>input[name=&quot;username&quot;]</div>
+                              <div>button[type=&quot;submit&quot;]</div>
+                              <div>a[href*=&quot;pim&quot;]</div>
+                            </div>
+                          </div>
+                        </div>
+                        <p className={styles.scanningText}>AI is running Playwright in headless mode and searching stable locators...</p>
+                      </div>
+                    ) : result?.browserPreview ? (
+                      <img src={result.browserPreview} alt="Locator preview" className={styles.previewImage} />
+                    ) : (
+                      <div className={styles.emptyState}><Monitor size={50} /><h3>Preview will appear here</h3></div>
+                    )}
+                  </div>
+                </div>
+
+                {result?.locatorSummary?.length > 0 && (
+                  <div className={styles.locatorStrip}>
+                    {result.locatorSummary.slice(0, 4).map((item, index) => (
+                      <div key={`${item.selector}-${index}`} className={styles.locatorItemCompact}>
+                        <span>{item.score}</span>
+                        <code>{item.selector}</code>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className={`${styles.codePanel} ${styles.appearInSlow}`}>
+                  <div className={styles.codeToolbar}>
+                    <div>
+                      <p className={styles.kicker}>Generated code</p>
+                      <h2>{selectedFrameworkLabel}</h2>
+                    </div>
+                    {result?.code && (
+                      <div className={styles.codeActions}>
+                        <button type="button" onClick={handleCopyCode} className={styles.actionButton}>{copied ? <CheckCircle size={16} /> : <Copy size={16} />}{copied ? 'Copied' : 'Copy'}</button>
+                        <button type="button" onClick={handleDownloadCode} className={styles.actionButton}><Download size={16} />Download</button>
+                      </div>
+                    )}
+                  </div>
+
+                  {result?.qualityChecks?.length > 0 && (
+                    <div className={styles.qualityPanel}>
+                      {result.qualityChecks.map((check, index) => (
+                        <div key={`${check.label}-${index}`} className={`${styles.qualityItem} ${styles[`quality${check.status}`] || ''}`}>
+                          <span>{check.status}</span>
+                          <strong>{check.label}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className={styles.codeBlock}>
+                    {result?.code ? <pre className={styles.code}><code>{result.code}</code></pre> : <div className={styles.codeEmptyState}>Code will appear below the headless browser preview.</div>}
+                  </div>
+                </div>
+              </section>
+            </main>
+          </>
+        ) : (
+          <main className={styles.heroMode}>
+            <button type="button" onClick={() => setIsDark((value) => !value)} className={styles.floatingTheme} title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
-            {logs.length > 0 && (
-              <div className={styles.consoleSection}>
-                <h2 className={styles.consoleTitle}>Generation Logs</h2>
-                <div className={styles.console}>
-                  {logs.map((log, index) => (
-                    <div key={`${log}-${index}`} className={styles.consoleLine}>
-                      <span className={styles.consolePrompt}>{'>'}</span>
-                      <span>{log}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </aside>
+            <div className={styles.heroContent}>
+              <div className={styles.heroLogo}><Monitor size={28} /> WebWeave</div>
+              <h1>What do you want to automate?</h1>
+              <p>Describe a QA flow. WebWeave will scan the page in headless Chromium, rank locators, then generate script code.</p>
 
-        <section className={styles.rightPanel}>
-          <div className={styles.outputHeader}>
-            <div>
-              <p className={styles.kicker}>Locator Preview</p>
-              <h2>Chromium workspace</h2>
-            </div>
-            <span className={styles.frameworkBadge}>{selectedFrameworkLabel}</span>
-          </div>
-
-          <div className={styles.outputCard}>
-            <div className={styles.browserToolbar}>
-              <div className={styles.browserControls}>
-                <span className={styles.trafficRed} />
-                <span className={styles.trafficAmber} />
-                <span className={styles.trafficGreen} />
-              </div>
-              <div className={styles.addressBar}>{url || 'https://target-site.example'}</div>
-              <span className={styles.liveBadge}>{loading ? 'Scanning' : result?.browserPreview ? 'Captured' : 'Ready'}</span>
-            </div>
-
-            <div className={styles.previewContainer}>
-              {loading ? (
-                <div className={styles.loadingState}>
-                  <div className={styles.scanAnimation}>
-                    <div className={styles.locatorBoxOne}>button</div>
-                    <div className={styles.locatorBoxTwo}>input</div>
-                    <div className={styles.locatorBoxThree}>link</div>
-                    <div className={styles.scanLine} />
-                  </div>
-                  <p className={styles.scanningText}>Chromium scanning DOM locators...</p>
-                  <div className={styles.pulsingDots}>
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                </div>
-              ) : result?.browserPreview ? (
-                <img src={result.browserPreview} alt="Locator preview" className={styles.previewImage} />
-              ) : (
-                <div className={styles.emptyState}>
-                  <Monitor size={54} />
-                  <h3>Browser preview appears here</h3>
-                  <p>Generate a script to see Chromium screenshot with highlighted locator candidates.</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {result?.locatorSummary?.length > 0 && (
-            <div className={styles.outputCard}>
-              <div className={styles.insightHeader}>
-                <div>
-                  <p className={styles.kicker}>Locator Intelligence</p>
-                  <h2>Top selector candidates</h2>
-                </div>
-                <span className={styles.liveBadge}>{result.locatorSummary.length} ranked</span>
-              </div>
-              <div className={styles.locatorList}>
-                {result.locatorSummary.map((item, index) => (
-                  <div key={`${item.selector}-${index}`} className={styles.locatorItem}>
-                    <div className={styles.locatorMeta}>
-                      <span className={styles.scorePill}>{item.score}</span>
-                      <span className={styles.candidateType}>{item.type}</span>
-                      <span className={styles.locatorTag}>{item.tag}</span>
-                    </div>
-                    <code className={styles.selectorText}>{item.selector}</code>
-                    {item.text && <p>{item.text}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className={styles.outputCard}>
-            <div className={styles.codeToolbar}>
-              <div>
-                <p className={styles.kicker}>Generated Code</p>
-                <h2>Automation script</h2>
-              </div>
-              {result?.code && (
-                <div className={styles.codeActions}>
-                  <button type="button" onClick={handleCopyCode} className={styles.actionButton}>
-                    {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
-                    {copied ? 'Copied!' : 'Copy'}
-                  </button>
-                  <button type="button" onClick={handleDownloadCode} className={styles.actionButton}>
-                    <Download size={16} />
-                    Download
+              <div className={styles.heroComposer}>
+                <textarea value={objective} onChange={(event) => setObjective(event.target.value)} placeholder="Ask WebWeave to automate..." className={styles.heroPrompt} disabled={loading} />
+                <div className={styles.composerMeta}>
+                  <input type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/login" className={styles.inlineUrl} disabled={loading} />
+                  <select value={framework} onChange={(event) => setFramework(event.target.value)} className={styles.inlineSelect} disabled={loading}>
+                    {FRAMEWORKS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                  </select>
+                  <button type="button" onClick={() => handleGenerate()} disabled={loading} className={styles.sendButton}>
+                    {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
+                    Generate
                   </button>
                 </div>
-              )}
-            </div>
-
-            {result?.qualityChecks?.length > 0 && (
-              <div className={styles.qualityPanel}>
-                <p className={styles.kicker}>Static Validation</p>
-                <div className={styles.qualityList}>
-                  {result.qualityChecks.map((check, index) => (
-                    <div
-                      key={`${check.label}-${index}`}
-                      className={`${styles.qualityItem} ${styles[`quality${check.status}`] || ''}`}
-                    >
-                      <span>{check.status}</span>
-                      <div>
-                        <strong>{check.label}</strong>
-                        <p>{check.detail}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
-            )}
 
-            <div className={styles.codeBlock}>
-              {result?.code ? (
-                <pre className={styles.code}><code>{result.code}</code></pre>
-              ) : (
-                <div className={styles.codeEmptyState}>
-                  <p>Your generated automation script will appear here after WebWeave finishes scanning.</p>
-                </div>
-              )}
+              {error && <div className={styles.heroError}><AlertCircle size={18} /> {error}</div>}
+              <p className={styles.securityNote}>Use placeholders like {'{{USERNAME}}'} and {'{{PASSWORD}}'}. Do not submit real credentials.</p>
             </div>
-          </div>
-
-          {result?.code && (
-            <div className={styles.outputCard}>
-              <div className={styles.regeneratePanel}>
-                <div>
-                  <p className={styles.kicker}>Regenerate</p>
-                  <h2>Improve with feedback</h2>
-                  <p>Describe what failed or what should be improved. WebWeave will keep the original objective and add your feedback to the next generation.</p>
-                </div>
-                <textarea
-                  value={generationFeedback}
-                  onChange={(event) => setGenerationFeedback(event.target.value)}
-                  className={styles.feedbackTextarea}
-                  placeholder="Example: Add stronger validation for checkout badge count, avoid locator.first() mistakes, and use data-test selectors first."
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  className={styles.regenerateButton}
-                  disabled={loading || !generationFeedback.trim()}
-                  onClick={() => handleGenerate({ feedback: generationFeedback })}
-                >
-                  {loading ? <Loader size={16} className={styles.spinner} /> : <Zap size={16} />}
-                  Regenerate with Feedback
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
-      </main>
+          </main>
+        )}
+      </section>
     </div>
   );
 }
