@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle,
   Code2,
   Copy,
   Download,
+  Eye,
+  EyeOff,
   Folder,
   Globe,
   Home,
@@ -20,6 +22,7 @@ import {
   PanelLeft,
   Save,
   Search,
+  ShieldCheck,
   Sparkles,
   Sun,
   User,
@@ -66,8 +69,10 @@ export default function WebWeave() {
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+  const [authSessionLoading, setAuthSessionLoading] = useState(SUPABASE_ENABLED);
   const [authError, setAuthError] = useState('');
   const [authMessage, setAuthMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [projects, setProjects] = useState([]);
   const [scripts, setScripts] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -82,6 +87,10 @@ export default function WebWeave() {
   const [copied, setCopied] = useState(false);
   const [isDark, setIsDark] = useState(true);
   const [generationFeedback, setGenerationFeedback] = useState('');
+  const [activePromptArea, setActivePromptArea] = useState('');
+  const [activeDropdown, setActiveDropdown] = useState('');
+  const promptAnimationTimer = useRef(null);
+  const dropdownAnimationTimer = useRef(null);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('webweave-theme');
@@ -93,12 +102,29 @@ export default function WebWeave() {
   }, [isDark]);
 
   useEffect(() => {
-    if (!supabase) return undefined;
+    return () => {
+      if (promptAnimationTimer.current) window.clearTimeout(promptAnimationTimer.current);
+      if (dropdownAnimationTimer.current) window.clearTimeout(dropdownAnimationTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuthSessionLoading(false);
+      return undefined;
+    }
 
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (mounted) setUser(data.session?.user || null);
-    });
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (mounted) setUser(data.session?.user || null);
+      })
+      .catch((err) => {
+        if (mounted) setAuthError(err.message);
+      })
+      .finally(() => {
+        if (mounted) setAuthSessionLoading(false);
+      });
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
@@ -122,6 +148,34 @@ export default function WebWeave() {
   }, [user]);
 
   const selectedFrameworkLabel = FRAMEWORKS.find((item) => item.value === framework)?.label || framework;
+  const authEmailTrimmed = authEmail.trim().toLowerCase();
+  const authEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmailTrimmed);
+  const authPasswordValid = authPassword.length >= 6;
+  const authActionLabel = authMode === 'sign_up' ? 'Create account' : 'Sign in';
+  const authSubmitDisabled = authLoading || !authEmailValid || !authPasswordValid;
+
+  const triggerTemporaryAnimation = (setter, timerRef, value) => {
+    setter('');
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+
+    window.requestAnimationFrame(() => {
+      setter(value);
+      timerRef.current = window.setTimeout(() => setter(''), 520);
+    });
+  };
+
+  const triggerPromptAnimation = (area) => {
+    triggerTemporaryAnimation(setActivePromptArea, promptAnimationTimer, area);
+  };
+
+  const triggerDropdownAnimation = (dropdownName) => {
+    triggerTemporaryAnimation(setActiveDropdown, dropdownAnimationTimer, dropdownName);
+  };
+
+  const handleDropdownPointerDown = (event, dropdownName) => {
+    event.stopPropagation();
+    triggerDropdownAnimation(dropdownName);
+  };
 
   const getAuthHeaders = async () => {
     if (!supabase) throw new Error('Supabase is not configured.');
@@ -219,19 +273,36 @@ export default function WebWeave() {
     event.preventDefault();
     if (!supabase) return;
 
+    const email = authEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAuthError('Use a valid email address.');
+      return;
+    }
+
+    if (authPassword.length < 6) {
+      setAuthError('Password must be at least 6 characters.');
+      return;
+    }
+
     setAuthLoading(true);
     setAuthError('');
     setAuthMessage('');
 
     try {
-      const credentials = { email: authEmail.trim(), password: authPassword };
-      const { error: authRequestError } = authMode === 'sign_up'
-        ? await supabase.auth.signUp(credentials)
+      const credentials = { email, password: authPassword };
+      const { data, error: authRequestError } = authMode === 'sign_up'
+        ? await supabase.auth.signUp({
+          ...credentials,
+          options: { emailRedirectTo: window.location.origin },
+        })
         : await supabase.auth.signInWithPassword(credentials);
 
       if (authRequestError) throw authRequestError;
 
-      setAuthMessage(authMode === 'sign_up' ? 'Account created. Check email if confirmation is enabled.' : 'Signed in.');
+      setAuthMessage(authMode === 'sign_up' && !data?.session
+        ? 'Account created. Check your email to confirm before signing in.'
+        : 'Signed in. Project history is ready.');
+      setAuthEmail(email);
       setAuthPassword('');
     } catch (err) {
       setAuthError(err.message);
@@ -244,7 +315,16 @@ export default function WebWeave() {
     if (!supabase) return;
     await supabase.auth.signOut();
     setUser(null);
+    setProjects([]);
+    setScripts([]);
+    setSelectedProjectId('');
     setAuthMessage('Signed out.');
+  };
+
+  const switchAuthMode = (nextMode) => {
+    setAuthMode(nextMode);
+    setAuthError('');
+    setAuthMessage('');
   };
 
   const handleOpenScript = (script) => {
@@ -351,6 +431,44 @@ export default function WebWeave() {
   };
 
   const hasWorkspace = loading || Boolean(result);
+  const renderAuthPanel = (surface = 'sidebar') => (
+    <div className={`${styles.authCard} ${surface === 'hero' ? styles.authCardHero : ''}`}>
+      <div className={styles.sidebarHeading}>Account</div>
+      {!SUPABASE_ENABLED ? (
+        <div className={styles.sidebarHint}>Supabase not configured.</div>
+      ) : authSessionLoading ? (
+        <div className={styles.authStatusLine}><Loader size={15} className={styles.spinner} /> Checking session...</div>
+      ) : user ? (
+        <>
+          <div className={styles.userBadge}><User size={15} /> <span>{user.email}</span></div>
+          <div className={styles.authMeta}><ShieldCheck size={15} /> Scripts save into private project history.</div>
+          <button type="button" className={styles.secondaryButton} onClick={handleSignOut}><LogOut size={15} /> Sign out</button>
+          {authMessage && <div className={styles.authMessage}>{authMessage}</div>}
+        </>
+      ) : (
+        <form className={styles.authForm} onSubmit={handleAuthSubmit}>
+          <div className={styles.authModeToggle}>
+            <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_in' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_in')}>Login</button>
+            <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_up' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_up')}>Register</button>
+          </div>
+          <input type="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} placeholder="email@example.com" className={styles.authInput} autoComplete="email" required />
+          <div className={styles.authPasswordWrap}>
+            <input type={showPassword ? 'text' : 'password'} value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} placeholder="Password min. 6 chars" className={styles.authInput} autoComplete={authMode === 'sign_up' ? 'new-password' : 'current-password'} required minLength={6} />
+            <button type="button" className={styles.passwordToggle} onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          </div>
+          {authError && <div className={styles.authError}>{authError}</div>}
+          {authMessage && <div className={styles.authMessage}>{authMessage}</div>}
+          <button type="submit" className={styles.secondaryButton} disabled={authSubmitDisabled}>
+            {authLoading ? <Loader size={15} className={styles.spinner} /> : <KeyRound size={15} />}
+            {authActionLabel}
+          </button>
+          <p className={styles.authSmall}>{authMode === 'sign_up' ? 'Register to save scripts, projects, and generation history.' : 'Login to restore projects and saved scripts.'}</p>
+        </form>
+      )}
+    </div>
+  );
 
   return (
     <div className={`${styles.container} ${isDark ? styles.darkMode : styles.lightMode}`}>
@@ -391,31 +509,7 @@ export default function WebWeave() {
           ))}
         </div>
 
-        <div className={styles.authCard}>
-          <div className={styles.sidebarHeading}>Account</div>
-          {!SUPABASE_ENABLED ? (
-            <div className={styles.sidebarHint}>Supabase not configured.</div>
-          ) : user ? (
-            <>
-              <div className={styles.userBadge}><User size={15} /> {user.email}</div>
-              <button type="button" className={styles.secondaryButton} onClick={handleSignOut}><LogOut size={15} /> Sign out</button>
-            </>
-          ) : (
-            <form className={styles.authForm} onSubmit={handleAuthSubmit}>
-              <input type="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} placeholder="email@example.com" className={styles.authInput} required />
-              <input type="password" value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} placeholder="Password" className={styles.authInput} required minLength={6} />
-              {authError && <div className={styles.authError}>{authError}</div>}
-              {authMessage && <div className={styles.authMessage}>{authMessage}</div>}
-              <button type="submit" className={styles.secondaryButton} disabled={authLoading}>
-                {authLoading ? <Loader size={15} className={styles.spinner} /> : <KeyRound size={15} />}
-                {authMode === 'sign_up' ? 'Sign up' : 'Sign in'}
-              </button>
-              <button type="button" className={styles.linkButton} onClick={() => setAuthMode(authMode === 'sign_up' ? 'sign_in' : 'sign_up')}>
-                {authMode === 'sign_up' ? 'Use existing account' : 'Create account'}
-              </button>
-            </form>
-          )}
-        </div>
+        {renderAuthPanel('sidebar')}
 
         <div className={styles.sidebarFooter}>
           <span>{user ? 'Authenticated beta' : 'Local beta'}</span>
@@ -443,27 +537,27 @@ export default function WebWeave() {
 
             <main className={styles.workspaceLayout}>
               <section className={`${styles.promptRail} ${styles.appearIn}`}>
-                <div className={styles.chatCard}>
+                <div className={`${styles.chatCard} ${styles.promptCard} ${activePromptArea === 'workspace' ? styles.promptPulse : ''}`} onPointerDown={() => triggerPromptAnimation('workspace')}>
                   <p className={styles.kicker}>Prompt</p>
                   <h1>Automation objective</h1>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>Target URL</label>
-                    <input type="url" value={url} onChange={(event) => setUrl(event.target.value)} className={styles.input} disabled={loading} />
+                    <input type="url" value={url} onChange={(event) => setUrl(event.target.value)} onFocus={() => triggerPromptAnimation('workspace')} className={styles.input} disabled={loading} />
                   </div>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>Objective</label>
-                    <textarea value={objective} onChange={(event) => setObjective(event.target.value)} className={styles.textarea} disabled={loading} />
+                    <textarea value={objective} onChange={(event) => setObjective(event.target.value)} onFocus={() => triggerPromptAnimation('workspace')} className={styles.textarea} disabled={loading} />
                   </div>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>Framework</label>
-                    <select value={framework} onChange={(event) => setFramework(event.target.value)} className={styles.select} disabled={loading}>
+                    <select value={framework} onChange={(event) => setFramework(event.target.value)} onPointerDown={(event) => handleDropdownPointerDown(event, 'workspace-framework')} onFocus={() => triggerDropdownAnimation('workspace-framework')} className={`${styles.select} ${activeDropdown === 'workspace-framework' ? styles.dropdownPulse : ''}`} disabled={loading}>
                       {FRAMEWORKS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                     </select>
                   </div>
                   {user && (
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Project</label>
-                      <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} className={styles.select} disabled={loading}>
+                      <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} onPointerDown={(event) => handleDropdownPointerDown(event, 'workspace-project')} onFocus={() => triggerDropdownAnimation('workspace-project')} className={`${styles.select} ${activeDropdown === 'workspace-project' ? styles.dropdownPulse : ''}`} disabled={loading}>
                         <option value="">Auto-create default project</option>
                         {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
                       </select>
@@ -603,15 +697,15 @@ export default function WebWeave() {
               <h1>What do you want to automate?</h1>
               <p>Describe a QA flow. WebWeave will scan the page in headless Chromium, rank locators, then generate script code.</p>
 
-              <div className={styles.heroComposer}>
-                <textarea value={objective} onChange={(event) => setObjective(event.target.value)} placeholder="Ask WebWeave to automate..." className={styles.heroPrompt} disabled={loading} />
+              <div className={`${styles.heroComposer} ${activePromptArea === 'hero' ? styles.promptPulse : ''}`} onPointerDown={() => triggerPromptAnimation('hero')}>
+                <textarea value={objective} onChange={(event) => setObjective(event.target.value)} onFocus={() => triggerPromptAnimation('hero')} placeholder="Ask WebWeave to automate..." className={styles.heroPrompt} disabled={loading} />
                 <div className={styles.composerMeta}>
-                  <input type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/login" className={styles.inlineUrl} disabled={loading} />
-                  <select value={framework} onChange={(event) => setFramework(event.target.value)} className={styles.inlineSelect} disabled={loading}>
+                  <input type="url" value={url} onChange={(event) => setUrl(event.target.value)} onFocus={() => triggerPromptAnimation('hero')} placeholder="https://example.com/login" className={styles.inlineUrl} disabled={loading} />
+                  <select value={framework} onChange={(event) => setFramework(event.target.value)} onPointerDown={(event) => handleDropdownPointerDown(event, 'hero-framework')} onFocus={() => triggerDropdownAnimation('hero-framework')} className={`${styles.inlineSelect} ${activeDropdown === 'hero-framework' ? styles.dropdownPulse : ''}`} disabled={loading}>
                     {FRAMEWORKS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                   </select>
                   {user && (
-                    <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} className={styles.inlineSelect} disabled={loading}>
+                    <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} onPointerDown={(event) => handleDropdownPointerDown(event, 'hero-project')} onFocus={() => triggerDropdownAnimation('hero-project')} className={`${styles.inlineSelect} ${activeDropdown === 'hero-project' ? styles.dropdownPulse : ''}`} disabled={loading}>
                       <option value="">Auto project</option>
                       {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
                     </select>
@@ -625,6 +719,7 @@ export default function WebWeave() {
 
               {error && <div className={styles.heroError}><AlertCircle size={18} /> {error}</div>}
               <p className={styles.securityNote}>Use placeholders like {'{{USERNAME}}'} and {'{{PASSWORD}}'}. Do not submit real credentials.</p>
+              {renderAuthPanel('hero')}
             </div>
           </main>
         )}
