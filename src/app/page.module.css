@@ -87,15 +87,14 @@
   color: var(--muted);
 }
 
-.avatar {
+.brandLogo {
   width: 32px;
   height: 32px;
   border-radius: 999px;
-  display: grid;
-  place-items: center;
-  color: #ffffff;
-  background: var(--blue);
-  font-weight: 900;
+  display: block;
+  object-fit: cover;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px var(--border), 0 10px 24px var(--shadow);
 }
 
 .newChatButton {
@@ -294,8 +293,13 @@
   margin-bottom: 2.2rem;
 }
 
-.heroLogo svg {
-  color: var(--blue);
+.heroLogo img {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px var(--border), 0 14px 32px var(--shadow);
 }
 
 .heroContent h1 {

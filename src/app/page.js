@@ -133,7 +133,7 @@ export default function WebWeave() {
     <div className={`${styles.container} ${isDark ? styles.darkMode : styles.lightMode}`}>
       <aside className={styles.sidebar}>
         <div className={styles.workspaceSwitch}>
-          <div className={styles.avatar}>W</div>
+          <img src="/logo" alt="WebWeave logo" className={styles.brandLogo} />
           <div>
             <strong>WebWeave</strong>
             <span>Personal Lab</span>
@@ -333,7 +333,7 @@ export default function WebWeave() {
             </button>
 
             <div className={styles.heroContent}>
-              <div className={styles.heroLogo}><Monitor size={28} /> WebWeave</div>
+              <div className={styles.heroLogo}><img src="/logo" alt="WebWeave logo" /> WebWeave</div>
               <h1>What do you want to automate?</h1>
               <p>Describe a QA flow. WebWeave will scan the page in headless Chromium, rank locators, then generate script code.</p>
 

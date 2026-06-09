@@ -18,6 +18,7 @@ WebWeave scans a target page with Playwright Chromium, extracts interactive DOM 
 | V2 Reliable Generation | Complete for local beta | Selector confidence scoring, locator candidate list, static checks, code extraction fixes, and cross-framework reliability rules added |
 | Cross-framework validation | Partially verified | Playwright JS, Playwright Python, and patched Puppeteer completed OrangeHRM add-employee flow; Selenium and Cypress exposed remaining hardening gaps |
 | V3 UI/UX Polish | Complete | v0-style initial prompt screen, split workspace after generation, headless runner loading state, button animations, and right-panel section scrolling |
+| Branding Polish | Complete | Custom circular WebWeave logo is used in the UI and browser tab favicon through `/logo` |
 | Public SaaS Readiness | Not ready | Needs auth, quotas, stronger browser isolation, policies, and billing guardrails |
 
 Current project position: WebWeave is past the initial prototype and is now a local/private-beta generator with safety controls, locator preview, static quality checks, and real cross-framework test evidence. The next product-level step is a sandboxed run-and-fix validation loop inside WebWeave, not public launch.
@@ -46,6 +47,10 @@ Completed after the framework validation pass:
 - Added smooth appear animations when switching from prompt mode to generated workspace mode.
 - Added hover/click micro-interactions for buttons, nav items, theme toggle, copy/download, and regenerate actions.
 - Fixed scrolling behavior so the right preview/code section scrolls independently like the prompt section, instead of scrolling only the code block or the whole page.
+- Added the custom WebWeave logo to the sidebar, hero prompt screen, and browser tab favicon.
+- Served the logo through `/logo` with a circular SVG clip so it appears round instead of square.
+- Added a quality gate badge for generated output: `pass`, `warn`, or `fail`.
+- Updated script download filenames to follow the selected framework, for example `playwright-js_automation.js`.
 - Removed the Cypress artifact folder from the WebWeave project after Cypress validation testing.
 
 ## Validation Evidence
@@ -328,11 +333,24 @@ Latest verified state:
 - Right workspace section scrolls independently; generated code no longer traps vertical scrolling.
 - Headless loading state now visualizes Playwright `headless: true` locator discovery instead of a generic scan animation.
 - Button and navigation controls have hover/click micro-interactions.
+- Custom circular WebWeave logo appears in the UI and browser tab.
+- Generated output includes a quality gate badge.
+- Downloaded script files are named by selected framework.
 - Stale generated script files and hardcoded credential examples removed.
 - WebWeave `cypress` artifact folder removed.
 - Excalidraw roadmap JSON validates.
 
 ## Changelog
+
+### v1.4.0 - Branding and Quality Gate Polish
+
+- Added custom WebWeave SVG logo to the UI.
+- Added `/logo` route to serve the logo as SVG.
+- Wrapped the logo SVG in a circular clip path so the UI logo and browser tab icon appear round.
+- Added metadata icons for browser tab favicon, shortcut icon, and Apple icon.
+- Added generated-output quality gate badge to the code toolbar.
+- Added stronger Selenium/Cypress static checks for helper issues, raw locators, and retry-unsafe Cypress candidates.
+- Updated downloaded script filenames to use the selected framework name, for example `selenium-python_automation.py`.
 
 ### v1.3.0 - v0-style UI/UX Polish
 
