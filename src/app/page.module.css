@@ -188,6 +188,16 @@
   padding-top: 1.5rem;
 }
 
+.sidebarHint {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--muted);
+  padding: 0.7rem 0.75rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .sidebarHeading {
   color: var(--muted);
   font-size: 0.76rem;
@@ -201,6 +211,124 @@
   cursor: pointer;
   justify-content: space-between;
   font-size: 0.9rem;
+}
+
+.recentItem span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.authCard {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.authForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.authInput {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--input);
+  color: var(--text);
+  padding: 0.65rem 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.authInput:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+}
+
+.authError,
+.authMessage {
+  border-radius: 9px;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.authError {
+  border: 1px solid rgba(239, 68, 68, 0.42);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--red);
+}
+
+.authMessage {
+  border: 1px solid rgba(34, 197, 94, 0.42);
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--green);
+}
+
+.userBadge,
+.secondaryButton,
+.linkButton {
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font: inherit;
+}
+
+.userBadge {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0.65rem 0.7rem;
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.secondaryButton,
+.linkButton {
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.secondaryButton {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0.68rem 0.7rem;
+  font-weight: 800;
+}
+
+.secondaryButton:hover {
+  border-color: var(--blue);
+  transform: translateY(-1px);
+}
+
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.linkButton {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.linkButton:hover {
+  color: var(--text);
 }
 
 .sidebarFooter {
@@ -342,7 +470,7 @@
   border-top: 1px solid var(--border);
   padding: 0.75rem;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 220px) minmax(150px, 200px) auto;
   gap: 0.75rem;
   align-items: center;
 }
@@ -491,6 +619,9 @@
   padding: 0.48rem 0.85rem;
   font-weight: 850;
   font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .workspaceLayout {

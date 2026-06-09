@@ -167,7 +167,7 @@ Do not:
 - Do not overbuild complex project system yet.
 - Do not generate scripts that include real user secrets.
 
-### Version 3: Auth, Projects, and Persistence - Planned Next
+### Version 3: Auth, Projects, and Persistence - MVP Scaffold Implemented
 
 Goal: make WebWeave persistent and private-beta ready before running generated code.
 
@@ -185,6 +185,24 @@ Scope:
 Deliverable:
 
 - Authenticated users can create projects, generate scripts, reopen history, and see usage count.
+
+Implemented scaffold:
+
+- Supabase env template.
+- Supabase browser/server clients.
+- Auth UI in sidebar.
+- Project list/create API.
+- Generated script list/create API.
+- SQL schema and RLS migration.
+- Auto-save successful generations to history for signed-in users.
+
+Still required:
+
+- Create real Supabase project.
+- Run migration in Supabase.
+- Fill env vars.
+- Test sign-up/sign-in and saved history end-to-end.
+- Add visible usage count UI.
 
 Do not:
 

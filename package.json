@@ -11,8 +11,9 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
     "@google/generative-ai": "^0.11.0",
+    "@supabase/supabase-js": "^2.108.0",
     "lucide-react": "^0.378.0",
-    "next": "14.2.3",
+    "next": "^14.2.35",
     "openai": "^6.39.1",
     "playwright": "^1.44.0",
     "react": "^18.3.1",

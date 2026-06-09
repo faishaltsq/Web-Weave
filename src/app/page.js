@@ -10,17 +10,22 @@ import {
   Folder,
   Globe,
   Home,
+  KeyRound,
   Loader,
+  LogOut,
   MessageSquare,
   Monitor,
   Moon,
   MoreHorizontal,
   PanelLeft,
+  Save,
   Search,
   Sparkles,
   Sun,
+  User,
   Zap,
 } from 'lucide-react';
+import { createBrowserSupabaseClient, hasSupabaseBrowserConfig } from '@/lib/supabase/browser';
 import styles from './page.module.css';
 
 const FRAMEWORKS = [
@@ -31,7 +36,42 @@ const FRAMEWORKS = [
   { value: 'cypress_js', label: 'Cypress JavaScript' },
 ];
 
+const SUPABASE_ENABLED = hasSupabaseBrowserConfig();
+
+function getFileExtension(frameworkValue) {
+  const extMap = {
+    playwright_js: 'js',
+    playwright_python: 'py',
+    puppeteer_js: 'js',
+    selenium_python: 'py',
+    cypress_js: 'cy.js',
+  };
+
+  return extMap[frameworkValue] || 'txt';
+}
+
+function getTargetDomain(rawUrl) {
+  try {
+    const normalized = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+    return new URL(normalized).hostname;
+  } catch {
+    return rawUrl.trim().slice(0, 120);
+  }
+}
+
 export default function WebWeave() {
+  const [supabase] = useState(() => createBrowserSupabaseClient());
+  const [user, setUser] = useState(null);
+  const [authMode, setAuthMode] = useState('sign_in');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [authMessage, setAuthMessage] = useState('');
+  const [projects, setProjects] = useState([]);
+  const [scripts, setScripts] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [url, setUrl] = useState('');
   const [objective, setObjective] = useState('');
   const [framework, setFramework] = useState('playwright_js');
@@ -52,7 +92,178 @@ export default function WebWeave() {
     window.localStorage.setItem('webweave-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
+  useEffect(() => {
+    if (!supabase) return undefined;
+
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setUser(data.session?.user || null);
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      mounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!user) {
+      setProjects([]);
+      setScripts([]);
+      setSelectedProjectId('');
+      return;
+    }
+
+    loadPrivateData();
+  }, [user]);
+
   const selectedFrameworkLabel = FRAMEWORKS.find((item) => item.value === framework)?.label || framework;
+
+  const getAuthHeaders = async () => {
+    if (!supabase) throw new Error('Supabase is not configured.');
+
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+
+    if (!token) throw new Error('Sign in required.');
+
+    return { Authorization: `Bearer ${token}` };
+  };
+
+  const loadPrivateData = async () => {
+    if (!user || !supabase) return;
+
+    setHistoryLoading(true);
+    try {
+      const headers = await getAuthHeaders();
+      const [projectResponse, scriptResponse] = await Promise.all([
+        fetch('/api/projects', { headers }),
+        fetch('/api/generated-scripts', { headers }),
+      ]);
+
+      const projectData = await projectResponse.json();
+      const scriptData = await scriptResponse.json();
+
+      if (projectData.success) {
+        const nextProjects = projectData.projects || [];
+        setProjects(nextProjects);
+        if (!selectedProjectId && nextProjects.length) setSelectedProjectId(nextProjects[0].id);
+      }
+
+      if (scriptData.success) setScripts(scriptData.scripts || []);
+    } catch (err) {
+      setAuthError(err.message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const createProject = async (name = 'Default project') => {
+    const headers = await getAuthHeaders();
+    const response = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        target_domain: getTargetDomain(url),
+        description: 'Created automatically from WebWeave generation.',
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || 'Failed to create project.');
+
+    setProjects((prev) => [data.project, ...prev]);
+    setSelectedProjectId(data.project.id);
+    return data.project;
+  };
+
+  const saveGeneratedScript = async (generatedData, promptText) => {
+    if (!user || !supabase || !generatedData?.code) return null;
+
+    const headers = await getAuthHeaders();
+    const project = selectedProjectId
+      ? projects.find((item) => item.id === selectedProjectId)
+      : (projects[0] || await createProject('Default project'));
+
+    if (!project?.id) throw new Error('Project is required before saving script.');
+
+    const response = await fetch('/api/generated-scripts', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project_id: project.id,
+        framework,
+        prompt: promptText,
+        target_url: url,
+        code: generatedData.code,
+        quality_gate: generatedData.qualityGate || null,
+        quality_checks: generatedData.qualityChecks || [],
+        locator_summary: generatedData.locatorSummary || [],
+        provider: generatedData.provider || null,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || 'Failed to save generated script.');
+
+    await loadPrivateData();
+    return data.script;
+  };
+
+  const handleAuthSubmit = async (event) => {
+    event.preventDefault();
+    if (!supabase) return;
+
+    setAuthLoading(true);
+    setAuthError('');
+    setAuthMessage('');
+
+    try {
+      const credentials = { email: authEmail.trim(), password: authPassword };
+      const { error: authRequestError } = authMode === 'sign_up'
+        ? await supabase.auth.signUp(credentials)
+        : await supabase.auth.signInWithPassword(credentials);
+
+      if (authRequestError) throw authRequestError;
+
+      setAuthMessage(authMode === 'sign_up' ? 'Account created. Check email if confirmation is enabled.' : 'Signed in.');
+      setAuthPassword('');
+    } catch (err) {
+      setAuthError(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setUser(null);
+    setAuthMessage('Signed out.');
+  };
+
+  const handleOpenScript = (script) => {
+    setUrl(script.target_url || '');
+    setObjective(script.prompt || '');
+    setFramework(script.framework || 'playwright_js');
+    setSelectedProjectId(script.project_id || '');
+    setResult({
+      success: true,
+      code: script.code,
+      fileExtension: getFileExtension(script.framework),
+      qualityGate: script.quality_gate,
+      qualityChecks: script.quality_checks || [],
+      locatorSummary: script.locator_summary || [],
+      logs: [`Loaded saved script from ${new Date(script.created_at).toLocaleString()}.`],
+    });
+    setLogs([`Loaded saved script from ${new Date(script.created_at).toLocaleString()}.`]);
+    setError('');
+  };
 
   const handleGenerate = async (options = {}) => {
     if (!url.trim()) {
@@ -92,8 +303,20 @@ export default function WebWeave() {
         throw new Error(data.error || 'Gagal menghasilkan skrip automasi.');
       }
 
-      setResult(data);
-      setLogs(data.logs || []);
+      let savedScript = null;
+      let saveError = '';
+      try {
+        savedScript = await saveGeneratedScript(data, requestPrompt);
+      } catch (err) {
+        saveError = err.message;
+      }
+
+      setResult(savedScript ? { ...data, savedScriptId: savedScript.id } : data);
+      setLogs([
+        ...(data.logs || []),
+        ...(savedScript ? [`Saved to project history (${savedScript.id}).`] : []),
+        ...(saveError ? [`History save skipped: ${saveError}`] : []),
+      ]);
       if (feedbackText) setGenerationFeedback('');
     } catch (err) {
       setError(err.message);
@@ -155,14 +378,47 @@ export default function WebWeave() {
         </nav>
 
         <div className={styles.sidebarSection}>
-          <div className={styles.sidebarHeading}>Recent runs</div>
-          <button type="button" className={styles.recentItem}>OrangeHRM PIM flow <MoreHorizontal size={15} /></button>
-          <button type="button" className={styles.recentItem}>SauceDemo checkout <MoreHorizontal size={15} /></button>
-          <button type="button" className={styles.recentItem}>Framework validation <MoreHorizontal size={15} /></button>
+          <div className={styles.sidebarHeading}>Saved scripts</div>
+          {!SUPABASE_ENABLED && <div className={styles.sidebarHint}>Add Supabase env vars to enable history.</div>}
+          {SUPABASE_ENABLED && !user && <div className={styles.sidebarHint}>Sign in to save generated scripts.</div>}
+          {historyLoading && <div className={styles.sidebarHint}>Loading history...</div>}
+          {user && !historyLoading && scripts.length === 0 && <div className={styles.sidebarHint}>No saved scripts yet.</div>}
+          {scripts.slice(0, 5).map((script) => (
+            <button type="button" key={script.id} className={styles.recentItem} onClick={() => handleOpenScript(script)}>
+              <span>{FRAMEWORKS.find((item) => item.value === script.framework)?.label || script.framework}</span>
+              <MoreHorizontal size={15} />
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.authCard}>
+          <div className={styles.sidebarHeading}>Account</div>
+          {!SUPABASE_ENABLED ? (
+            <div className={styles.sidebarHint}>Supabase not configured.</div>
+          ) : user ? (
+            <>
+              <div className={styles.userBadge}><User size={15} /> {user.email}</div>
+              <button type="button" className={styles.secondaryButton} onClick={handleSignOut}><LogOut size={15} /> Sign out</button>
+            </>
+          ) : (
+            <form className={styles.authForm} onSubmit={handleAuthSubmit}>
+              <input type="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} placeholder="email@example.com" className={styles.authInput} required />
+              <input type="password" value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} placeholder="Password" className={styles.authInput} required minLength={6} />
+              {authError && <div className={styles.authError}>{authError}</div>}
+              {authMessage && <div className={styles.authMessage}>{authMessage}</div>}
+              <button type="submit" className={styles.secondaryButton} disabled={authLoading}>
+                {authLoading ? <Loader size={15} className={styles.spinner} /> : <KeyRound size={15} />}
+                {authMode === 'sign_up' ? 'Sign up' : 'Sign in'}
+              </button>
+              <button type="button" className={styles.linkButton} onClick={() => setAuthMode(authMode === 'sign_up' ? 'sign_in' : 'sign_up')}>
+                {authMode === 'sign_up' ? 'Use existing account' : 'Create account'}
+              </button>
+            </form>
+          )}
         </div>
 
         <div className={styles.sidebarFooter}>
-          <span>Local beta</span>
+          <span>{user ? 'Authenticated beta' : 'Local beta'}</span>
           <strong>{selectedFrameworkLabel}</strong>
         </div>
       </aside>
@@ -181,6 +437,7 @@ export default function WebWeave() {
                   {isDark ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
                 <span className={styles.publishPill}>Private beta</span>
+                {user && <span className={styles.publishPill}><Save size={14} /> History on</span>}
               </div>
             </header>
 
@@ -203,6 +460,15 @@ export default function WebWeave() {
                       {FRAMEWORKS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                     </select>
                   </div>
+                  {user && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Project</label>
+                      <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} className={styles.select} disabled={loading}>
+                        <option value="">Auto-create default project</option>
+                        {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                      </select>
+                    </div>
+                  )}
                   {error && <div className={styles.errorBanner}><AlertCircle size={18} /><span>{error}</span></div>}
                   <button type="button" onClick={() => handleGenerate()} disabled={loading} className={styles.generateButton}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
@@ -344,6 +610,12 @@ export default function WebWeave() {
                   <select value={framework} onChange={(event) => setFramework(event.target.value)} className={styles.inlineSelect} disabled={loading}>
                     {FRAMEWORKS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                   </select>
+                  {user && (
+                    <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} className={styles.inlineSelect} disabled={loading}>
+                      <option value="">Auto project</option>
+                      {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                    </select>
+                  )}
                   <button type="button" onClick={() => handleGenerate()} disabled={loading} className={styles.sendButton}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
                     Generate

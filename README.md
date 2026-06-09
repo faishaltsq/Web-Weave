@@ -19,10 +19,10 @@ WebWeave scans a target page with Playwright Chromium, extracts interactive DOM 
 | Cross-framework validation | Partially verified | Playwright JS, Playwright Python, and patched Puppeteer completed OrangeHRM add-employee flow; Selenium and Cypress exposed remaining hardening gaps |
 | V3 UI/UX Polish | Complete | v0-style initial prompt screen, split workspace after generation, headless runner loading state, button animations, and right-panel section scrolling |
 | Branding Polish | Complete | Custom circular WebWeave logo is used in the UI and browser tab favicon through `/logo` |
-| Backend/Data Planning | Planned next | Supabase Auth, Postgres, Storage, projects, scripts, templates, usage events, and run history planned as next foundation |
+| Backend/Data Layer | MVP scaffold implemented | Supabase Auth client, projects API, generated script history API, SQL schema/RLS migration, and save-to-history UI added; requires Supabase env + migration |
 | Public SaaS Readiness | Not ready | Needs auth, quotas, stronger browser isolation, policies, and billing guardrails |
 
-Current project position: WebWeave is past the initial prototype and is now a local/private-beta generator with safety controls, locator preview, static quality checks, and real cross-framework test evidence. The next product-level step is Supabase-backed auth, projects, script history, templates, usage tracking, and artifacts. Sandboxed run-and-fix validation should come after that foundation, not before public launch.
+Current project position: WebWeave is past the initial prototype and is now a local/private-beta generator with safety controls, locator preview, static quality checks, real cross-framework test evidence, and a Supabase persistence scaffold. The next product-level step is configuring a Supabase project, running the SQL migration, then testing auth, projects, and generated script history end-to-end. Sandboxed run-and-fix validation should come after that foundation, not before public launch.
 
 ## Execution Progress V1-V6
 
@@ -37,7 +37,7 @@ This V1-V6 list describes work already completed during the current build cycle.
 | V5 - Real target framework validation | Complete with findings | Generated and ran OrangeHRM add-employee flow for Playwright JS, Playwright Python, Puppeteer, Selenium, and Cypress; fixed multiple generator issues from failures |
 | V6 - Documentation and visual roadmap | Complete in this update | README and Excalidraw now show project journey, current status, completed process, and remaining gaps clearly |
 | V7 - v0-style UI/UX polish | Complete | Initial page now behaves like a prompt-first AI builder; generated mode has separate left prompt/log section and right preview/code section with independent scroll |
-| V8 - Supabase backend/data layer | Planned | Add persistent accounts, projects, generated scripts, templates, usage quota events, run history, and artifact storage |
+| V8 - Supabase backend/data layer | MVP scaffold implemented | Added Supabase env template, browser/server clients, Auth UI, project/script APIs, SQL schema/RLS migration, and auto-save history after generation |
 
 ## Backend and Database Plan
 
@@ -99,9 +99,29 @@ Security requirements for this phase:
 - Store preview screenshots and artifacts with user-scoped paths.
 - Do not run generated code in the main Next.js runtime; use a separate sandbox/worker later.
 
+Implemented in this scaffold:
+
+- Supabase browser client for email/password auth.
+- Server service-role client used only inside route handlers.
+- `/api/projects` for user-owned project list/create.
+- `/api/generated-scripts` for user-owned saved script list/create.
+- SQL migration at `supabase/migrations/001_initial_schema.sql` with tables, indexes, triggers, and RLS policies.
+- Sidebar auth card and saved script history.
+- Project selector in the generator.
+- Automatic save to `generated_scripts` after successful generation when user is signed in.
+
 Recommended next deliverable:
 
 - “Authenticated private beta”: users can log in, create projects, generate scripts, save script history, and view usage count. No billing and no script runner yet.
+
+Setup steps:
+
+1. Create Supabase project.
+2. Run `supabase/migrations/001_initial_schema.sql` in Supabase SQL editor.
+3. Fill `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`.
+4. Restart `npm run dev`.
+5. Sign up/sign in from WebWeave sidebar.
+6. Generate script and confirm it appears under saved scripts.
 
 ## Latest UI/UX Progress
 
