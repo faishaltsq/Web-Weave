@@ -1009,6 +1009,33 @@
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.gateBadge {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 0.52rem 0.72rem;
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.gatepass {
+  border-color: rgba(34, 197, 94, 0.38);
+  color: var(--green);
+}
+
+.gatewarn {
+  border-color: rgba(245, 158, 11, 0.42);
+  color: var(--amber);
+}
+
+.gatefail {
+  border-color: rgba(239, 68, 68, 0.45);
+  color: var(--red);
 }
 
 .actionButton {

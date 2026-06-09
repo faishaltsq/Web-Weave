@@ -114,17 +114,13 @@ export default function WebWeave() {
     if (!result?.code) return;
 
     const ext = result.fileExtension || 'txt';
+    const frameworkSlug = framework.replace(/_/g, '-');
     const blob = new Blob([result.code], { type: 'text/plain;charset=utf-8' });
     const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
 
-    let domain = 'automation';
-    try {
-      domain = new URL(url).hostname.replace('www.', '').split('.')[0];
-    } catch (_) {}
-
     link.href = blobUrl;
-    link.download = `${domain}_automation.${ext}`;
+    link.download = `${frameworkSlug}_automation.${ext}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -301,6 +297,11 @@ export default function WebWeave() {
                     </div>
                     {result?.code && (
                       <div className={styles.codeActions}>
+                        {result?.qualityGate && (
+                          <span className={`${styles.gateBadge} ${styles[`gate${result.qualityGate.status}`] || ''}`}>
+                            Gate: {result.qualityGate.status}
+                          </span>
+                        )}
                         <button type="button" onClick={handleCopyCode} className={styles.actionButton}>{copied ? <CheckCircle size={16} /> : <Copy size={16} />}{copied ? 'Copied' : 'Copy'}</button>
                         <button type="button" onClick={handleDownloadCode} className={styles.actionButton}><Download size={16} />Download</button>
                       </div>

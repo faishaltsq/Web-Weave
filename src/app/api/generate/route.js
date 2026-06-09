@@ -451,6 +451,7 @@ Forms: Do not fill optional constrained fields unless the user explicitly asks. 
 Navigation: driver.get(url). driver.set_page_load_timeout(60).
 Wait: WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, 'id'))).
 Post-save waits: after Save/Add actions, wait for any success signal: success toast, URL containing the expected detail page, or a stable page heading. Do not rely on only URL.
+Completion rule: Once any save success signal is confirmed, print success and end the script. Do not perform extra required heading/name lookups that can fail after success. Extra evidence reads must be optional and must not raise after success.
 Always use explicit waits (WebDriverWait) over time.sleep().`
     },
     cypress_js: {
@@ -458,12 +459,13 @@ Always use explicit waits (WebDriverWait) over time.sleep().`
       ext: 'cy.js',
       details: `Cypress in JavaScript.
 Selectors: USE ID from DOM FIRST. cy.get('#id') > cy.contains().
-Validation: Create helper functions getByCandidates(candidates, label), clickSafe(candidates, label), fillSafe(candidates, value, label). Helpers must try selector candidates in order and assert visibility before action.
+Validation: Create helper functions getByCandidates(candidates, label), clickSafe(candidates, label), fillSafe(candidates, value, label). Helpers must use Cypress retry behavior. Preferred helper: const selector = candidates.join(', '); return cy.get(selector, { timeout: 30000 }).filter(':visible').first().should('be.visible'). Do NOT recursively inspect cy.get('body').then($body => $body.find(selector)) before the target can appear.
 Fallbacks: Prefer cy.get('#id')/cy.get('[data-test="..."]') candidates; use cy.contains() only as text fallback.
 Dynamic lists: If clicking all matching buttons, use a recursive/current-query pattern that clicks the first visible current match until none remain; avoid fixed index loops over changing lists.
 Navigation: cy.visit(url, { timeout: 60000 }).
 Wait: cy.get('#id', { timeout: 30000 }).should('be.visible').
 Post-save waits: after Save/Add actions, assert any success signal: success toast, URL containing expected detail page, or stable page heading.
+Helper call order: fillSafe signature must be fillSafe(candidates, value, label). clickSafe signature must be clickSafe(candidates, label). Keep every call consistent with the definition.
 Structure: Output a valid Cypress spec with describe(...) and it(...). Do not use imports. Do not return an empty code block.`
     }
   };
@@ -520,6 +522,7 @@ CRITICAL RULES — failure to follow = broken script:
     - Use headless browser (headless=True/true)
     - Use ASCII-only code, comments, and console output. No emoji, checkmarks, arrows, smart quotes, or non-ASCII dashes.
     - Before output, self-check that every helper call references a helper actually defined in the script. Example: define click_safe before calling click_safe; never call click_save unless it exists.
+    - Before output, self-check helper call signatures are consistent with helper definitions. Example: fillSafe(candidates, value, label), not fillSafe(candidates, label, value).
 
 6. INTERACTIONS:
    - Wait for element to be visible/clickable BEFORE interacting
@@ -566,6 +569,8 @@ function buildSiteSpecificGuidance(url, prompt, framework) {
 - If using a Selenium spinner/overlay helper, define it before calling it and spell the name consistently. Prefer inline WebDriverWait(...).until(EC.invisibility_of_element_located(...)) over custom spinner helper names.
 - For this task, "isi form sampai selesai" means complete and save the Add Employee form, then confirm Personal Details page/success toast. Do not edit the Personal Details form unless explicitly requested.
 - Confirm completion by waiting up to 30000ms for any of: URL contains viewPersonalDetails, .oxd-toast success, or visible Personal Details heading/employee name.
+- After one of those success signals passes, STOP. Do not require an additional Personal Details heading lookup or employee-name lookup that can fail after already confirming save.
+- Cypress helper warning: do not implement getByCandidates with cy.get('body').then($body => $body.find(selector)) recursion for elements that may appear later; use cy.get(candidates.join(', '), { timeout: 30000 }).filter(':visible').first().should('be.visible') for CSS candidates.
 ${nonPlaywrightTextRule}`;
 }
 
@@ -635,6 +640,31 @@ function stripCodeComments(code) {
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1')
     .replace(/#.*$/gm, '');
+}
+
+function hasPythonFunction(code, name) {
+  return new RegExp(`def\\s+${name}\\s*\\(`).test(code);
+}
+
+function hasJsFunction(code, name) {
+  return new RegExp(`(function|const|let|var)\\s+${name}\\b|${name}\\s*=\\s*\\(`).test(code);
+}
+
+function hasFunctionCall(code, name) {
+  return new RegExp(`\\b${name}\\s*\\(`).test(code);
+}
+
+function buildQualityGate(checks) {
+  const failures = checks.filter((check) => check.status === 'fail');
+  const warnings = checks.filter((check) => check.status === 'warn');
+
+  return {
+    status: failures.length ? 'fail' : warnings.length ? 'warn' : 'pass',
+    failureCount: failures.length,
+    warningCount: warnings.length,
+    failures: failures.map((check) => check.label),
+    warnings: warnings.map((check) => check.label)
+  };
 }
 
 function getSelectorCandidates(element) {
@@ -729,6 +759,30 @@ function runStaticCodeChecks(code, framework) {
   if (isSelenium) {
     const brittleExactText = /\/\/\w+\s*\[\s*text\(\)\s*=/.test(code);
     add('Selenium text locator resilience', brittleExactText ? 'warn' : 'pass', brittleExactText ? 'Exact text XPath detected; prefer contains(normalize-space(), ...).' : 'No brittle exact text XPath detected.');
+
+    const invalidRawLocator = /\(\s*['"](?:by\s+)?(?:name|css selector|xpath|id|class name|link text|partial link text)['"]\s*,/i.test(executableCode);
+    add('Selenium By constants', invalidRawLocator ? 'fail' : 'pass', invalidRawLocator ? 'Raw string locator tuple detected; use Selenium By constants like (By.NAME, ...).' : 'No raw string locator tuples detected.');
+
+    const undefinedPythonHelpers = ['click_safe', 'fill_safe', 'resolve_locator', 'resolve_visible', 'wait_for_spinner_to_disappear', 'wait_for_spinner_to_dissapear', 'click_save']
+      .filter((name) => hasFunctionCall(executableCode, name) && !hasPythonFunction(executableCode, name));
+    add('Python helper definitions', undefinedPythonHelpers.length ? 'fail' : 'pass', undefinedPythonHelpers.length ? `Undefined helper call(s): ${undefinedPythonHelpers.join(', ')}.` : 'No undefined known helper calls detected.');
+
+    const successThenRequiredHeading = /(SUCCESS|Employee created|successfully)[\s\S]{0,900}(find_element|visibility_of_element_located|presence_of_element_located)[\s\S]{0,220}(Personal Details|employee name|Employee name)/i.test(executableCode);
+    add('Selenium post-success over-verification', successThenRequiredHeading ? 'warn' : 'pass', successThenRequiredHeading ? 'Generated code may require extra heading/name verification after success; keep post-success evidence optional.' : 'No obvious required post-success heading lookup detected.');
+  }
+
+  if (isCypress) {
+    const bodyFindRecursion = /cy\.get\(\s*['"]body['"]\s*\)[\s\S]{0,260}\$body\.find\([\s\S]{0,260}candidates\.slice\(/.test(executableCode);
+    add('Cypress retry-safe candidates', bodyFindRecursion ? 'fail' : 'pass', bodyFindRecursion ? 'Cypress helper probes body and recursively slices candidates before retrying; use cy.get(candidates.join(", "), { timeout }).filter(":visible").first().' : 'No early body.find candidate recursion detected.');
+
+    const hasFillSafeDefinition = /(?:function|const|let|var)\s+fillSafe\s*(?:=\s*)?\(([^)]*)\)/.exec(executableCode);
+    const fillSafeParams = hasFillSafeDefinition?.[1]?.split(',').map((part) => part.trim().toLowerCase()) || [];
+    const suspiciousFillSignature = fillSafeParams.length >= 3 && fillSafeParams[1]?.includes('label') && fillSafeParams[2]?.includes('value');
+    add('Cypress helper signatures', suspiciousFillSignature ? 'fail' : 'pass', suspiciousFillSignature ? 'fillSafe signature appears to be (candidates, label, value); expected (candidates, value, label).' : 'No obvious fillSafe signature mismatch detected.');
+
+    const undefinedJsHelpers = ['getByCandidates', 'clickSafe', 'fillSafe']
+      .filter((name) => hasFunctionCall(executableCode, name) && !hasJsFunction(executableCode, name));
+    add('Cypress helper definitions', undefinedJsHelpers.length ? 'fail' : 'pass', undefinedJsHelpers.length ? `Undefined helper call(s): ${undefinedJsHelpers.join(', ')}.` : 'No undefined known helper calls detected.');
   }
 
   const unsafeChangingListLoop = /for[\s\S]{0,180}(range\(|count\(\)|\.count\(\)|length)[\s\S]{0,260}(\.nth\(\s*i\s*\)|\.eq\(\s*i\s*\)|\[\s*i\s*\])/i.test(code);
@@ -960,6 +1014,12 @@ export async function POST(req) {
     }
 
     const qualityChecks = runStaticCodeChecks(generatedCode, framework);
+    const qualityGate = buildQualityGate(qualityChecks);
+    if (qualityGate.status === 'fail') {
+      scrapeLogs.push(`Quality gate failed: ${qualityGate.failures.join(', ')}`);
+    } else if (qualityGate.status === 'warn') {
+      scrapeLogs.push(`Quality gate warnings: ${qualityGate.warnings.join(', ')}`);
+    }
 
     const fw = getFrameworkDetails(framework);
 
@@ -972,7 +1032,8 @@ export async function POST(req) {
       provider: activeProvider,
       browserPreview,
       locatorSummary,
-      qualityChecks
+      qualityChecks,
+      qualityGate
     });
 
   } catch (error) {
