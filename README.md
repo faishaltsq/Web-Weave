@@ -19,9 +19,10 @@ WebWeave scans a target page with Playwright Chromium, extracts interactive DOM 
 | Cross-framework validation | Partially verified | Playwright JS, Playwright Python, and patched Puppeteer completed OrangeHRM add-employee flow; Selenium and Cypress exposed remaining hardening gaps |
 | V3 UI/UX Polish | Complete | v0-style initial prompt screen, split workspace after generation, headless runner loading state, button animations, and right-panel section scrolling |
 | Branding Polish | Complete | Custom circular WebWeave logo is used in the UI and browser tab favicon through `/logo` |
+| Backend/Data Planning | Planned next | Supabase Auth, Postgres, Storage, projects, scripts, templates, usage events, and run history planned as next foundation |
 | Public SaaS Readiness | Not ready | Needs auth, quotas, stronger browser isolation, policies, and billing guardrails |
 
-Current project position: WebWeave is past the initial prototype and is now a local/private-beta generator with safety controls, locator preview, static quality checks, and real cross-framework test evidence. The next product-level step is a sandboxed run-and-fix validation loop inside WebWeave, not public launch.
+Current project position: WebWeave is past the initial prototype and is now a local/private-beta generator with safety controls, locator preview, static quality checks, and real cross-framework test evidence. The next product-level step is Supabase-backed auth, projects, script history, templates, usage tracking, and artifacts. Sandboxed run-and-fix validation should come after that foundation, not before public launch.
 
 ## Execution Progress V1-V6
 
@@ -36,6 +37,71 @@ This V1-V6 list describes work already completed during the current build cycle.
 | V5 - Real target framework validation | Complete with findings | Generated and ran OrangeHRM add-employee flow for Playwright JS, Playwright Python, Puppeteer, Selenium, and Cypress; fixed multiple generator issues from failures |
 | V6 - Documentation and visual roadmap | Complete in this update | README and Excalidraw now show project journey, current status, completed process, and remaining gaps clearly |
 | V7 - v0-style UI/UX polish | Complete | Initial page now behaves like a prompt-first AI builder; generated mode has separate left prompt/log section and right preview/code section with independent scroll |
+| V8 - Supabase backend/data layer | Planned | Add persistent accounts, projects, generated scripts, templates, usage quota events, run history, and artifact storage |
+
+## Backend and Database Plan
+
+WebWeave currently works as a local/private-beta generator without persistent user data. To support accounts, saved projects, script history, run history, templates, quotas, and artifacts, the next foundation should be a backend/data layer.
+
+Recommended stack for cheapest maintenance and good scalability:
+
+| Layer | Recommendation | Reason |
+|---|---|---|
+| Auth | Supabase Auth | Built-in email/password, magic link, OAuth, session handling |
+| Database | Supabase Postgres | Standard SQL, relational data model, portable, scalable enough for private beta and paid beta |
+| File Storage | Supabase Storage | Store screenshots, run artifacts, generated files, and future videos |
+| Backend | Next.js Route Handlers | Already in the app; no separate backend service needed for MVP |
+| ORM | Drizzle preferred, Prisma acceptable | Drizzle is lightweight for serverless; Prisma is familiar but heavier |
+| Hosting | Vercel for web app | Simple deployment for Next.js |
+| Runner | Separate worker later | Do not run arbitrary generated scripts on the main web server |
+
+### Why Supabase First
+
+- Cheap/free-tier friendly for private beta.
+- Low maintenance because Auth, Postgres, and Storage are one platform.
+- PostgreSQL is better than document-only databases for project ownership, run history, quotas, billing status, and team/workspace relationships.
+- Row Level Security can enforce `owner_id = auth.uid()` so users can only read/write their own data.
+- Storage can keep screenshots and run evidence without bloating the database.
+- It can scale from local/private beta into paid beta before needing custom infrastructure.
+
+### Proposed Data Model
+
+Initial tables:
+
+| Table | Purpose | Key Fields |
+|---|---|---|
+| `profiles` | Extra user profile and plan data | `id`, `email`, `full_name`, `plan`, `monthly_generation_limit` |
+| `projects` | Saved automation projects | `id`, `owner_id`, `name`, `target_domain`, `description`, `created_at`, `updated_at` |
+| `generated_scripts` | Code generation history | `id`, `project_id`, `owner_id`, `framework`, `prompt`, `target_url`, `code`, `quality_gate`, `quality_checks`, `locator_summary` |
+| `templates` | Reusable prompt templates | `id`, `owner_id`, `name`, `prompt`, `framework`, `visibility` |
+| `usage_events` | Quota and cost tracking | `id`, `owner_id`, `event_type`, `quantity`, `metadata`, `created_at` |
+| `artifacts` | Screenshots, generated files, logs | `id`, `owner_id`, `project_id`, `run_id`, `type`, `storage_path`, `mime_type`, `size_bytes` |
+| `runs` | Future script execution history | `id`, `script_id`, `project_id`, `owner_id`, `status`, `logs`, `error_message`, `screenshot_url`, `duration_ms` |
+
+Recommended implementation order:
+
+1. Add Supabase project and environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+2. Add Supabase Auth and protect the generator page.
+3. Create `profiles`, `projects`, `generated_scripts`, and `usage_events` first.
+4. Save every successful generated script into `generated_scripts` under a selected project.
+5. Add project sidebar/history view so users can reopen previous scripts.
+6. Add quota checks using `usage_events` before calling AI providers.
+7. Add Supabase Storage bucket `artifacts` for screenshots and future run evidence.
+8. Add `templates` after script history works.
+9. Add `runs` only when sandboxed script execution is implemented.
+
+Security requirements for this phase:
+
+- Keep `SUPABASE_SERVICE_ROLE_KEY` server-side only.
+- Enable Row Level Security on all user-owned tables.
+- Use `owner_id = auth.uid()` policies for user-owned data.
+- Do not store real user passwords, tokens, or provider secrets in prompts/logs.
+- Store preview screenshots and artifacts with user-scoped paths.
+- Do not run generated code in the main Next.js runtime; use a separate sandbox/worker later.
+
+Recommended next deliverable:
+
+- “Authenticated private beta”: users can log in, create projects, generate scripts, save script history, and view usage count. No billing and no script runner yet.
 
 ## Latest UI/UX Progress
 

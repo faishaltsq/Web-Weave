@@ -26,7 +26,7 @@ Avoid positioning it as:
 
 ## Current State
 
-Current version is `v1.0 Safety MVP + UI Refresh`. It is suitable for local use and trusted private beta testing, not public paid SaaS yet.
+Current version is `local/private-beta generator + UI polish`. It is suitable for local use and trusted private beta testing, not public paid SaaS yet. The next foundation should be persistent auth, projects, script history, templates, and usage tracking.
 
 Already good:
 
@@ -46,10 +46,65 @@ Current blockers:
 
 - No authentication.
 - No persistent user quota system.
+- No persistent project/script/template history.
+- No database-backed usage tracking.
+- No screenshot/artifact storage.
 - No paid billing guard.
 - Browser still runs server-side and needs stronger isolation before public launch.
 - No automated generated-script execution/validation loop inside WebWeave yet.
 - No privacy policy or data retention rules.
+
+## Recommended Backend/Data Stack
+
+Use Supabase first because it is the cheapest low-maintenance path for private beta while still using standard PostgreSQL.
+
+Recommended stack:
+
+- Auth: Supabase Auth.
+- Database: Supabase Postgres.
+- Storage: Supabase Storage.
+- Backend: existing Next.js route handlers.
+- ORM: Drizzle preferred, Prisma acceptable.
+- Hosting: Vercel for the web app.
+- Script runner: separate sandbox/worker later, not the main Next.js server.
+
+Why this stack:
+
+- One platform covers auth, relational database, and file storage.
+- PostgreSQL is a better fit for users, projects, scripts, runs, quotas, and billing status than document-only databases.
+- Row Level Security can enforce `owner_id = auth.uid()` for private user data.
+- Storage can handle screenshots, generated files, and future run artifacts.
+- Free tier is enough for an MVP/private beta; paid tiers can scale gradually.
+
+Initial tables:
+
+- `profiles`: user profile, plan, monthly limits.
+- `projects`: saved automation projects and target domains.
+- `generated_scripts`: prompt, framework, code, quality gate, locator summary, provider.
+- `templates`: reusable prompt templates.
+- `usage_events`: generation/run/regeneration quota events.
+- `artifacts`: screenshots, generated files, logs, future videos.
+- `runs`: future execution history after sandbox runner exists.
+
+Implementation order:
+
+1. Add Supabase project and env variables.
+2. Add Supabase Auth and protect generator page.
+3. Create `profiles`, `projects`, `generated_scripts`, and `usage_events`.
+4. Save every successful generation into a selected project.
+5. Add project/script history UI.
+6. Add monthly quota checks from `usage_events`.
+7. Add `artifacts` storage for preview screenshots and run evidence.
+8. Add private templates.
+9. Add `runs` only after sandboxed execution is ready.
+
+Security requirements:
+
+- Keep `SUPABASE_SERVICE_ROLE_KEY` server-side only.
+- Enable Row Level Security on all user-owned tables.
+- Use user-scoped storage paths.
+- Do not store real user passwords, tokens, or provider secrets in prompts/logs.
+- Do not run arbitrary generated code on the main app server.
 
 ## Version Plan
 
@@ -112,7 +167,33 @@ Do not:
 - Do not overbuild complex project system yet.
 - Do not generate scripts that include real user secrets.
 
-### Version 3: Run And Validate
+### Version 3: Auth, Projects, and Persistence - Planned Next
+
+Goal: make WebWeave persistent and private-beta ready before running generated code.
+
+Scope:
+
+- Add Supabase Auth.
+- Add `profiles` with user plan and limits.
+- Add `projects` for saved automation workspaces.
+- Add `generated_scripts` for generation history.
+- Add `usage_events` for monthly quota tracking.
+- Add Supabase Storage bucket `artifacts` for screenshots and generated files.
+- Add basic project/script history UI.
+- Keep API provider keys server-side.
+
+Deliverable:
+
+- Authenticated users can create projects, generate scripts, reopen history, and see usage count.
+
+Do not:
+
+- Do not add billing yet.
+- Do not run generated scripts yet.
+- Do not store real credentials from prompts.
+- Do not disable RLS for convenience.
+
+### Version 4: Run And Validate
 
 Goal: make WebWeave more valuable than normal AI chat by proving scripts can run.
 
@@ -137,18 +218,18 @@ Do not:
 - Do not allow network access to private IPs.
 - Do not support arbitrary custom code execution without sandbox.
 
-### Version 4: User Projects
+### Version 5: User Projects and Templates
 
 Goal: make it feel like product, not demo.
 
 Scope:
 
-- Add authentication.
-- Add saved projects.
-- Add saved target domains.
-- Add generated script history.
+- Improve saved projects.
+- Improve saved target domains.
+- Improve generated script history.
 - Add versioned scripts.
 - Add tags: login, smoke, regression, form, menu.
+- Add reusable private templates.
 - Add export to zip.
 - Add simple team workspace later, not first.
 
@@ -162,7 +243,7 @@ Do not:
 - Do not store sensitive prompts forever by default.
 - Do not store DOM snapshots unless user explicitly saves them.
 
-### Version 5: Paid Beta
+### Version 6: Paid Beta
 
 Goal: start charging small amount with controlled usage.
 
@@ -194,7 +275,7 @@ Do not:
 - Do not expose provider keys through client or logs.
 - Do not ignore abuse reports.
 
-### Version 6: Public Release
+### Version 7: Public Release
 
 Goal: public SaaS release with trust, safety, and reliability.
 
