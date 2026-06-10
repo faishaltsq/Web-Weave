@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
+  ChevronDown,
   CheckCircle,
   Code2,
   Copy,
+  DollarSign,
   Download,
   Eye,
   EyeOff,
@@ -22,6 +24,7 @@ import {
   PanelLeft,
   Save,
   Search,
+  Settings,
   ShieldCheck,
   Sparkles,
   Sun,
@@ -89,8 +92,16 @@ export default function WebWeave() {
   const [generationFeedback, setGenerationFeedback] = useState('');
   const [activePromptArea, setActivePromptArea] = useState('');
   const [activeDropdown, setActiveDropdown] = useState('');
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const [newAutomationMenuOpen, setNewAutomationMenuOpen] = useState(false);
+  const [recentChatsOpen, setRecentChatsOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [scriptSearch, setScriptSearch] = useState('');
+  const [sidebarCompact, setSidebarCompact] = useState(false);
   const promptAnimationTimer = useRef(null);
   const dropdownAnimationTimer = useRef(null);
+  const profileMenuRef = useRef(null);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('webweave-theme');
@@ -107,6 +118,26 @@ export default function WebWeave() {
       if (dropdownAnimationTimer.current) window.clearTimeout(dropdownAnimationTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return undefined;
+
+    const closeProfileMenuFromOutside = (event) => {
+      if (!profileMenuRef.current?.contains(event.target)) setProfileMenuOpen(false);
+    };
+
+    const closeProfileMenuWithEscape = (event) => {
+      if (event.key === 'Escape') setProfileMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', closeProfileMenuFromOutside);
+    document.addEventListener('keydown', closeProfileMenuWithEscape);
+
+    return () => {
+      document.removeEventListener('pointerdown', closeProfileMenuFromOutside);
+      document.removeEventListener('keydown', closeProfileMenuWithEscape);
+    };
+  }, [profileMenuOpen]);
 
   useEffect(() => {
     if (!supabase) {
@@ -153,6 +184,14 @@ export default function WebWeave() {
   const authPasswordValid = authPassword.length >= 6;
   const authActionLabel = authMode === 'sign_up' ? 'Create account' : 'Sign in';
   const authSubmitDisabled = authLoading || !authEmailValid || !authPasswordValid;
+  const profileName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Sign in';
+  const profileEmail = user?.email || (SUPABASE_ENABLED ? 'Connect account' : 'Supabase not configured');
+  const profileAvatar = user?.user_metadata?.avatar_url;
+  const scriptSearchTerm = scriptSearch.trim().toLowerCase();
+  const visibleScripts = scripts.filter((script) => {
+    const scriptLabel = FRAMEWORKS.find((item) => item.value === script.framework)?.label || script.framework || '';
+    return !scriptSearchTerm || scriptLabel.toLowerCase().includes(scriptSearchTerm) || (script.prompt || '').toLowerCase().includes(scriptSearchTerm);
+  });
 
   const triggerTemporaryAnimation = (setter, timerRef, value) => {
     setter('');
@@ -304,9 +343,30 @@ export default function WebWeave() {
         : 'Signed in. Project history is ready.');
       setAuthEmail(email);
       setAuthPassword('');
+      if (data?.session) setProfileMenuOpen(false);
     } catch (err) {
       setAuthError(err.message);
     } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!supabase) return;
+
+    setAuthLoading(true);
+    setAuthError('');
+    setAuthMessage('');
+
+    const { error: googleAuthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+
+    if (googleAuthError) {
+      setAuthError(googleAuthError.message);
       setAuthLoading(false);
     }
   };
@@ -319,6 +379,7 @@ export default function WebWeave() {
     setScripts([]);
     setSelectedProjectId('');
     setAuthMessage('Signed out.');
+    setProfileMenuOpen(false);
   };
 
   const switchAuthMode = (nextMode) => {
@@ -343,6 +404,18 @@ export default function WebWeave() {
     });
     setLogs([`Loaded saved script from ${new Date(script.created_at).toLocaleString()}.`]);
     setError('');
+  };
+
+  const startNewAutomation = () => {
+    setResult(null);
+    setLogs([]);
+    setError('');
+    setObjective('');
+    setUrl('');
+    setGenerationFeedback('');
+    setProfileMenuOpen(false);
+    setWorkspaceMenuOpen(false);
+    setNewAutomationMenuOpen(false);
   };
 
   const handleGenerate = async (options = {}) => {
@@ -431,22 +504,17 @@ export default function WebWeave() {
   };
 
   const hasWorkspace = loading || Boolean(result);
-  const renderAuthPanel = (surface = 'sidebar') => (
-    <div className={`${styles.authCard} ${surface === 'hero' ? styles.authCardHero : ''}`}>
-      <div className={styles.sidebarHeading}>Account</div>
-      {!SUPABASE_ENABLED ? (
-        <div className={styles.sidebarHint}>Supabase not configured.</div>
-      ) : authSessionLoading ? (
-        <div className={styles.authStatusLine}><Loader size={15} className={styles.spinner} /> Checking session...</div>
-      ) : user ? (
-        <>
-          <div className={styles.userBadge}><User size={15} /> <span>{user.email}</span></div>
-          <div className={styles.authMeta}><ShieldCheck size={15} /> Scripts save into private project history.</div>
-          <button type="button" className={styles.secondaryButton} onClick={handleSignOut}><LogOut size={15} /> Sign out</button>
-          {authMessage && <div className={styles.authMessage}>{authMessage}</div>}
-        </>
-      ) : (
+  const renderAuthForm = () => {
+    if (!SUPABASE_ENABLED) return <div className={styles.sidebarHint}>Supabase not configured.</div>;
+    if (authSessionLoading) return <div className={styles.authStatusLine}><Loader size={15} className={styles.spinner} /> Checking session...</div>;
+
+    return (
         <form className={styles.authForm} onSubmit={handleAuthSubmit}>
+          <button type="button" className={`${styles.secondaryButton} ${styles.googleButton}`} onClick={handleGoogleSignIn} disabled={authLoading}>
+            <span className={styles.googleMark}>G</span>
+            Continue with Google
+          </button>
+          <div className={styles.oauthDivider}><span /> or use email <span /></div>
           <div className={styles.authModeToggle}>
             <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_in' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_in')}>Login</button>
             <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_up' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_up')}>Register</button>
@@ -466,54 +534,117 @@ export default function WebWeave() {
           </button>
           <p className={styles.authSmall}>{authMode === 'sign_up' ? 'Register to save scripts, projects, and generation history.' : 'Login to restore projects and saved scripts.'}</p>
         </form>
+    );
+  };
+
+  const renderProfileMenu = () => (
+    <div className={`${styles.profileMenu} ${user ? '' : styles.profileAuthMenu}`}>
+      {user ? (
+        <>
+          <div className={styles.profileMenuHeader}>
+            <strong>{profileName}</strong>
+            <span>{profileEmail}</span>
+          </div>
+          <button type="button" className={styles.profileMenuItem}><Settings size={17} /> Account Settings</button>
+          <button type="button" className={styles.profileMenuItem}><DollarSign size={17} /> Pricing</button>
+          <button type="button" className={styles.profileMenuItem} onClick={handleSignOut}><LogOut size={17} /> Sign Out</button>
+        </>
+      ) : (
+        <>
+          <div className={styles.profileMenuHeader}>
+            <strong>Sign in to WebWeave</strong>
+            <span>Save scripts, projects, and generation history.</span>
+          </div>
+          {renderAuthForm()}
+        </>
       )}
     </div>
   );
 
   return (
-    <div className={`${styles.container} ${isDark ? styles.darkMode : styles.lightMode}`}>
+    <div className={`${styles.container} ${isDark ? styles.darkMode : styles.lightMode} ${sidebarCompact ? styles.sidebarCompact : ''}`}>
       <aside className={styles.sidebar}>
-        <div className={styles.workspaceSwitch}>
-          <img src="/logo" alt="WebWeave logo" className={styles.brandLogo} />
-          <div>
-            <strong>WebWeave</strong>
-            <span>Personal Lab</span>
-          </div>
-          <PanelLeft size={17} />
-        </div>
-
-        <button type="button" className={styles.newChatButton} onClick={() => { setResult(null); setLogs([]); setError(''); }}>
-          New Automation
-          <Sparkles size={16} />
-        </button>
-
-        <nav className={styles.navList}>
-          <a className={styles.navActive}><Home size={18} /> Home</a>
-          <a><Search size={18} /> Search</a>
-          <a><Folder size={18} /> Projects</a>
-          <a><MessageSquare size={18} /> Runs</a>
-          <a><Code2 size={18} /> Templates</a>
-        </nav>
-
-        <div className={styles.sidebarSection}>
-          <div className={styles.sidebarHeading}>Saved scripts</div>
-          {!SUPABASE_ENABLED && <div className={styles.sidebarHint}>Add Supabase env vars to enable history.</div>}
-          {SUPABASE_ENABLED && !user && <div className={styles.sidebarHint}>Sign in to save generated scripts.</div>}
-          {historyLoading && <div className={styles.sidebarHint}>Loading history...</div>}
-          {user && !historyLoading && scripts.length === 0 && <div className={styles.sidebarHint}>No saved scripts yet.</div>}
-          {scripts.slice(0, 5).map((script) => (
-            <button type="button" key={script.id} className={styles.recentItem} onClick={() => handleOpenScript(script)}>
-              <span>{FRAMEWORKS.find((item) => item.value === script.framework)?.label || script.framework}</span>
-              <MoreHorizontal size={15} />
+        <div className={styles.sidebarMain}>
+          <div className={styles.workspaceWrap}>
+            <button type="button" className={styles.workspaceSwitch} onClick={() => { setWorkspaceMenuOpen((value) => !value); setNewAutomationMenuOpen(false); }} aria-expanded={workspaceMenuOpen}>
+              <img src="/logo" alt="WebWeave logo" className={styles.brandLogo} />
+              <div>
+                <strong>Personal</strong>
+                <span>WebWeave Lab</span>
+              </div>
+              <ChevronDown size={15} className={workspaceMenuOpen ? styles.chevronOpen : ''} />
             </button>
-          ))}
+            <button type="button" className={styles.sidebarIconButton} onClick={() => setSidebarCompact((value) => !value)} title={sidebarCompact ? 'Expand sidebar' : 'Collapse sidebar'} aria-pressed={sidebarCompact}>
+              <PanelLeft size={17} />
+            </button>
+            {workspaceMenuOpen && (
+              <div className={styles.workspaceMenu}>
+                <button type="button" className={styles.workspaceMenuItem} onClick={() => setWorkspaceMenuOpen(false)}>
+                  <img src="/logo" alt="" />
+                  <span><strong>Personal</strong><small>Current workspace</small></span>
+                </button>
+                <button type="button" className={styles.workspaceMenuItem} onClick={() => setWorkspaceMenuOpen(false)}>
+                  <Sparkles size={16} />
+                  <span><strong>WebWeave Lab</strong><small>Private beta</small></span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.newChatWrap}>
+            <button type="button" className={styles.newChatButton} onClick={startNewAutomation}>New Automation</button>
+            <button type="button" className={styles.newChatDropdown} onClick={() => { setNewAutomationMenuOpen((value) => !value); setWorkspaceMenuOpen(false); }} aria-label="Open new automation options" aria-expanded={newAutomationMenuOpen}>
+              <ChevronDown size={16} className={newAutomationMenuOpen ? styles.chevronOpen : ''} />
+            </button>
+            {newAutomationMenuOpen && (
+              <div className={styles.newAutomationMenu}>
+                <button type="button" onClick={startNewAutomation}><Sparkles size={16} /> Blank automation</button>
+                <button type="button" onClick={() => { setObjective('Login with {{USERNAME}} and {{PASSWORD}}, then validate dashboard loads.'); setNewAutomationMenuOpen(false); }}>Use login template</button>
+              </div>
+            )}
+          </div>
+
+          <button type="button" className={`${styles.sidebarSearch} ${searchOpen ? styles.sidebarSearchOpen : ''}`} onClick={() => setSearchOpen((value) => !value)} aria-expanded={searchOpen}>
+            <Search size={18} /> <span>Search</span>
+          </button>
+          {searchOpen && (
+            <input type="search" value={scriptSearch} onChange={(event) => setScriptSearch(event.target.value)} className={styles.sidebarSearchInput} placeholder="Search saved scripts..." autoFocus />
+          )}
+
+          <nav className={styles.navList}>
+            <button type="button" className={styles.navActive}><Home size={18} /> Home</button>
+            <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Folder size={18} /> Projects</button>
+            <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><MessageSquare size={18} /> Chats</button>
+            <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Code2 size={18} /> Templates</button>
+          </nav>
+
+          <div className={styles.sidebarSection}>
+            <button type="button" className={styles.sidebarSectionHeader} onClick={() => setRecentChatsOpen((value) => !value)} aria-expanded={recentChatsOpen}>
+              <span>Recent Chats</span><ChevronDown size={15} className={recentChatsOpen ? styles.chevronOpen : ''} />
+            </button>
+            {recentChatsOpen && (
+              <>
+            {!SUPABASE_ENABLED && <div className={styles.sidebarHint}>Add Supabase env vars to enable history.</div>}
+            {SUPABASE_ENABLED && !user && <div className={styles.sidebarHint}>Sign in to save generated scripts.</div>}
+            {historyLoading && <div className={styles.sidebarHint}>Loading history...</div>}
+            {user && !historyLoading && visibleScripts.length === 0 && <div className={styles.sidebarHint}>{scriptSearchTerm ? 'No scripts match search.' : 'No saved scripts yet.'}</div>}
+            {visibleScripts.slice(0, 5).map((script) => (
+              <button type="button" key={script.id} className={styles.recentItem} onClick={() => handleOpenScript(script)}>
+                <span>{FRAMEWORKS.find((item) => item.value === script.framework)?.label || script.framework}</span>
+                <MoreHorizontal size={15} />
+              </button>
+            ))}
+              </>
+            )}
+          </div>
         </div>
 
-        {renderAuthPanel('sidebar')}
-
-        <div className={styles.sidebarFooter}>
-          <span>{user ? 'Authenticated beta' : 'Local beta'}</span>
-          <strong>{selectedFrameworkLabel}</strong>
+        <div className={styles.sidebarAccountDock} ref={profileMenuRef}>
+          {profileMenuOpen && renderProfileMenu()}
+          <button type="button" className={styles.profileButton} onClick={() => setProfileMenuOpen((value) => !value)} aria-expanded={profileMenuOpen}>
+            <span className={styles.profileAvatar}>{profileAvatar ? <img src={profileAvatar} alt="" referrerPolicy="no-referrer" /> : <img src="/logo" alt="" />}</span>
+            <span className={styles.profileText}><strong>{profileName}</strong><small>{profileEmail}</small></span>
+          </button>
         </div>
       </aside>
 
@@ -719,7 +850,6 @@ export default function WebWeave() {
 
               {error && <div className={styles.heroError}><AlertCircle size={18} /> {error}</div>}
               <p className={styles.securityNote}>Use placeholders like {'{{USERNAME}}'} and {'{{PASSWORD}}'}. Do not submit real credentials.</p>
-              {renderAuthPanel('hero')}
             </div>
           </main>
         )}
