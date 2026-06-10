@@ -22,6 +22,7 @@ import {
   Moon,
   MoreHorizontal,
   PanelLeft,
+  PanelRight,
   Save,
   Search,
   Settings,
@@ -575,7 +576,7 @@ export default function WebWeave() {
               <ChevronDown size={15} className={workspaceMenuOpen ? styles.chevronOpen : ''} />
             </button>
             <button type="button" className={styles.sidebarIconButton} onClick={() => setSidebarCompact((value) => !value)} title={sidebarCompact ? 'Expand sidebar' : 'Collapse sidebar'} aria-pressed={sidebarCompact}>
-              <PanelLeft size={17} />
+              {sidebarCompact ? <PanelRight size={17} /> : <PanelLeft size={17} />}
             </button>
             {workspaceMenuOpen && (
               <div className={styles.workspaceMenu}>

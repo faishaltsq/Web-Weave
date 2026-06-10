@@ -888,16 +888,26 @@
 .sidebarCompact .sidebarMain {
   align-items: center;
   padding-right: 0;
-  overflow: visible;
 }
 
 .sidebarCompact .workspaceSwitch {
   justify-content: center;
 }
 
-.sidebarCompact .workspaceSwitch svg,
-.sidebarCompact .sidebarIconButton {
+.sidebarCompact .workspaceSwitch svg {
   display: none;
+}
+
+.sidebarCompact .sidebarIconButton {
+  position: static;
+  margin: 0.4rem auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--surface-2);
 }
 
 .sidebarCompact .navList button,
