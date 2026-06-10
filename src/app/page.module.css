@@ -56,6 +56,10 @@
   display: none;
 }
 
+.sidebarCompact .appSurface {
+  grid-column: 2;
+}
+
 .expandButton {
   position: fixed;
   top: 1rem;
