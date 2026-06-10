@@ -564,6 +564,11 @@ export default function WebWeave() {
 
   return (
     <div className={`${styles.container} ${isDark ? styles.darkMode : styles.lightMode} ${sidebarCompact ? styles.sidebarCompact : ''}`}>
+      {sidebarCompact && (
+        <button type="button" className={styles.expandButton} onClick={() => setSidebarCompact(false)} title="Expand sidebar" aria-label="Expand sidebar">
+          <PanelRight size={17} />
+        </button>
+      )}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarMain}>
           <div className={styles.workspaceWrap}>
