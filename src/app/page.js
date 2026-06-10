@@ -33,6 +33,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { createBrowserSupabaseClient, hasSupabaseBrowserConfig } from '@/lib/supabase/browser';
+import PricingPage from '@/components/PricingPage';
 import styles from './page.module.css';
 
 const FRAMEWORKS = [
@@ -100,6 +101,7 @@ export default function WebWeave() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [scriptSearch, setScriptSearch] = useState('');
   const [sidebarCompact, setSidebarCompact] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
   const promptAnimationTimer = useRef(null);
   const dropdownAnimationTimer = useRef(null);
   const profileMenuRef = useRef(null);
@@ -547,7 +549,7 @@ export default function WebWeave() {
             <span>{profileEmail}</span>
           </div>
           <button type="button" className={styles.profileMenuItem}><Settings size={17} /> Account Settings</button>
-          <button type="button" className={styles.profileMenuItem}><DollarSign size={17} /> Pricing</button>
+          <button type="button" className={styles.profileMenuItem} onClick={() => { setShowPricing(true); setProfileMenuOpen(false); }}><DollarSign size={17} /> Pricing</button>
           <button type="button" className={styles.profileMenuItem} onClick={handleSignOut}><LogOut size={17} /> Sign Out</button>
         </>
       ) : (
@@ -860,6 +862,24 @@ export default function WebWeave() {
           </main>
         )}
       </section>
+
+      {/* Pricing Page Modal */}
+      {showPricing && (
+        <div className={styles.pricingModal}>
+          <div className={styles.pricingModalBackdrop} onClick={() => setShowPricing(false)} />
+          <div className={styles.pricingModalContent}>
+            <button
+              type="button"
+              className={styles.pricingModalClose}
+              onClick={() => setShowPricing(false)}
+              aria-label="Close pricing"
+            >
+              ✕
+            </button>
+            <PricingPage onClose={() => setShowPricing(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
