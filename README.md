@@ -30,6 +30,7 @@ WebWeave scans a target page with Playwright Chromium, extracts interactive DOM 
 - Regeneration with feedback for improving generated output.
 - Copy and download generated script output.
 - Dark/light mode.
+- Optional LemonSqueezy billing and monthly quota enforcement.
 
 ## Supported AI Providers
 
