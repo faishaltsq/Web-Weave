@@ -21,6 +21,12 @@ const expectations = [
   ['Starter annual variant env mapping', 'src/lib/billing/plans.js', 'LEMONSQUEEZY_STARTER_ANNUAL_VARIANT_ID'],
   ['Pro monthly variant env mapping', 'src/lib/billing/plans.js', 'LEMONSQUEEZY_PRO_MONTHLY_VARIANT_ID'],
   ['Pro annual variant env mapping', 'src/lib/billing/plans.js', 'LEMONSQUEEZY_PRO_ANNUAL_VARIANT_ID'],
+  ['env has API key blank entry', '.env.local.example', 'LEMONSQUEEZY_API_KEY='],
+  ['env has webhook secret blank entry', '.env.local.example', 'LEMONSQUEEZY_WEBHOOK_SECRET='],
+  ['migration file exists', 'supabase/migrations/002_billing_profiles.sql', null],
+  ['migration adds Lemon customer ID', 'supabase/migrations/002_billing_profiles.sql', 'lemon_customer_id text'],
+  ['migration adds Lemon subscription ID', 'supabase/migrations/002_billing_profiles.sql', 'lemon_subscription_id text'],
+  ['migration adds billing timestamp', 'supabase/migrations/002_billing_profiles.sql', 'billing_updated_at timestamptz'],
 ];
 
 const missing = expectations.filter(([, path, token]) => {
