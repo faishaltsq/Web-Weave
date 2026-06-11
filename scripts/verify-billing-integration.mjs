@@ -44,6 +44,11 @@ const expectations = [
   ['webhook route verifies signature', 'src/app/api/billing/webhook/route.js', 'verifyLemonSqueezySignature'],
   ['webhook route maps entitlement', 'src/app/api/billing/webhook/route.js', 'mapWebhookToEntitlement'],
   ["webhook route updates profiles", "src/app/api/billing/webhook/route.js", ".from('profiles')"],
+  ['page exposes pricing checkout handler', 'src/app/page.js', 'handlePricingCheckout'],
+  ['page calls billing checkout API', 'src/app/page.js', "fetch('/api/billing/checkout'"],
+  ['pricing page receives checkout prop', 'src/components/PricingPage.js', 'onCheckout'],
+  ['pricing page handles checkout loading', 'src/components/PricingPage.js', 'checkoutLoadingPlan'],
+  ['pricing page redirects checkout URL', 'src/components/PricingPage.js', 'window.location.href = checkout.checkoutUrl'],
 ];
 
 const missing = expectations.filter(([, path, token]) => {

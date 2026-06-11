@@ -1,183 +1,287 @@
 'use client';
 
-import { Check, X, Zap, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, Check, Sparkles, Zap } from 'lucide-react';
 import styles from './PricingPage.module.css';
 
-const PricingPage = ({ onClose }) => {
-  const plans = [
-    {
-      id: 'free',
-      name: 'Free',
-      price: '0',
-      description: 'Perfect for getting started',
-      features: [
-        { text: '5 generations per month', included: true },
-        { text: '1 project', included: true },
-        { text: 'Basic frameworks', included: true },
-        { text: 'Community support', included: true },
-        { text: 'Advanced analytics', included: false },
-        { text: 'Priority support', included: false },
-        { text: 'Custom integrations', included: false },
-        { text: 'API access', included: false },
-      ],
-      cta: 'Get Started',
-      popular: false,
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      price: '29',
-      period: '/month',
-      description: 'For professional developers',
-      features: [
-        { text: 'Unlimited generations', included: true },
-        { text: 'Unlimited projects', included: true },
-        { text: 'All frameworks', included: true },
-        { text: 'Email support', included: true },
-        { text: 'Advanced analytics', included: true },
-        { text: 'Priority support', included: true },
-        { text: 'Custom integrations', included: false },
-        { text: 'API access', included: false },
-      ],
-      cta: 'Start Free Trial',
-      popular: true,
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 'Custom',
-      description: 'For large organizations',
-      features: [
-        { text: 'Unlimited generations', included: true },
-        { text: 'Unlimited projects', included: true },
-        { text: 'All frameworks', included: true },
-        { text: 'Email support', included: true },
-        { text: 'Advanced analytics', included: true },
-        { text: 'Priority support', included: true },
-        { text: 'Custom integrations', included: true },
-        { text: 'API access', included: true },
-      ],
-      cta: 'Contact Sales',
-      popular: false,
-    },
-  ];
+const formatRupiah = (value) => `Rp${new Intl.NumberFormat('id-ID').format(value)}`;
+
+const plans = [
+  {
+    id: 'free',
+    name: 'Free',
+    monthlyPrice: 0,
+    description: 'Cocok untuk coba WebWeave tanpa komitmen.',
+    fit: 'Belajar automation dan validasi ide tanpa cepat mentok.',
+    quota: '30 generations/bulan',
+    cta: 'Pakai Free',
+    accent: 'Starter safe',
+    features: [
+      '1 project pribadi',
+      'Playwright JavaScript',
+      'Copy dan download script',
+      'Riwayat terbatas',
+    ],
+  },
+  {
+    id: 'starter',
+    name: 'Starter',
+    monthlyPrice: 49000,
+    description: 'Harga masuk akal untuk builder solo dan QA intern.',
+    fit: 'Paket rekomendasi awal: murah, quota longgar untuk kerja rutin.',
+    quota: '500 generations/bulan',
+    cta: 'Mulai Starter',
+    badge: 'Recommended',
+    accent: 'Best entry price',
+    features: [
+      '5 project aktif',
+      'Semua framework utama',
+      'Saved scripts dan prompt history',
+      'Regenerate dengan feedback',
+      'Email support best-effort',
+    ],
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    monthlyPrice: 129000,
+    description: 'Untuk freelance QA, developer, dan tim kecil.',
+    fit: 'Lebih lega untuk sprint, demo client, dan iterasi locator.',
+    quota: '2.000 generations/bulan',
+    cta: 'Coba Pro',
+    badge: 'Best value',
+    accent: 'Most useful',
+    features: [
+      'Unlimited projects',
+      'Priority generation queue',
+      'Quality gate summary',
+      'Locator ranking detail',
+      'Priority support',
+    ],
+  },
+  {
+    id: 'team',
+    name: 'Team',
+    monthlyPrice: 299000,
+    description: 'Untuk shared workspace kecil tanpa harga enterprise.',
+    fit: '3 seats untuk QA lead, intern, developer, dan smoke suite rutin.',
+    quota: '8.000 generations/bulan',
+    cta: 'Coming soon',
+    accent: 'Small team',
+    disabled: true,
+    features: [
+      '3 team seats included',
+      'Shared project history',
+      'Template login reusable',
+      'Basic API access mock',
+      'Roadmap request priority',
+    ],
+  },
+];
+
+export default function PricingPage({ onClose, onCheckout }) {
+  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [actionMessage, setActionMessage] = useState('Pilih paket untuk checkout. Env LemonSqueezy bisa diisi nanti.');
+  const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState('');
+
+  const getDisplayPrice = (plan) => {
+    if (plan.monthlyPrice === 0) return { price: 'Rp0', period: '/bulan', note: 'Gratis selamanya' };
+
+    if (billingCycle === 'annual') {
+      const annualPrice = Math.round(plan.monthlyPrice * 12 * 0.8 / 1000) * 1000;
+      return {
+        price: formatRupiah(annualPrice),
+        period: '/tahun',
+        note: `Setara ${formatRupiah(Math.round(annualPrice / 12 / 1000) * 1000)}/bulan, hemat 20%`,
+      };
+    }
+
+    return { price: formatRupiah(plan.monthlyPrice), period: '/bulan', note: 'Bayar bulanan, bisa stop kapan saja' };
+  };
+
+  const handlePlanClick = async (plan) => {
+    if (plan.disabled) return;
+    if (!onCheckout) {
+      setActionMessage('Checkout belum terhubung. Integrasi payment perlu diaktifkan dulu.');
+      return;
+    }
+
+    setCheckoutLoadingPlan(plan.id);
+    setActionMessage(`Membuat checkout ${plan.name}...`);
+
+    try {
+      const checkout = await onCheckout({ plan: plan.id, billingCycle });
+      if (!checkout.success) {
+        setActionMessage(checkout.error || 'Checkout belum tersedia.');
+        return;
+      }
+
+      setActionMessage('Redirecting to LemonSqueezy checkout...');
+      window.location.href = checkout.checkoutUrl;
+    } catch (err) {
+      setActionMessage(err.message || 'Checkout gagal dibuat.');
+    } finally {
+      setCheckoutLoadingPlan('');
+    }
+  };
+
+  const handlePrimaryCta = () => {
+    const starterPlan = plans.find((plan) => plan.id === 'starter');
+    handlePlanClick(starterPlan);
+  };
 
   return (
     <div className={styles.pricingContainer}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.headerContent}>
-          <h1 className={styles.title}>Simple, Transparent Pricing</h1>
-          <p className={styles.subtitle}>
-            Choose the perfect plan for your automation needs. Scale as you grow.
-          </p>
-        </div>
-      </div>
+      <div className={styles.orbOne} />
+      <div className={styles.orbTwo} />
 
-      {/* Toggle */}
+      <header className={styles.header}>
+        <button type="button" className={styles.backButton} onClick={onClose}>
+          Back to builder
+        </button>
+        <div className={styles.eyebrow}><Sparkles size={16} /> Pricing recommendation</div>
+        <h1 className={styles.title}>Paket automation yang ramah kantong.</h1>
+        <p className={styles.subtitle}>
+          WebWeave masih early product. Karena token generation relatif murah, quota dibuat lebih longgar untuk indie QA, intern, freelance, dan tim kecil.
+        </p>
+      </header>
+
+      <section className={styles.summaryStrip} aria-label="Pricing recommendation summary">
+        <div>
+          <span>Mulai dari</span>
+          <strong>Rp49.000</strong>
+          <small>untuk paket berbayar pertama</small>
+        </div>
+        <div>
+          <span>Rekomendasi</span>
+          <strong>Starter</strong>
+          <small>Rp49.000 dengan 500 generations/bulan</small>
+        </div>
+        <div>
+          <span>Usage</span>
+          <strong>quota longgar</strong>
+          <small>biar user sering generate dan refine script</small>
+        </div>
+        <div>
+          <span>Annual</span>
+          <strong>hemat 20%</strong>
+          <small>tanpa mengunci harga terlalu tinggi</small>
+        </div>
+      </section>
+
       <div className={styles.toggleContainer}>
-        <div className={styles.billingToggle}>
-          <button className={styles.toggleButton + ' ' + styles.active}>Monthly</button>
-          <button className={styles.toggleButton}>Annual</button>
-          <span className={styles.saveBadge}>Save 20%</span>
+        <div className={styles.billingToggle} aria-label="Billing cycle">
+          <button
+            type="button"
+            className={`${styles.toggleButton} ${billingCycle === 'monthly' ? styles.active : ''}`}
+            aria-pressed={billingCycle === 'monthly'}
+            onClick={() => setBillingCycle('monthly')}
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            className={`${styles.toggleButton} ${billingCycle === 'annual' ? styles.active : ''}`}
+            aria-pressed={billingCycle === 'annual'}
+            onClick={() => setBillingCycle('annual')}
+          >
+            Annual
+          </button>
+          <span className={styles.saveBadge}>hemat 20%</span>
         </div>
       </div>
 
-      {/* Pricing Cards */}
       <div className={styles.cardsGrid}>
-        {plans.map((plan) => (
-          <div
-            key={plan.id}
-            className={`${styles.card} ${plan.popular ? styles.popular : ''}`}
-          >
-            {plan.popular && (
-              <div className={styles.popularBadge}>
-                <Zap size={14} />
-                Most Popular
-              </div>
-            )}
+        {plans.map((plan) => {
+          const displayPrice = getDisplayPrice(plan);
 
-            <div className={styles.cardHeader}>
-              <h3 className={styles.planName}>{plan.name}</h3>
-              <p className={styles.planDescription}>{plan.description}</p>
-            </div>
-
-            <div className={styles.pricing}>
-              <span className={styles.currency}>$</span>
-              <span className={styles.amount}>{plan.price}</span>
-              {plan.period && <span className={styles.period}>{plan.period}</span>}
-            </div>
-
-            <button
-              className={`${styles.ctaButton} ${plan.popular ? styles.ctaPrimary : styles.ctaSecondary}`}
-            >
-              {plan.cta}
-              <ArrowRight size={16} />
-            </button>
-
-            <div className={styles.divider} />
-
-            <div className={styles.featuresList}>
-              {plan.features.map((feature, idx) => (
-                <div key={idx} className={styles.featureItem}>
-                  {feature.included ? (
-                    <Check size={18} className={styles.checkIcon} />
-                  ) : (
-                    <X size={18} className={styles.xIcon} />
-                  )}
-                  <span className={feature.included ? styles.featureText : styles.featureTextDisabled}>
-                    {feature.text}
-                  </span>
+          return (
+            <article key={plan.id} className={`${styles.card} ${plan.badge ? styles.highlightCard : ''} ${plan.disabled ? styles.disabledCard : ''}`}>
+              {plan.badge && (
+                <div className={styles.popularBadge}>
+                  <Zap size={14} />
+                  {plan.badge}
                 </div>
-              ))}
-            </div>
-          </div>
-        ))}
+              )}
+
+              <div className={styles.cardHeader}>
+                <span className={styles.planAccent}>{plan.accent}</span>
+                <h3 className={styles.planName}>{plan.name}</h3>
+                <p className={styles.planDescription}>{plan.description}</p>
+              </div>
+
+              <div className={styles.pricing}>
+                <span className={styles.amount}>{displayPrice.price}</span>
+                <span className={styles.period}>{displayPrice.period}</span>
+              </div>
+              <p className={styles.priceNote}>{displayPrice.note}</p>
+              <p className={styles.fitText}>{plan.fit}</p>
+
+              <button
+                type="button"
+                className={`${styles.ctaButton} ${plan.badge ? styles.ctaPrimary : styles.ctaSecondary} ${plan.disabled ? styles.disabledButton : ''}`}
+                disabled={plan.disabled}
+                aria-disabled={plan.disabled}
+                onClick={() => { if (!plan.disabled) handlePlanClick(plan); }}
+              >
+                {checkoutLoadingPlan === plan.id ? 'Preparing checkout...' : plan.cta}
+                <ArrowRight size={16} />
+              </button>
+
+              <div className={styles.divider} />
+
+              <div className={styles.quotaBox}>{plan.quota}</div>
+              <div className={styles.featuresList}>
+                {plan.features.map((feature) => (
+                  <div key={feature} className={styles.featureItem}>
+                    <Check size={17} className={styles.checkIcon} />
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </article>
+          );
+        })}
       </div>
 
-      {/* FAQ Section */}
-      <div className={styles.faqSection}>
-        <h2 className={styles.faqTitle}>Frequently Asked Questions</h2>
+      <div className={styles.actionToast} role="status" aria-live="polite">
+        {actionMessage}
+      </div>
+
+      <section className={styles.faqSection}>
+        <div>
+          <p className={styles.sectionLabel}>Pricing note</p>
+          <h2 className={styles.faqTitle}>Rekomendasi harga final</h2>
+        </div>
         <div className={styles.faqGrid}>
           <div className={styles.faqItem}>
-            <h4 className={styles.faqQuestion}>Can I change plans anytime?</h4>
-            <p className={styles.faqAnswer}>
-              Yes, you can upgrade or downgrade your plan at any time. Changes take effect at the next billing cycle.
-            </p>
+            <h4>Kenapa Starter Rp49.000?</h4>
+            <p>Angka ini rendah untuk user Indonesia, dan 500 generations/bulan cukup untuk daily QA ringan.</p>
           </div>
           <div className={styles.faqItem}>
-            <h4 className={styles.faqQuestion}>Is there a free trial?</h4>
-            <p className={styles.faqAnswer}>
-              Pro plan includes a 14-day free trial. No credit card required to start.
-            </p>
+            <h4>Kenapa Pro Rp129.000?</h4>
+            <p>2.000 generations/bulan memberi ruang sprint, regenerasi, dan eksperimen locator tanpa terasa pelit.</p>
           </div>
           <div className={styles.faqItem}>
-            <h4 className={styles.faqQuestion}>What payment methods do you accept?</h4>
-            <p className={styles.faqAnswer}>
-              We accept all major credit cards, PayPal, and bank transfers for enterprise customers.
-            </p>
-          </div>
-          <div className={styles.faqItem}>
-            <h4 className={styles.faqQuestion}>Do you offer refunds?</h4>
-            <p className={styles.faqAnswer}>
-              30-day money-back guarantee on all plans if you&apos;re not satisfied.
-            </p>
+            <h4>Kenapa Team Rp299.000?</h4>
+            <p>8.000 generations/bulan cukup untuk tim kecil, tapi tetap aman sebagai fair-use awal.</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* CTA Section */}
-      <div className={styles.ctaSection}>
-        <div className={styles.ctaContent}>
-          <h2 className={styles.ctaTitle}>Ready to automate smarter?</h2>
-          <p className={styles.ctaText}>
-            Join thousands of developers automating their workflows with WebWeave.
+      <section className={styles.ctaSection}>
+        <div>
+          <p className={styles.sectionLabel}>Best next move</p>
+          <h2>Launch murah dulu, naikkan harga setelah usage jelas.</h2>
+          <p>
+            Saran: mulai dari Free 30, Starter 500, Pro 2.000, Team 8.000 generations/bulan. Harga tetap murah, usage terasa lega.
           </p>
-          <button className={styles.ctaButtonLarge}>Start Your Free Trial</button>
         </div>
-      </div>
+        <button type="button" className={styles.ctaButtonLarge} onClick={handlePrimaryCta}>
+          Simulasi pilih Starter
+          <ArrowRight size={17} />
+        </button>
+      </section>
     </div>
   );
-};
-
-export default PricingPage;
+}

@@ -102,6 +102,7 @@ export default function WebWeave() {
   const [scriptSearch, setScriptSearch] = useState('');
   const [sidebarCompact, setSidebarCompact] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
+  const [pricingClosing, setPricingClosing] = useState(false);
   const promptAnimationTimer = useRef(null);
   const dropdownAnimationTimer = useRef(null);
   const profileMenuRef = useRef(null);
@@ -506,6 +507,41 @@ export default function WebWeave() {
     URL.revokeObjectURL(blobUrl);
   };
 
+  const handleOpenPricing = () => {
+    setPricingClosing(false);
+    setShowPricing(true);
+    setProfileMenuOpen(false);
+  };
+
+  const handleClosePricing = () => {
+    if (pricingClosing) return;
+    setPricingClosing(true);
+    window.setTimeout(() => {
+      setShowPricing(false);
+      setPricingClosing(false);
+    }, 220);
+  };
+
+  const handlePricingCheckout = async ({ plan, billingCycle }) => {
+    if (!user || !supabase) {
+      return { success: false, error: 'Sign in dulu sebelum checkout.' };
+    }
+
+    const headers = await getAuthHeaders();
+    const response = await fetch('/api/billing/checkout', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan, billingCycle }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) {
+      return { success: false, error: data.error || 'Checkout belum bisa dibuat.' };
+    }
+
+    return { success: true, checkoutUrl: data.checkoutUrl };
+  };
+
   const hasWorkspace = loading || Boolean(result);
   const renderAuthForm = () => {
     if (!SUPABASE_ENABLED) return <div className={styles.sidebarHint}>Supabase not configured.</div>;
@@ -549,7 +585,7 @@ export default function WebWeave() {
             <span>{profileEmail}</span>
           </div>
           <button type="button" className={styles.profileMenuItem}><Settings size={17} /> Account Settings</button>
-          <button type="button" className={styles.profileMenuItem} onClick={() => { setShowPricing(true); setProfileMenuOpen(false); }}><DollarSign size={17} /> Pricing</button>
+          <button type="button" className={styles.profileMenuItem} onClick={handleOpenPricing}><DollarSign size={17} /> Pricing</button>
           <button type="button" className={styles.profileMenuItem} onClick={handleSignOut}><LogOut size={17} /> Sign Out</button>
         </>
       ) : (
@@ -865,18 +901,18 @@ export default function WebWeave() {
 
       {/* Pricing Page Modal */}
       {showPricing && (
-        <div className={styles.pricingModal}>
-          <div className={styles.pricingModalBackdrop} onClick={() => setShowPricing(false)} />
+        <div className={`${styles.pricingModal} ${pricingClosing ? styles.pricingModalClosing : ''}`}>
+          <div className={styles.pricingModalBackdrop} onClick={handleClosePricing} />
           <div className={styles.pricingModalContent}>
             <button
               type="button"
               className={styles.pricingModalClose}
-              onClick={() => setShowPricing(false)}
+              onClick={handleClosePricing}
               aria-label="Close pricing"
             >
               ✕
             </button>
-            <PricingPage onClose={() => setShowPricing(false)} />
+            <PricingPage onClose={handleClosePricing} onCheckout={handlePricingCheckout} />
           </div>
         </div>
       )}
