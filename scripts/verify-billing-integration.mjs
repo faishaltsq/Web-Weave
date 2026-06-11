@@ -49,6 +49,10 @@ const expectations = [
   ['pricing page receives checkout prop', 'src/components/PricingPage.js', 'onCheckout'],
   ['pricing page handles checkout loading', 'src/components/PricingPage.js', 'checkoutLoadingPlan'],
   ['pricing page redirects checkout URL', 'src/components/PricingPage.js', 'window.location.href = checkout.checkoutUrl'],
+  ['generate route imports auth helper', 'src/app/api/generate/route.js', 'getAuthenticatedUser'],
+  ['generate route checks monthly_generation_limit', 'src/app/api/generate/route.js', 'monthly_generation_limit'],
+  ['generate route counts current month usage', 'src/app/api/generate/route.js', 'generation_requested'],
+  ['generate route returns quota error', 'src/app/api/generate/route.js', 'Monthly generation limit reached'],
 ];
 
 const missing = expectations.filter(([, path, token]) => {

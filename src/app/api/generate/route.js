@@ -5,6 +5,7 @@ import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import dns from 'dns/promises';
 import net from 'net';
+import { getAuthenticatedUser, hasSupabaseServerConfig } from '@/lib/supabase/server';
 
 const MAX_REQUEST_BYTES = 64 * 1024;
 const MAX_URL_LENGTH = 2048;
@@ -876,12 +877,71 @@ Generate using resilient selectors. Prefer id/name-based selectors. Add comments
 }
 
 // ============================================================
+// Quota Enforcement Helpers
+// ============================================================
+
+function getMonthStartIso() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+}
+
+async function checkUserGenerationQuota(req) {
+  if (!hasSupabaseServerConfig()) return { allowed: true, auth: null };
+
+  const authorization = req.headers.get('authorization') || '';
+  if (!authorization) return { allowed: true, auth: null };
+
+  const auth = await getAuthenticatedUser(req);
+  if (auth.error) return { allowed: false, status: auth.status, error: auth.error };
+
+  const { data: profile, error: profileError } = await auth.supabase
+    .from('profiles')
+    .select('plan, monthly_generation_limit')
+    .eq('id', auth.user.id)
+    .single();
+
+  if (profileError) return { allowed: false, status: 500, error: profileError.message };
+
+  const limit = Number(profile?.monthly_generation_limit || 30);
+  const { data: events, error: usageError } = await auth.supabase
+    .from('usage_events')
+    .select('quantity')
+    .eq('owner_id', auth.user.id)
+    .eq('event_type', 'generation_requested')
+    .gte('created_at', getMonthStartIso());
+
+  if (usageError) return { allowed: false, status: 500, error: usageError.message };
+
+  const used = (events || []).reduce((sum, event) => sum + Number(event.quantity || 0), 0);
+  if (used >= limit) {
+    return { allowed: false, status: 402, error: 'Monthly generation limit reached. Upgrade your plan to continue.', used, limit };
+  }
+
+  return { allowed: true, auth, used, limit };
+}
+
+async function recordGenerationRequested(auth) {
+  if (!auth?.supabase || !auth?.user?.id) return;
+  await auth.supabase.from('usage_events').insert({
+    owner_id: auth.user.id,
+    event_type: 'generation_requested',
+    quantity: 1,
+    metadata: { source: 'generate_api' },
+  });
+}
+
+// ============================================================
 // Main API Route Handler
 // ============================================================
 
 export async function POST(req) {
   let browser = null;
   try {
+    const quota = await checkUserGenerationQuota(req);
+    if (!quota.allowed) {
+      return NextResponse.json({ error: quota.error, used: quota.used, limit: quota.limit }, { status: quota.status });
+    }
+
     const retryAfter = checkRateLimit(getClientId(req));
     if (retryAfter) {
       return NextResponse.json({
@@ -1022,6 +1082,8 @@ export async function POST(req) {
     }
 
     const fw = getFrameworkDetails(framework);
+
+    await recordGenerationRequested(quota.auth);
 
     return NextResponse.json({
       success: true,
