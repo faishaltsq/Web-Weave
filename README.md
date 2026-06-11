@@ -162,6 +162,28 @@ Successful response includes:
 - `localhost`, `.local`, private IPs, reserved IPs, and cloud metadata hosts are blocked.
 - DNS is resolved before scraping; private/reserved resolved addresses are blocked.
 
+### Optional LemonSqueezy Billing Setup
+
+Billing can be implemented before LemonSqueezy validation is finished. Leave the LemonSqueezy variables blank during development; checkout buttons will show a safe configuration message instead of crashing.
+
+1. Create/login to LemonSqueezy.
+2. Enable Test Mode.
+3. Create a store named `WebWeave`.
+4. Create subscription products for `WebWeave Starter` and `WebWeave Pro`.
+5. Create variants:
+   - Starter Monthly: Rp49.000/month.
+   - Starter Annual: around Rp470.000/year.
+   - Pro Monthly: Rp129.000/month.
+   - Pro Annual: around Rp1.238.000/year.
+6. Copy store ID and variant IDs.
+7. Create a LemonSqueezy API key.
+8. For local webhook testing, run `ngrok http 3000`.
+9. Set webhook callback URL to `https://<ngrok-id>.ngrok-free.app/api/billing/webhook` for local testing.
+10. Use `https://<your-domain>/api/billing/webhook` for production.
+11. Add webhook events: `subscription_created`, `subscription_updated`, `subscription_payment_success`, `subscription_cancelled`, `subscription_resumed`, `subscription_expired`.
+12. Copy the webhook signing secret into `LEMONSQUEEZY_WEBHOOK_SECRET`.
+13. Fill `.env.local` and restart the Next.js dev server.
+
 ## License
 
 MIT License.
