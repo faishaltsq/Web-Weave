@@ -27,6 +27,12 @@ const expectations = [
   ['migration adds Lemon customer ID', 'supabase/migrations/002_billing_profiles.sql', 'lemon_customer_id text'],
   ['migration adds Lemon subscription ID', 'supabase/migrations/002_billing_profiles.sql', 'lemon_subscription_id text'],
   ['migration adds billing timestamp', 'supabase/migrations/002_billing_profiles.sql', 'billing_updated_at timestamptz'],
+  ['Lemon helper file exists', 'src/lib/billing/lemonsqueezy.js', null],
+  ['Lemon helper checks config', 'src/lib/billing/lemonsqueezy.js', 'getLemonSqueezyConfig'],
+  ['Lemon helper creates checkout', 'src/lib/billing/lemonsqueezy.js', 'createLemonSqueezyCheckout'],
+  ['Lemon helper verifies HMAC', 'src/lib/billing/lemonsqueezy.js', 'verifyLemonSqueezySignature'],
+  ['Lemon helper uses timing safe compare', 'src/lib/billing/lemonsqueezy.js', 'timingSafeEqual'],
+  ['Lemon helper maps webhook entitlement', 'src/lib/billing/lemonsqueezy.js', 'mapWebhookToEntitlement'],
 ];
 
 const missing = expectations.filter(([, path, token]) => {
