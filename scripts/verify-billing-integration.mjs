@@ -33,6 +33,17 @@ const expectations = [
   ['Lemon helper verifies HMAC', 'src/lib/billing/lemonsqueezy.js', 'verifyLemonSqueezySignature'],
   ['Lemon helper uses timing safe compare', 'src/lib/billing/lemonsqueezy.js', 'timingSafeEqual'],
   ['Lemon helper maps webhook entitlement', 'src/lib/billing/lemonsqueezy.js', 'mapWebhookToEntitlement'],
+  ['checkout route file exists', 'src/app/api/billing/checkout/route.js', null],
+  ['checkout route requires auth', 'src/app/api/billing/checkout/route.js', 'getAuthenticatedUser'],
+  ['checkout route calls Lemon helper', 'src/app/api/billing/checkout/route.js', 'createLemonSqueezyCheckout'],
+  ['checkout route accepts plan', 'src/app/api/billing/checkout/route.js', 'body.plan'],
+  ['checkout route accepts billing cycle', 'src/app/api/billing/checkout/route.js', 'body.billingCycle'],
+  ['webhook route file exists', 'src/app/api/billing/webhook/route.js', null],
+  ['webhook route reads raw body', 'src/app/api/billing/webhook/route.js', 'await req.text()'],
+  ["webhook route reads X-Signature", "src/app/api/billing/webhook/route.js", "req.headers.get('x-signature')"],
+  ['webhook route verifies signature', 'src/app/api/billing/webhook/route.js', 'verifyLemonSqueezySignature'],
+  ['webhook route maps entitlement', 'src/app/api/billing/webhook/route.js', 'mapWebhookToEntitlement'],
+  ["webhook route updates profiles", "src/app/api/billing/webhook/route.js", ".from('profiles')"],
 ];
 
 const missing = expectations.filter(([, path, token]) => {
