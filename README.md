@@ -185,6 +185,19 @@ Billing can be implemented before LemonSqueezy validation is finished. Leave the
 12. Copy the webhook signing secret into `LEMONSQUEEZY_WEBHOOK_SECRET`.
 13. Fill `.env.local` and restart the Next.js dev server.
 
+### Midtrans Sandbox Billing Setup (Current Default)
+
+Midtrans Snap is the default sandbox checkout. Use Midtrans sandbox keys first.
+
+1. Create or log in to your Midtrans sandbox account.
+2. Copy the sandbox Server Key into `MIDTRANS_SERVER_KEY`.
+3. Copy the sandbox Client Key into `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY`.
+4. Keep `MIDTRANS_IS_PRODUCTION=false` for sandbox.
+5. Expose local webhook with `ngrok http 3000`.
+6. Set the Midtrans Payment Notification URL to `https://<ngrok-id>.ngrok-free.app/api/billing/midtrans/webhook`.
+7. Click Starter or Pro from the pricing modal and use Midtrans sandbox payment credentials.
+8. Successful `settlement` or accepted `capture` notifications automatically upgrade the user profile until `billing_period_ends_at`.
+
 ## License
 
 MIT License.

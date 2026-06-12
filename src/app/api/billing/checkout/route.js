@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/supabase/server';
-import { createLemonSqueezyCheckout } from '@/lib/billing/lemonsqueezy';
+import { createMidtransSnapCheckout } from '@/lib/billing/midtrans';
 import { getPlanConfig, normalizeBillingCycle } from '@/lib/billing/plans';
 
 export async function POST(req) {
@@ -15,7 +15,7 @@ export async function POST(req) {
   if (!plan) return NextResponse.json({ success: false, error: 'Unknown billing plan.' }, { status: 400 });
   if (!plan.checkoutEnabled) return NextResponse.json({ success: false, error: 'This plan is not available for checkout.' }, { status: 400 });
 
-  const checkout = await createLemonSqueezyCheckout({ planId, billingCycle, user: auth.user });
+  const checkout = await createMidtransSnapCheckout({ planId, billingCycle, user: auth.user });
   if (!checkout.success) {
     return NextResponse.json(checkout, { status: checkout.configured === false ? 503 : 400 });
   }

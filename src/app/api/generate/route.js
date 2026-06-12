@@ -6,6 +6,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import dns from 'dns/promises';
 import net from 'net';
 import { getAuthenticatedUser, hasSupabaseServerConfig } from '@/lib/supabase/server';
+import { getPlanConfig } from '@/lib/billing/plans';
 
 const MAX_REQUEST_BYTES = 64 * 1024;
 const MAX_URL_LENGTH = 2048;
@@ -885,6 +886,12 @@ function getMonthStartIso() {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 }
 
+function isBillingExpired(profile) {
+  if (!profile?.billing_period_ends_at) return false;
+  const expiresAt = new Date(profile.billing_period_ends_at).getTime();
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now();
+}
+
 async function checkUserGenerationQuota(req) {
   if (!hasSupabaseServerConfig()) return { allowed: true, auth: null };
 
@@ -896,13 +903,15 @@ async function checkUserGenerationQuota(req) {
 
   const { data: profile, error: profileError } = await auth.supabase
     .from('profiles')
-    .select('plan, monthly_generation_limit')
+    .select('plan, monthly_generation_limit, billing_period_ends_at')
     .eq('id', auth.user.id)
     .single();
 
   if (profileError) return { allowed: false, status: 500, error: profileError.message };
 
-  const limit = Number(profile?.monthly_generation_limit || 30);
+  const billingExpired = isBillingExpired(profile);
+  const freeLimit = getPlanConfig('free').monthlyGenerationLimit;
+  const limit = billingExpired ? freeLimit : Number(profile?.monthly_generation_limit || freeLimit);
   const { data: events, error: usageError } = await auth.supabase
     .from('usage_events')
     .select('quantity')
@@ -917,7 +926,7 @@ async function checkUserGenerationQuota(req) {
     return { allowed: false, status: 402, error: 'Monthly generation limit reached. Upgrade your plan to continue.', used, limit };
   }
 
-  return { allowed: true, auth, used, limit };
+  return { allowed: true, auth, used, limit, billingExpired };
 }
 
 async function recordGenerationRequested(auth) {

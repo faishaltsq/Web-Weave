@@ -17,6 +17,10 @@ export const WEBWEAVE_PLANS = {
       monthly: 'LEMONSQUEEZY_STARTER_MONTHLY_VARIANT_ID',
       annual: 'LEMONSQUEEZY_STARTER_ANNUAL_VARIANT_ID',
     },
+    midtransPrices: {
+      monthly: 49000,
+      annual: 470000,
+    },
   },
   pro: {
     id: 'pro',
@@ -26,6 +30,10 @@ export const WEBWEAVE_PLANS = {
     variants: {
       monthly: 'LEMONSQUEEZY_PRO_MONTHLY_VARIANT_ID',
       annual: 'LEMONSQUEEZY_PRO_ANNUAL_VARIANT_ID',
+    },
+    midtransPrices: {
+      monthly: 129000,
+      annual: 1238000,
     },
   },
   team: {
@@ -65,4 +73,10 @@ export function resolvePlanFromVariantId(variantId, env = process.env) {
     }
   }
   return { planId: 'free', billingCycle: 'monthly', limit: WEBWEAVE_PLANS.free.monthlyGenerationLimit };
+}
+
+export function getPlanPrice(planId, billingCycle) {
+  const plan = getPlanConfig(planId);
+  const cycle = normalizeBillingCycle(billingCycle);
+  return Number(plan?.midtransPrices?.[cycle] || 0);
 }

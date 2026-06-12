@@ -81,7 +81,7 @@ const plans = [
 
 export default function PricingPage({ onClose, onCheckout }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
-  const [actionMessage, setActionMessage] = useState('Pilih paket untuk checkout. Env LemonSqueezy bisa diisi nanti.');
+  const [actionMessage, setActionMessage] = useState('Pilih paket untuk checkout. Midtrans sandbox bisa diaktifkan dari env.');
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState('');
 
   const getDisplayPrice = (plan) => {
@@ -116,7 +116,7 @@ export default function PricingPage({ onClose, onCheckout }) {
         return;
       }
 
-      setActionMessage('Redirecting to LemonSqueezy checkout...');
+      setActionMessage('Redirecting to Midtrans checkout...');
       window.location.href = checkout.checkoutUrl;
     } catch (err) {
       setActionMessage(err.message || 'Checkout gagal dibuat.');

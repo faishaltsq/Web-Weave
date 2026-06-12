@@ -35,7 +35,7 @@ const expectations = [
   ['Lemon helper maps webhook entitlement', 'src/lib/billing/lemonsqueezy.js', 'mapWebhookToEntitlement'],
   ['checkout route file exists', 'src/app/api/billing/checkout/route.js', null],
   ['checkout route requires auth', 'src/app/api/billing/checkout/route.js', 'getAuthenticatedUser'],
-  ['checkout route calls Lemon helper', 'src/app/api/billing/checkout/route.js', 'createLemonSqueezyCheckout'],
+  ['checkout route calls billing helper', 'src/app/api/billing/checkout/route.js', 'createMidtransSnapCheckout'],
   ['checkout route accepts plan', 'src/app/api/billing/checkout/route.js', 'body.plan'],
   ['checkout route accepts billing cycle', 'src/app/api/billing/checkout/route.js', 'body.billingCycle'],
   ['webhook route file exists', 'src/app/api/billing/webhook/route.js', null],
