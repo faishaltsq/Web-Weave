@@ -96,7 +96,7 @@ export async function createMidtransSnapCheckout({ planId, billingCycle, user, e
       return { success: false, configured: true, error: 'Failed to create checkout.' };
     }
 
-    return { success: true, configured: true, checkoutUrl: payload.redirect_url, orderId, token: payload.token };
+    return { success: true, configured: true, checkoutUrl: payload.redirect_url, orderId, token: payload.token, amount: price };
   } catch (error) {
     console.error('Midtrans Snap checkout request failed', { error: error?.message || String(error) });
     return { success: false, configured: true, error: 'Failed to create checkout.' };
@@ -128,23 +128,30 @@ export function getBillingPeriodEndIso(billingCycle, now = new Date()) {
   return periodEnd.toISOString();
 }
 
-export function mapMidtransNotificationToEntitlement(notification) {
+export function mapMidtransNotificationToEntitlement(notification, trustedOrder = null) {
   const status = String(notification?.transaction_status || '').toLowerCase();
   const fraudStatus = String(notification?.fraud_status || '').toLowerCase();
-  const userId = notification?.custom_field1 || '';
-  const planId = notification?.custom_field2 || 'free';
-  const cycle = normalizeBillingCycle(notification?.custom_field3);
+  const userId = trustedOrder?.owner_id || notification?.custom_field1 || '';
+  const planId = trustedOrder?.plan || notification?.custom_field2 || 'free';
+  const cycle = normalizeBillingCycle(trustedOrder?.billing_cycle || notification?.custom_field3);
   const plan = getPlanConfig(planId) || getPlanConfig('free');
   const freePlan = getPlanConfig('free');
   const grossAmount = Number(notification?.gross_amount);
-  const expectedAmount = getPlanPrice(planId, cycle);
+  const trustedAmount = Number(trustedOrder?.amount || 0);
+  const expectedAmount = trustedAmount || getPlanPrice(planId, cycle);
   const amountMatches = expectedAmount > 0 && grossAmount === expectedAmount;
   const transactionActive = status === 'settlement' || (status === 'capture' && fraudStatus === 'accept');
-  const active = transactionActive && amountMatches;
   const inactiveStatuses = new Set(['expire', 'cancel', 'deny', 'failure']);
+  const revokingStatuses = new Set(['refund', 'partial_refund', 'chargeback', 'partial_chargeback']);
+  const revokesEntitlement = revokingStatuses.has(status);
+  const terminalInactive = inactiveStatuses.has(status) || revokesEntitlement;
+  const active = transactionActive && amountMatches;
 
   if (active) {
     return {
+      active,
+      terminalInactive,
+      revokesEntitlement,
       userId,
       planId: plan.id,
       monthlyGenerationLimit: plan.monthlyGenerationLimit,
@@ -158,6 +165,9 @@ export function mapMidtransNotificationToEntitlement(notification) {
   }
 
   return {
+    active: false,
+    terminalInactive,
+    revokesEntitlement,
     userId,
     planId: 'free',
     monthlyGenerationLimit: freePlan.monthlyGenerationLimit,

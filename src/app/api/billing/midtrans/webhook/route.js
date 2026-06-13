@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/server';
 import { getMidtransConfig, mapMidtransNotificationToEntitlement, verifyMidtransSignature } from '@/lib/billing/midtrans';
 
+const ACTIVE_MIDTRANS_STATUSES = new Set(['settlement', 'capture']);
+const REVOKED_MIDTRANS_STATUSES = new Set(['refund', 'partial_refund', 'chargeback', 'partial_chargeback']);
+
 export async function POST(req) {
   const notification = await req.json().catch(() => null);
   const config = getMidtransConfig();
@@ -18,15 +21,99 @@ export async function POST(req) {
     return NextResponse.json({ success: false, error: 'Invalid signature.' }, { status: 401 });
   }
 
-  const entitlement = mapMidtransNotificationToEntitlement(notification);
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) return NextResponse.json({ success: false, error: 'Supabase is not configured.' }, { status: 503 });
+
+  const orderId = notification?.order_id ? String(notification.order_id) : '';
+  if (!orderId) return NextResponse.json({ success: false, error: 'Webhook missing order_id.' }, { status: 400 });
+
+  const { data: order, error: orderError } = await supabase
+    .from('billing_orders')
+    .select('order_id, owner_id, plan, billing_cycle, amount, status, billing_period_ends_at, created_at')
+    .eq('order_id', orderId)
+    .single();
+
+  if (orderError || !order) {
+    return NextResponse.json({ success: false, error: 'Unknown payment order.' }, { status: 400 });
+  }
+
+  const entitlement = mapMidtransNotificationToEntitlement(notification, order);
   if (!entitlement.userId) {
     return NextResponse.json({ success: false, error: 'Webhook missing user_id custom data.' }, { status: 400 });
   }
 
-  const supabase = createSupabaseServiceClient();
-  if (!supabase) return NextResponse.json({ success: false, error: 'Supabase is not configured.' }, { status: 503 });
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('midtrans_order_id, midtrans_status')
+    .eq('id', entitlement.userId)
+    .single();
 
-  const active = entitlement.planId !== 'free';
+  if (profileError) return NextResponse.json({ success: false, error: profileError.message }, { status: 500 });
+
+  const existingActiveOrder = ACTIVE_MIDTRANS_STATUSES.has(String(order.status || '').toLowerCase()) && order.billing_period_ends_at;
+  const existingRevokedOrder = REVOKED_MIDTRANS_STATUSES.has(String(order.status || '').toLowerCase());
+  if (existingRevokedOrder && !entitlement.revokesEntitlement) {
+    return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'revoked_order_terminal' });
+  }
+
+  if (existingActiveOrder && !entitlement.active && !entitlement.revokesEntitlement) {
+    return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'settled_order_not_downgraded' });
+  }
+
+  if (entitlement.active && profile?.midtrans_order_id && profile.midtrans_order_id !== order.order_id) {
+    const { data: currentOrder, error: currentOrderError } = await supabase
+      .from('billing_orders')
+      .select('order_id, created_at')
+      .eq('order_id', profile.midtrans_order_id)
+      .single();
+
+    if (currentOrderError || !currentOrder) {
+      return NextResponse.json({ success: false, error: 'Current billing order was not found.' }, { status: 500 });
+    }
+
+    const orderCreatedAt = new Date(order.created_at).getTime();
+    const currentOrderCreatedAt = new Date(currentOrder.created_at).getTime();
+    const staleActiveOrder = Number.isFinite(currentOrderCreatedAt) && Number.isFinite(orderCreatedAt) && orderCreatedAt <= currentOrderCreatedAt;
+    if (staleActiveOrder) {
+      return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'stale_active_order' });
+    }
+  }
+
+  const periodEnd = entitlement.active && existingActiveOrder
+    ? order.billing_period_ends_at
+    : entitlement.billingPeriodEndsAt;
+
+  const orderUpdate = {
+    status: entitlement.midtransStatus,
+    midtrans_transaction_id: entitlement.midtransTransactionId,
+    billing_period_ends_at: periodEnd,
+    updated_at: new Date().toISOString(),
+  };
+
+  let orderUpdateQuery = supabase
+    .from('billing_orders')
+    .update(orderUpdate)
+    .eq('order_id', order.order_id);
+
+  if (entitlement.active) {
+    orderUpdateQuery = orderUpdateQuery.not('status', 'in', '("refund","partial_refund","chargeback","partial_chargeback")');
+  }
+
+  const { data: updatedOrderRows, error: orderUpdateError } = await orderUpdateQuery.select('order_id');
+
+  if (orderUpdateError) return NextResponse.json({ success: false, error: orderUpdateError.message }, { status: 500 });
+  if (entitlement.active && !updatedOrderRows?.length) {
+    return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'revoked_order_not_reactivated' });
+  }
+
+  if (!entitlement.active && !entitlement.terminalInactive) {
+    return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'non_terminal_status' });
+  }
+
+  const active = entitlement.active;
+  if (!active && profile?.midtrans_order_id !== order.order_id) {
+    return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'inactive_order_not_current_plan' });
+  }
 
   const update = active
     ? {
@@ -34,7 +121,7 @@ export async function POST(req) {
         monthly_generation_limit: entitlement.monthlyGenerationLimit,
         billing_cycle: entitlement.billingCycle,
         billing_provider: entitlement.billingProvider,
-        billing_period_ends_at: entitlement.billingPeriodEndsAt,
+        billing_period_ends_at: periodEnd,
         midtrans_order_id: entitlement.midtransOrderId,
         midtrans_transaction_id: entitlement.midtransTransactionId,
         midtrans_status: entitlement.midtransStatus,
@@ -52,12 +139,63 @@ export async function POST(req) {
         billing_updated_at: new Date().toISOString(),
       };
 
-  const { error } = await supabase
-    .from('profiles')
-    .update(update)
-    .eq('id', entitlement.userId);
+  const applyProfileUpdate = async (expectedOrderId, expectedStatus) => {
+    let profileUpdateQuery = supabase
+      .from('profiles')
+      .update(update)
+      .eq('id', entitlement.userId);
+
+    profileUpdateQuery = expectedOrderId
+      ? profileUpdateQuery.eq('midtrans_order_id', expectedOrderId)
+      : profileUpdateQuery.is('midtrans_order_id', null);
+
+    profileUpdateQuery = expectedStatus
+      ? profileUpdateQuery.eq('midtrans_status', expectedStatus)
+      : profileUpdateQuery.is('midtrans_status', null);
+
+    return profileUpdateQuery.select('id');
+  };
+
+  let expectedOrderId = active ? profile?.midtrans_order_id || null : order.order_id;
+  let expectedStatus = profile?.midtrans_status || null;
+  let { data: updatedProfiles, error } = await applyProfileUpdate(expectedOrderId, expectedStatus);
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+
+  if (active && !updatedProfiles?.length) {
+    const { data: latestProfile, error: latestProfileError } = await supabase
+      .from('profiles')
+      .select('midtrans_order_id, midtrans_status')
+      .eq('id', entitlement.userId)
+      .single();
+
+    if (latestProfileError) return NextResponse.json({ success: false, error: latestProfileError.message }, { status: 500 });
+
+    if (latestProfile?.midtrans_order_id && latestProfile.midtrans_order_id !== order.order_id) {
+      const { data: latestCurrentOrder, error: latestCurrentOrderError } = await supabase
+        .from('billing_orders')
+        .select('created_at')
+        .eq('order_id', latestProfile.midtrans_order_id)
+        .single();
+
+      if (latestCurrentOrderError || !latestCurrentOrder) {
+        return NextResponse.json({ success: false, error: 'Current billing order was not found.' }, { status: 500 });
+      }
+
+      const orderCreatedAt = new Date(order.created_at).getTime();
+      const latestCurrentOrderCreatedAt = new Date(latestCurrentOrder.created_at).getTime();
+      if (Number.isFinite(latestCurrentOrderCreatedAt) && Number.isFinite(orderCreatedAt) && orderCreatedAt > latestCurrentOrderCreatedAt) {
+        expectedOrderId = latestProfile.midtrans_order_id;
+        expectedStatus = latestProfile.midtrans_status || null;
+        ({ data: updatedProfiles, error } = await applyProfileUpdate(expectedOrderId, expectedStatus));
+        if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+    }
+  }
+
+  if (!updatedProfiles?.length) {
+    return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'concurrent_profile_change' });
+  }
 
   return NextResponse.json({ success: true, status: entitlement.midtransStatus, plan: active ? entitlement.planId : undefined });
 }
