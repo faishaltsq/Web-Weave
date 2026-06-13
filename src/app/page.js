@@ -750,34 +750,39 @@ export default function WebWeave() {
                     <label className={styles.label}>Objective</label>
                     <textarea value={objective} onChange={(event) => setObjective(event.target.value)} onFocus={() => triggerPromptAnimation('workspace')} className={styles.textarea} disabled={loading} />
                   </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Framework</label>
-                    <select value={framework} onChange={(event) => setFramework(event.target.value)} onPointerDown={(event) => handleDropdownPointerDown(event, 'workspace-framework')} onFocus={() => triggerDropdownAnimation('workspace-framework')} className={`${styles.select} ${activeDropdown === 'workspace-framework' ? styles.dropdownPulse : ''}`} disabled={loading}>
-                      {FRAMEWORKS.map((item) => (
-                        <option key={item.value} value={item.value} disabled={usageStatus ? !isFrameworkAllowed(item.value) : false}>
-                          {item.label}{usageStatus && !isFrameworkAllowed(item.value) ? ' - upgrade' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {user && (
+                  <div className={styles.formRow}>
                     <div className={styles.formGroup}>
-                      <label className={styles.label}>Project</label>
-                      <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} onPointerDown={(event) => handleDropdownPointerDown(event, 'workspace-project')} onFocus={() => triggerDropdownAnimation('workspace-project')} className={`${styles.select} ${activeDropdown === 'workspace-project' ? styles.dropdownPulse : ''}`} disabled={loading}>
-                        <option value="">Auto-create default project</option>
-                        {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                      <label className={styles.label}>Framework</label>
+                      <select value={framework} onChange={(event) => setFramework(event.target.value)} onPointerDown={(event) => handleDropdownPointerDown(event, 'workspace-framework')} onFocus={() => triggerDropdownAnimation('workspace-framework')} className={`${styles.select} ${activeDropdown === 'workspace-framework' ? styles.dropdownPulse : ''}`} disabled={loading}>
+                        {FRAMEWORKS.map((item) => (
+                          <option key={item.value} value={item.value} disabled={usageStatus ? !isFrameworkAllowed(item.value) : false}>
+                            {item.label}{usageStatus && !isFrameworkAllowed(item.value) ? ' - upgrade' : ''}
+                          </option>
+                        ))}
                       </select>
                     </div>
-                  )}
-                  {user && <div className={styles.quotaPill} title={usageStatus?.planLabel ? `${usageStatus.planLabel} plan` : 'Monthly quota'}>
-                    <ShieldCheck size={14} />
-                    <span>{quotaLabel}</span>
-                  </div>}
+                    {user && (
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Project</label>
+                        <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} onPointerDown={(event) => handleDropdownPointerDown(event, 'workspace-project')} onFocus={() => triggerDropdownAnimation('workspace-project')} className={`${styles.select} ${activeDropdown === 'workspace-project' ? styles.dropdownPulse : ''}`} disabled={loading}>
+                          <option value="">Auto-create default project</option>
+                          {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </div>
                   {error && <div className={styles.errorBanner}><AlertCircle size={18} /><span>{error}</span></div>}
                   <button type="button" onClick={() => handleGenerate()} disabled={loading || quotaExhausted || (usageStatus && !isFrameworkAllowed(framework))} className={styles.generateButton}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
-                    {loading ? 'Generating...' : 'Generate again'}
+                    {loading ? 'Generating...' : 'Generate'}
                   </button>
+                </div>
+
+                <div className={styles.generateRow}>
+                  <div className={styles.quotaPill} title={usageStatus?.planLabel ? `${usageStatus.planLabel} plan` : 'Monthly quota'}>
+                    <ShieldCheck size={14} />
+                    <span>{quotaLabel}</span>
+                  </div>
                 </div>
 
                 <div className={styles.chatCard}>
@@ -924,14 +929,17 @@ export default function WebWeave() {
                       {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
                     </select>
                   )}
-                  {user && <div className={styles.quotaPill} title={usageStatus?.planLabel ? `${usageStatus.planLabel} plan` : 'Monthly quota'}>
-                    <ShieldCheck size={14} />
-                    <span>{quotaLabel}</span>
-                  </div>}
                   <button type="button" onClick={() => handleGenerate()} disabled={loading || quotaExhausted || (usageStatus && !isFrameworkAllowed(framework))} className={styles.sendButton}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
                     Generate
                   </button>
+                </div>
+              </div>
+
+              <div className={styles.generateRow}>
+                <div className={styles.quotaPill} title={usageStatus?.planLabel ? `${usageStatus.planLabel} plan` : 'Monthly quota'}>
+                  <ShieldCheck size={14} />
+                  <span>{quotaLabel}</span>
                 </div>
               </div>
 
