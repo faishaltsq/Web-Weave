@@ -43,7 +43,7 @@ Midtrans is the active checkout provider. Team checkout and LemonSqueezy billing
 - Regeneration with feedback for improving generated output.
 - Copy and download generated script output.
 - Dark/light mode.
-- Optional LemonSqueezy billing and monthly quota enforcement.
+- Monthly quota enforcement with plan gating (auth required).
 
 ## Supported AI Providers
 
