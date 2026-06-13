@@ -1,18 +1,38 @@
 export const BILLING_CYCLES = ['monthly', 'annual'];
 
+export const SUPPORTED_FRAMEWORKS = [
+  'playwright_js',
+  'playwright_python',
+  'puppeteer_js',
+  'selenium_python',
+  'cypress_js',
+];
+
+const STARTER_FRAMEWORKS = ['playwright_js', 'playwright_python', 'selenium_python', 'cypress_js'];
+
 export const WEBWEAVE_PLANS = {
   free: {
     id: 'free',
     label: 'Free',
-    monthlyGenerationLimit: 30,
+    monthlyGenerationLimit: 5,
+    projectLimit: 1,
+    allowedFrameworks: ['playwright_js'],
     checkoutEnabled: false,
+    publicEnabled: true,
     variants: {},
+    midtransPrices: {
+      monthly: 0,
+      annual: 0,
+    },
   },
   starter: {
     id: 'starter',
     label: 'Starter',
-    monthlyGenerationLimit: 500,
+    monthlyGenerationLimit: 75,
+    projectLimit: 5,
+    allowedFrameworks: STARTER_FRAMEWORKS,
     checkoutEnabled: true,
+    publicEnabled: true,
     variants: {
       monthly: 'LEMONSQUEEZY_STARTER_MONTHLY_VARIANT_ID',
       annual: 'LEMONSQUEEZY_STARTER_ANNUAL_VARIANT_ID',
@@ -25,8 +45,11 @@ export const WEBWEAVE_PLANS = {
   pro: {
     id: 'pro',
     label: 'Pro',
-    monthlyGenerationLimit: 2000,
+    monthlyGenerationLimit: 300,
+    projectLimit: 25,
+    allowedFrameworks: SUPPORTED_FRAMEWORKS,
     checkoutEnabled: true,
+    publicEnabled: true,
     variants: {
       monthly: 'LEMONSQUEEZY_PRO_MONTHLY_VARIANT_ID',
       annual: 'LEMONSQUEEZY_PRO_ANNUAL_VARIANT_ID',
@@ -39,9 +62,16 @@ export const WEBWEAVE_PLANS = {
   team: {
     id: 'team',
     label: 'Team',
-    monthlyGenerationLimit: 8000,
+    monthlyGenerationLimit: 1000,
+    projectLimit: 50,
+    allowedFrameworks: SUPPORTED_FRAMEWORKS,
     checkoutEnabled: false,
+    publicEnabled: false,
     variants: {},
+    midtransPrices: {
+      monthly: 299000,
+      annual: 2870000,
+    },
   },
 };
 
@@ -60,7 +90,19 @@ export function getVariantEnvName(planId, billingCycle) {
 }
 
 export function getPlanLimit(planId) {
-  return getPlanConfig(planId)?.monthlyGenerationLimit || WEBWEAVE_PLANS.free.monthlyGenerationLimit;
+  return getPlanConfig(planId)?.monthlyGenerationLimit ?? WEBWEAVE_PLANS.free.monthlyGenerationLimit;
+}
+
+export function getProjectLimit(planId) {
+  return getPlanConfig(planId)?.projectLimit ?? WEBWEAVE_PLANS.free.projectLimit;
+}
+
+export function getAllowedFrameworks(planId) {
+  return getPlanConfig(planId)?.allowedFrameworks ?? WEBWEAVE_PLANS.free.allowedFrameworks;
+}
+
+export function isFrameworkAllowedForPlan(planId, framework) {
+  return getAllowedFrameworks(planId).includes(framework);
 }
 
 export function resolvePlanFromVariantId(variantId, env = process.env) {

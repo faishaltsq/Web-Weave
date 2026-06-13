@@ -61,7 +61,8 @@ const expectations = [
   ['Env has Midtrans server key', '.env.local.example', 'MIDTRANS_SERVER_KEY='],
   ['Env has Midtrans client key', '.env.local.example', 'NEXT_PUBLIC_MIDTRANS_CLIENT_KEY='],
   ['Env has Midtrans sandbox flag', '.env.local.example', 'MIDTRANS_IS_PRODUCTION=false'],
-  ['Generate route reads billing expiry', 'src/app/api/generate/route.js', 'billing_period_ends_at'],
+  ['Generate route imports quota helper', 'src/app/api/generate/route.js', "@/lib/billing/quota'"],
+  ['Quota helper reads billing expiry', 'src/lib/billing/quota.js', 'billing_period_ends_at'],
   ['Pricing copy mentions Midtrans', 'src/components/PricingPage.js', 'Redirecting to Midtrans checkout...'],
 ];
 

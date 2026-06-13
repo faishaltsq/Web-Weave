@@ -19,6 +19,19 @@ WebWeave scans a target page with Playwright Chromium, extracts interactive DOM 
 - Sends compact DOM context and the objective to a configured server-side AI provider.
 - Returns generated automation code, ranked locator candidates, static quality checks, logs, provider info, and preview image to the UI.
 
+## Pricing and Quota
+
+WebWeave uses monthly generation quotas. One successful `/api/generate` response consumes one generation. Failed validation, blocked URLs, unsupported frameworks, browser failures, AI failures, and safety-gate failures do not consume quota.
+
+| Plan | Monthly price | Generations/month | Projects | Frameworks |
+| --- | ---: | ---: | ---: | --- |
+| Free | Rp0 | 5 | 1 | Playwright JavaScript |
+| Starter | Rp49.000 | 75 | 5 | Playwright JS/Python, Selenium Python, Cypress JS |
+| Pro | Rp129.000 | 300 | 25 | All supported frameworks |
+| Team | Rp299.000 | 1.000 | Coming soon | All supported frameworks |
+
+Midtrans is the active checkout provider. Team checkout and LemonSqueezy billing are disabled in the current product.
+
 ## Key Features
 
 - Server-side AI provider keys only; no API key input in the browser.

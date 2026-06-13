@@ -14,8 +14,8 @@ const expectations = [
   ['billing plan helper exports getVariantEnvName', 'src/lib/billing/plans.js', 'export function getVariantEnvName'],
   ['billing plan helper exports getPlanLimit', 'src/lib/billing/plans.js', 'export function getPlanLimit'],
   ['billing plan helper exports resolvePlanFromVariantId', 'src/lib/billing/plans.js', 'export function resolvePlanFromVariantId'],
-  ['Starter limit 500', 'src/lib/billing/plans.js', 'monthlyGenerationLimit: 500'],
-  ['Pro limit 2000', 'src/lib/billing/plans.js', 'monthlyGenerationLimit: 2000'],
+  ['Starter limit 75', 'src/lib/billing/plans.js', 'monthlyGenerationLimit: 75'],
+  ['Pro limit 300', 'src/lib/billing/plans.js', 'monthlyGenerationLimit: 300'],
   ['Team checkout disabled', 'src/lib/billing/plans.js', 'checkoutEnabled: false'],
   ['Starter monthly variant env mapping', 'src/lib/billing/plans.js', 'LEMONSQUEEZY_STARTER_MONTHLY_VARIANT_ID'],
   ['Starter annual variant env mapping', 'src/lib/billing/plans.js', 'LEMONSQUEEZY_STARTER_ANNUAL_VARIANT_ID'],
@@ -47,9 +47,9 @@ const expectations = [
   ['pricing page handles checkout loading', 'src/components/PricingPage.js', 'checkoutLoadingPlan'],
   ['pricing page redirects checkout URL', 'src/components/PricingPage.js', 'window.location.href = checkout.checkoutUrl'],
   ['generate route imports auth helper', 'src/app/api/generate/route.js', 'getAuthenticatedUser'],
-  ['generate route checks monthly_generation_limit', 'src/app/api/generate/route.js', 'monthly_generation_limit'],
-  ['generate route counts current month usage', 'src/app/api/generate/route.js', 'generation_requested'],
-  ['generate route returns quota error', 'src/app/api/generate/route.js', 'Monthly generation limit reached'],
+  ['generate route imports quota helper', 'src/app/api/generate/route.js', 'import { assertCanGenerate, recordGenerationRequested }'],
+  ['generate route calls quota check', 'src/app/api/generate/route.js', 'assertCanGenerate(auth, framework)'],
+  ['generate route records usage after success', 'src/app/api/generate/route.js', 'recordGenerationRequested(auth)'],
 ];
 
 const missing = expectations.filter(([, path, token]) => {

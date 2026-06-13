@@ -82,6 +82,7 @@ export default function WebWeave() {
   const [scripts, setScripts] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [usageStatus, setUsageStatus] = useState(null);
   const [url, setUrl] = useState('');
   const [objective, setObjective] = useState('');
   const [framework, setFramework] = useState('playwright_js');
@@ -176,6 +177,7 @@ export default function WebWeave() {
       setProjects([]);
       setScripts([]);
       setSelectedProjectId('');
+      setUsageStatus(null);
       return;
     }
 
@@ -183,6 +185,12 @@ export default function WebWeave() {
   }, [user]);
 
   const selectedFrameworkLabel = FRAMEWORKS.find((item) => item.value === framework)?.label || framework;
+  const allowedFrameworks = usageStatus?.allowedFrameworks || ['playwright_js'];
+  const isFrameworkAllowed = (value) => allowedFrameworks.includes(value);
+  const quotaExhausted = Boolean(usageStatus?.exhausted);
+  const quotaLabel = usageStatus
+    ? `${usageStatus.used}/${usageStatus.limit} generations used`
+    : (user ? 'Loading quota...' : 'Sign in for monthly quota');
   const authEmailTrimmed = authEmail.trim().toLowerCase();
   const authEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmailTrimmed);
   const authPasswordValid = authPassword.length >= 6;
@@ -237,13 +245,17 @@ export default function WebWeave() {
     setHistoryLoading(true);
     try {
       const headers = await getAuthHeaders();
-      const [projectResponse, scriptResponse] = await Promise.all([
+      const [projectResponse, scriptResponse, usageResponse] = await Promise.all([
         fetch('/api/projects', { headers }),
         fetch('/api/generated-scripts', { headers }),
+        fetch('/api/account/usage', { headers }),
       ]);
 
       const projectData = await projectResponse.json();
       const scriptData = await scriptResponse.json();
+      const usageData = await usageResponse.json();
+
+      if (usageData.success) setUsageStatus(usageData.usage || null);
 
       if (projectData.success) {
         const nextProjects = projectData.projects || [];
@@ -382,6 +394,7 @@ export default function WebWeave() {
     setProjects([]);
     setScripts([]);
     setSelectedProjectId('');
+    setUsageStatus(null);
     setAuthMessage('Signed out.');
     setProfileMenuOpen(false);
   };
@@ -433,6 +446,16 @@ export default function WebWeave() {
       return;
     }
 
+    if (quotaExhausted) {
+      setError('Monthly generation limit reached. Please upgrade your plan to continue.');
+      return;
+    }
+
+    if (usageStatus && !isFrameworkAllowed(framework)) {
+      setError('Your current plan does not include this framework. Please upgrade your plan to continue.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setResult(null);
@@ -443,10 +466,13 @@ export default function WebWeave() {
       ? `${objective.trim()}\n\nRegeneration feedback from previous output:\n${feedbackText}`
       : objective.trim();
 
+    const authHeaders = user && supabase ? await getAuthHeaders() : {};
+    if (SUPABASE_ENABLED && !authHeaders.Authorization) throw new Error('Sign in required to generate automations.');
+
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, prompt: requestPrompt, framework }),
       });
 
@@ -475,6 +501,7 @@ export default function WebWeave() {
         ...(saveError ? [`History save skipped: ${saveError}`] : []),
       ]);
       if (feedbackText) setGenerationFeedback('');
+      if (user) await loadPrivateData();
     } catch (err) {
       setError(err.message);
       setLogs((prev) => [...prev, `Error: ${err.message}`]);
@@ -726,7 +753,11 @@ export default function WebWeave() {
                   <div className={styles.formGroup}>
                     <label className={styles.label}>Framework</label>
                     <select value={framework} onChange={(event) => setFramework(event.target.value)} onPointerDown={(event) => handleDropdownPointerDown(event, 'workspace-framework')} onFocus={() => triggerDropdownAnimation('workspace-framework')} className={`${styles.select} ${activeDropdown === 'workspace-framework' ? styles.dropdownPulse : ''}`} disabled={loading}>
-                      {FRAMEWORKS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                      {FRAMEWORKS.map((item) => (
+                        <option key={item.value} value={item.value} disabled={usageStatus ? !isFrameworkAllowed(item.value) : false}>
+                          {item.label}{usageStatus && !isFrameworkAllowed(item.value) ? ' - upgrade' : ''}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   {user && (
@@ -738,8 +769,12 @@ export default function WebWeave() {
                       </select>
                     </div>
                   )}
+                  {user && <div className={styles.quotaPill} title={usageStatus?.planLabel ? `${usageStatus.planLabel} plan` : 'Monthly quota'}>
+                    <ShieldCheck size={14} />
+                    <span>{quotaLabel}</span>
+                  </div>}
                   {error && <div className={styles.errorBanner}><AlertCircle size={18} /><span>{error}</span></div>}
-                  <button type="button" onClick={() => handleGenerate()} disabled={loading} className={styles.generateButton}>
+                  <button type="button" onClick={() => handleGenerate()} disabled={loading || quotaExhausted || (usageStatus && !isFrameworkAllowed(framework))} className={styles.generateButton}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
                     {loading ? 'Generating...' : 'Generate again'}
                   </button>
@@ -762,7 +797,7 @@ export default function WebWeave() {
                     <p className={styles.kicker}>Regenerate</p>
                     <h2>Improve with feedback</h2>
                     <textarea value={generationFeedback} onChange={(event) => setGenerationFeedback(event.target.value)} className={styles.feedbackTextarea} placeholder="Tell WebWeave what failed or what should be stricter." disabled={loading} />
-                    <button type="button" className={styles.regenerateButton} disabled={loading || !generationFeedback.trim()} onClick={() => handleGenerate({ feedback: generationFeedback })}>
+                    <button type="button" className={styles.regenerateButton} disabled={loading || quotaExhausted || (usageStatus && !isFrameworkAllowed(framework)) || !generationFeedback.trim()} onClick={() => handleGenerate({ feedback: generationFeedback })}>
                       {loading ? <Loader size={16} className={styles.spinner} /> : <Zap size={16} />}
                       Regenerate with Feedback
                     </button>
@@ -877,7 +912,11 @@ export default function WebWeave() {
                 <div className={styles.composerMeta}>
                   <input type="url" value={url} onChange={(event) => setUrl(event.target.value)} onFocus={() => triggerPromptAnimation('hero')} placeholder="https://example.com/login" className={styles.inlineUrl} disabled={loading} />
                   <select value={framework} onChange={(event) => setFramework(event.target.value)} onPointerDown={(event) => handleDropdownPointerDown(event, 'hero-framework')} onFocus={() => triggerDropdownAnimation('hero-framework')} className={`${styles.inlineSelect} ${activeDropdown === 'hero-framework' ? styles.dropdownPulse : ''}`} disabled={loading}>
-                    {FRAMEWORKS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    {FRAMEWORKS.map((item) => (
+                      <option key={item.value} value={item.value} disabled={usageStatus ? !isFrameworkAllowed(item.value) : false}>
+                        {item.label}{usageStatus && !isFrameworkAllowed(item.value) ? ' - upgrade' : ''}
+                      </option>
+                    ))}
                   </select>
                   {user && (
                     <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} onPointerDown={(event) => handleDropdownPointerDown(event, 'hero-project')} onFocus={() => triggerDropdownAnimation('hero-project')} className={`${styles.inlineSelect} ${activeDropdown === 'hero-project' ? styles.dropdownPulse : ''}`} disabled={loading}>
@@ -885,7 +924,11 @@ export default function WebWeave() {
                       {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
                     </select>
                   )}
-                  <button type="button" onClick={() => handleGenerate()} disabled={loading} className={styles.sendButton}>
+                  {user && <div className={styles.quotaPill} title={usageStatus?.planLabel ? `${usageStatus.planLabel} plan` : 'Monthly quota'}>
+                    <ShieldCheck size={14} />
+                    <span>{quotaLabel}</span>
+                  </div>}
+                  <button type="button" onClick={() => handleGenerate()} disabled={loading || quotaExhausted || (usageStatus && !isFrameworkAllowed(framework))} className={styles.sendButton}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
                     Generate
                   </button>
