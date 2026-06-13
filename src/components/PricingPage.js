@@ -13,14 +13,14 @@ const plans = [
     monthlyPrice: 0,
     description: 'Cocok untuk coba WebWeave tanpa komitmen.',
     fit: 'Belajar automation dan validasi ide tanpa cepat mentok.',
-    quota: '30 generations/bulan',
+    quota: '5 generations/bulan',
     cta: 'Pakai Free',
     accent: 'Starter safe',
     features: [
       '1 project pribadi',
-      'Playwright JavaScript',
+      'Playwright JavaScript only',
       'Copy dan download script',
-      'Riwayat terbatas',
+      'Riwayat terbaru terbatas',
     ],
   },
   {
@@ -28,14 +28,14 @@ const plans = [
     name: 'Starter',
     monthlyPrice: 49000,
     description: 'Harga masuk akal untuk builder solo dan QA intern.',
-    fit: 'Paket rekomendasi awal: murah, quota longgar untuk kerja rutin.',
-    quota: '500 generations/bulan',
+    fit: 'Paket rekomendasi awal: murah, quota cukup untuk kerja rutin.',
+    quota: '75 generations/bulan',
     cta: 'Mulai Starter',
     badge: 'Recommended',
     accent: 'Best entry price',
     features: [
       '5 project aktif',
-      'Semua framework utama',
+      'Playwright JS/Python, Selenium Python, Cypress JS',
       'Saved scripts dan prompt history',
       'Regenerate dengan feedback',
       'Email support best-effort',
@@ -47,15 +47,15 @@ const plans = [
     monthlyPrice: 129000,
     description: 'Untuk freelance QA, developer, dan tim kecil.',
     fit: 'Lebih lega untuk sprint, demo client, dan iterasi locator.',
-    quota: '2.000 generations/bulan',
+    quota: '300 generations/bulan',
     cta: 'Coba Pro',
     badge: 'Best value',
     accent: 'Most useful',
     features: [
-      'Unlimited projects',
+      '25 project aktif',
+      'All supported frameworks',
       'Priority generation queue',
       'Quality gate summary',
-      'Locator ranking detail',
       'Priority support',
     ],
   },
@@ -65,15 +65,15 @@ const plans = [
     monthlyPrice: 299000,
     description: 'Untuk shared workspace kecil tanpa harga enterprise.',
     fit: '3 seats untuk QA lead, intern, developer, dan smoke suite rutin.',
-    quota: '8.000 generations/bulan',
+    quota: '1.000 generations/bulan',
     cta: 'Coming soon',
     accent: 'Small team',
     disabled: true,
     features: [
-      '3 team seats included',
+      'Team workspace coming soon',
       'Shared project history',
-      'Template login reusable',
-      'Basic API access mock',
+      'All supported frameworks',
+      'Admin controls planned',
       'Roadmap request priority',
     ],
   },
@@ -142,7 +142,7 @@ export default function PricingPage({ onClose, onCheckout }) {
         <div className={styles.eyebrow}><Sparkles size={16} /> Pricing recommendation</div>
         <h1 className={styles.title}>Paket automation yang ramah kantong.</h1>
         <p className={styles.subtitle}>
-          WebWeave masih early product. Karena token generation relatif murah, quota dibuat lebih longgar untuk indie QA, intern, freelance, dan tim kecil.
+          WebWeave masih early product. Quota dirancang sesuai kebutuhan QA rutin untuk intern, freelance, dan tim kecil.
         </p>
       </header>
 
@@ -155,12 +155,12 @@ export default function PricingPage({ onClose, onCheckout }) {
         <div>
           <span>Rekomendasi</span>
           <strong>Starter</strong>
-          <small>Rp49.000 dengan 500 generations/bulan</small>
+          <small>Rp49.000 dengan 75 generations/bulan</small>
         </div>
         <div>
           <span>Usage</span>
-          <strong>quota longgar</strong>
-          <small>biar user sering generate dan refine script</small>
+          <strong>quota cukup</strong>
+          <small>cukup untuk generate dan refine script harian</small>
         </div>
         <div>
           <span>Annual</span>
@@ -256,15 +256,15 @@ export default function PricingPage({ onClose, onCheckout }) {
         <div className={styles.faqGrid}>
           <div className={styles.faqItem}>
             <h4>Kenapa Starter Rp49.000?</h4>
-            <p>Angka ini rendah untuk user Indonesia, dan 500 generations/bulan cukup untuk daily QA ringan.</p>
+            <p>Angka ini rendah untuk user Indonesia, dan 75 generations/bulan cukup untuk daily QA ringan.</p>
           </div>
           <div className={styles.faqItem}>
             <h4>Kenapa Pro Rp129.000?</h4>
-            <p>2.000 generations/bulan memberi ruang sprint, regenerasi, dan eksperimen locator tanpa terasa pelit.</p>
+            <p>300 generations/bulan memberi ruang sprint, regenerasi, dan eksperimen locator tanpa terasa pelit.</p>
           </div>
           <div className={styles.faqItem}>
             <h4>Kenapa Team Rp299.000?</h4>
-            <p>8.000 generations/bulan cukup untuk tim kecil, tapi tetap aman sebagai fair-use awal.</p>
+            <p>1.000 generations/bulan cukup untuk tim kecil, tapi tetap aman sebagai fair-use awal.</p>
           </div>
         </div>
       </section>
@@ -274,7 +274,7 @@ export default function PricingPage({ onClose, onCheckout }) {
           <p className={styles.sectionLabel}>Best next move</p>
           <h2>Launch murah dulu, naikkan harga setelah usage jelas.</h2>
           <p>
-            Saran: mulai dari Free 30, Starter 500, Pro 2.000, Team 8.000 generations/bulan. Harga tetap murah, usage terasa lega.
+            Saran: mulai dari Free 5, Starter 75, Pro 300, Team 1.000 generations/bulan. Harga tetap murah, usage terasa lega.
           </p>
         </div>
         <button type="button" className={styles.ctaButtonLarge} onClick={handlePrimaryCta}>

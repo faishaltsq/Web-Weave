@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser, hasSupabaseServerConfig } from '@/lib/supabase/server';
+import { getProjectLimit } from '@/lib/billing/plans';
+import { getUserBillingProfile, resolveActivePlanId } from '@/lib/billing/quota';
 
 const MAX_NAME_LENGTH = 80;
 const MAX_DOMAIN_LENGTH = 240;
@@ -44,6 +46,27 @@ export async function POST(req) {
 
   if (description.length > MAX_DESCRIPTION_LENGTH) {
     return NextResponse.json({ success: false, error: `Description must be ${MAX_DESCRIPTION_LENGTH} characters or less.` }, { status: 400 });
+  }
+
+  try {
+    const profile = await getUserBillingProfile(auth.supabase, auth.user.id);
+    const planId = resolveActivePlanId(profile);
+    const projectLimit = getProjectLimit(planId);
+    const { count, error: countError } = await auth.supabase
+      .from('projects')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_id', auth.user.id);
+
+    if (countError) throw new Error(countError.message);
+    if (Number(count || 0) >= projectLimit) {
+      return NextResponse.json({
+        success: false,
+        error: 'Project limit reached. Please upgrade your plan to create more projects.',
+        limit: projectLimit,
+      }, { status: 402 });
+    }
+  } catch (error) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 
   const { data, error } = await auth.supabase
