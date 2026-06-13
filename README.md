@@ -163,9 +163,9 @@ Successful response includes:
 - `localhost`, `.local`, private IPs, reserved IPs, and cloud metadata hosts are blocked.
 - DNS is resolved before scraping; private/reserved resolved addresses are blocked.
 
-### Optional LemonSqueezy Billing Setup
+### LemonSqueezy Billing Status
 
-Billing can be implemented before LemonSqueezy validation is finished. Leave the LemonSqueezy variables blank during development; checkout buttons will show a safe configuration message instead of crashing.
+LemonSqueezy code is kept for future reactivation, but it is disabled for now. Current checkout uses Midtrans only. `POST /api/billing/webhook` returns a disabled response and does not process LemonSqueezy events.
 
 1. Create/login to LemonSqueezy.
 2. Enable Test Mode.

@@ -2144,6 +2144,10 @@
   animation: fadeIn 0.3s ease-out;
 }
 
+.pricingModalClosing {
+  pointer-events: none;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -2164,6 +2168,10 @@
   cursor: pointer;
 }
 
+.pricingModalClosing .pricingModalBackdrop {
+  animation: pricingBackdropOut 0.22s ease forwards;
+}
+
 .pricingModalContent {
   position: relative;
   width: 95%;
@@ -2177,6 +2185,10 @@
   animation: slideUp 0.3s ease-out;
 }
 
+.pricingModalClosing .pricingModalContent {
+  animation: pricingModalOut 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
 @keyframes slideUp {
   from {
     transform: translateY(20px);
@@ -2185,6 +2197,28 @@
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+@keyframes pricingBackdropOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pricingModalOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    filter: blur(8px);
   }
 }
 
