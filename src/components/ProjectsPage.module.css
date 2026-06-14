@@ -152,6 +152,7 @@
 }
 
 .card {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
@@ -261,6 +262,29 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cardDelete {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0.3rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.card:hover .cardDelete {
+  opacity: 1;
+}
+
+.cardDelete:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* Modal */

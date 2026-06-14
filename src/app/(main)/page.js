@@ -31,6 +31,7 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
+  Trash2,
   User,
   Zap,
 } from 'lucide-react';
@@ -108,6 +109,7 @@ export default function WebWeave() {
   const [showPricing, setShowPricing] = useState(false);
   const [pricingClosing, setPricingClosing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [contextMenuScript, setContextMenuScript] = useState(null);
   const promptAnimationTimer = useRef(null);
   const dropdownAnimationTimer = useRef(null);
   const profileMenuRef = useRef(null);
@@ -432,6 +434,17 @@ export default function WebWeave() {
     setNewAutomationMenuOpen(false);
   };
 
+  const handleDeleteScript = async (scriptId) => {
+    setContextMenuScript(null);
+    const headers = await getAuthHeaders().catch(() => null);
+    if (!headers) return;
+    const res = await fetch(`/api/generated-scripts?id=${encodeURIComponent(scriptId)}`, { method: 'DELETE', headers });
+    if (res.ok) {
+      if (activeScriptId === scriptId) startNewAutomation();
+      await loadPrivateData();
+    }
+  };
+
   const handleGenerate = async (options = {}) => {
     if (!url.trim()) {
       setError(t('generate.errorEnterURL'));
@@ -703,11 +716,27 @@ export default function WebWeave() {
                 {historyLoading && <div className={styles.sidebarHint}>{t('common.loading')}</div>}
                 {user && !historyLoading && visibleScripts.length === 0 && <div className={styles.sidebarHint}>{scriptSearchTerm ? t('sidebar.noResults') : t('sidebar.noScripts')}</div>}
                 {visibleScripts.slice(0, 5).map((script) => (
-                  <button type="button" key={script.id} className={`${styles.recentItem} ${activeScriptId === script.id ? styles.recentItemActive : ''}`} onClick={() => handleOpenScript(script)}>
-                    <span className={styles.recentItemName}>{getScriptDisplayName(script)}</span>
-                    {(script.prompt || '').includes('Regeneration feedback') && <RefreshCw size={12} className={styles.revisionIcon} />}
-                    <MoreHorizontal size={15} />
-                  </button>
+                  <div key={script.id} className={styles.recentItemWrap}>
+                    <button type="button" className={`${styles.recentItem} ${activeScriptId === script.id ? styles.recentItemActive : ''}`} onClick={() => handleOpenScript(script)}>
+                      <span className={styles.recentItemName}>{getScriptDisplayName(script)}</span>
+                      {(script.prompt || '').includes('Regeneration feedback') && <RefreshCw size={12} className={styles.revisionIcon} />}
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.recentItemMore} ${contextMenuScript === script.id ? styles.recentItemMoreOpen : ''}`}
+                      onClick={(e) => { e.stopPropagation(); setContextMenuScript(contextMenuScript === script.id ? null : script.id); }}
+                      aria-label="More options"
+                    >
+                      <MoreHorizontal size={15} />
+                    </button>
+                    {contextMenuScript === script.id && (
+                      <div className={styles.recentItemMenu}>
+                        <button type="button" className={styles.recentItemMenuBtn} onClick={() => handleDeleteScript(script.id)}>
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </>
             )}
@@ -768,16 +797,26 @@ export default function WebWeave() {
                 const timeStr = time ? time.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' + time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
 
                 return (
-                  <button key={script.id} type="button" className={`${styles.chatItem} ${activeScriptId === script.id ? styles.chatItemActive : ''}`} onClick={() => { handleOpenScript(script); setActiveView('home'); window.history.pushState(null, '', '/'); }}>
-                    <div className={styles.chatItemMain}>
-                      <span className={styles.chatItemName}>
-                        {getScriptDisplayName(script)}
-                        {isRegen && <RefreshCw size={12} className={styles.revisionIcon} />}
-                      </span>
-                      <span className={styles.chatItemPreview}>{preview}</span>
-                    </div>
-                    <span className={styles.chatItemTime}>{timeStr}</span>
-                  </button>
+                  <div key={script.id} className={styles.chatItemRow}>
+                    <button type="button" className={`${styles.chatItem} ${activeScriptId === script.id ? styles.chatItemActive : ''}`} onClick={() => { handleOpenScript(script); setActiveView('home'); window.history.pushState(null, '', '/'); }}>
+                      <div className={styles.chatItemMain}>
+                        <span className={styles.chatItemName}>
+                          {getScriptDisplayName(script)}
+                          {isRegen && <RefreshCw size={12} className={styles.revisionIcon} />}
+                        </span>
+                        <span className={styles.chatItemPreview}>{preview}</span>
+                      </div>
+                      <span className={styles.chatItemTime}>{timeStr}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.chatItemDelete}
+                      onClick={(e) => { e.stopPropagation(); handleDeleteScript(script.id); }}
+                      title="Delete chat"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 );
               })}
             </div>

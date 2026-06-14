@@ -76,6 +76,9 @@ function checkRateLimit(clientId) {
   const current = rateLimitStore.get(clientId);
 
   if (!current || now > current.resetAt) {
+    for (const [key, entry] of rateLimitStore) {
+      if (now > entry.resetAt) rateLimitStore.delete(key);
+    }
     rateLimitStore.set(clientId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     return null;
   }
@@ -108,17 +111,20 @@ function isPrivateIPv4(address) {
 
 function isPrivateIPv6(address) {
   const normalized = address.toLowerCase();
-  return (
+  if (
     normalized === '::1' ||
     normalized === '::' ||
     normalized.startsWith('fc') ||
     normalized.startsWith('fd') ||
-    normalized.startsWith('fe80') ||
-    normalized.startsWith('::ffff:127.') ||
-    normalized.startsWith('::ffff:10.') ||
-    normalized.startsWith('::ffff:192.168.') ||
-    normalized.startsWith('::ffff:169.254.')
-  );
+    normalized.startsWith('fe80')
+  ) {
+    return true;
+  }
+
+  const v4Mapped = normalized.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+  if (v4Mapped) return isPrivateIPv4(v4Mapped[1]);
+
+  return false;
 }
 
 function isBlockedIPAddress(address) {
@@ -237,7 +243,11 @@ function validatePrompt(prompt) {
 }
 
 function detectPromptInjectionRisk(text) {
-  const value = String(text || '').toLowerCase();
+  const value = String(text || '')
+    .normalize('NFKD')
+    .replace(/[\u200B-\u200F\uFEFF\u00AD\u2060]/g, '')
+    .replace(/[\uFF01-\uFF5E]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .toLowerCase();
   const intrinsicHighRiskPatterns = [
     /bypass\s+(safety|guardrails?|rules?|policy)/,
     /jailbreak|do\s+anything\s+now|dan\s+mode/,
@@ -1237,20 +1247,19 @@ export async function POST(req) {
     });
 
   } catch (error) {
-    console.error('API Router Error:', error);
-    
-    // Provide helpful error messages per provider
-    let errorMessage = error.message;
-    if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('invalid')) {
-      errorMessage = msg(lang, 'apiKeyInvalid');
-    } else if (errorMessage.includes('429') || errorMessage.includes('rate') || errorMessage.includes('quota')) {
-      errorMessage = msg(lang, 'providerRateLimited');
-    } else if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
-      errorMessage = msg(lang, 'providerForbidden');
-    }
-    
-    return NextResponse.json({ 
-      error: msg(lang, 'requestFailed', errorMessage)
+    console.error('API Router Error:', String(error?.message || 'Unknown error'));
+
+    const status = error?.status || error?.statusCode || error?.response?.status;
+    const statusMap = {
+      401: 'apiKeyInvalid',
+      429: 'providerRateLimited',
+      403: 'providerForbidden',
+    };
+    const key = statusMap[status];
+    const errorMessage = key ? msg(lang, key) : msg(lang, 'requestFailed', 'An unexpected error occurred.');
+
+    return NextResponse.json({
+      error: errorMessage
     }, { status: 500 });
   }
 }

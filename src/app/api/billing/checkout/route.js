@@ -3,7 +3,51 @@ import { getAuthenticatedUser } from '@/lib/supabase/server';
 import { createMidtransSnapCheckout } from '@/lib/billing/midtrans';
 import { getPlanConfig, normalizeBillingCycle } from '@/lib/billing/plans';
 
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 5;
+const rateLimitStore = new Map();
+
+function getClientId(req) {
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  if (forwardedFor) return forwardedFor.split(',')[0].trim();
+  return req.headers.get('x-real-ip') || 'unknown';
+}
+
+function checkRateLimit(clientId) {
+  const now = Date.now();
+  const current = rateLimitStore.get(clientId);
+  if (!current || now > current.resetAt) {
+    rateLimitStore.set(clientId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return null;
+  }
+  current.count += 1;
+  if (current.count > RATE_LIMIT_MAX_REQUESTS) {
+    return Math.ceil((current.resetAt - now) / 1000);
+  }
+  return null;
+}
+
+function validateOrigin(req) {
+  const origin = req.headers.get('origin');
+  const referer = req.headers.get('referer');
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+  if (!appUrl) return true;
+  const isSameOrigin = (header) => header && (header.startsWith(appUrl) || header === appUrl);
+  if (origin && !isSameOrigin(origin)) return false;
+  if (!origin && referer && !isSameOrigin(referer)) return false;
+  return true;
+}
+
 export async function POST(req) {
+  const retryAfter = checkRateLimit(getClientId(req));
+  if (retryAfter) {
+    return NextResponse.json({ success: false, error: 'Too many requests. Please try again later.' }, { status: 429, headers: { 'Retry-After': String(retryAfter) } });
+  }
+
+  if (!validateOrigin(req)) {
+    return NextResponse.json({ success: false, error: 'Invalid request origin.' }, { status: 403 });
+  }
+
   const auth = await getAuthenticatedUser(req);
   if (auth.error) return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
 
@@ -17,7 +61,7 @@ export async function POST(req) {
 
   const checkout = await createMidtransSnapCheckout({ planId, billingCycle, user: auth.user });
   if (!checkout.success) {
-    return NextResponse.json(checkout, { status: checkout.configured === false ? 503 : 400 });
+    return NextResponse.json({ success: false, error: checkout.error || 'Failed to create checkout.' }, { status: checkout.configured === false ? 503 : 400 });
   }
 
   const { error: orderError } = await auth.supabase.from('billing_orders').insert({

@@ -54,6 +54,8 @@ const translations = {
       signInToWebWeave: 'Sign in to WebWeave',
       saveScriptsHistory: 'Save scripts, projects, and generation history.',
       signInRequiredToGenerate: 'Sign in required to generate automations.',
+      invalidEmail: 'Use a valid email address.',
+      passwordTooShort: 'Password must be at least 6 characters.',
     },
     generate: {
       prompt: 'Prompt',
@@ -208,6 +210,8 @@ const translations = {
       signInToWebWeave: 'Masuk ke WebWeave',
       saveScriptsHistory: 'Simpan skrip, proyek, dan riwayat generasi.',
       signInRequiredToGenerate: 'Login diperlukan untuk membuat automasi.',
+      invalidEmail: 'Gunakan alamat email yang valid.',
+      passwordTooShort: 'Password minimal 6 karakter.',
     },
     generate: {
       prompt: 'Prompt',

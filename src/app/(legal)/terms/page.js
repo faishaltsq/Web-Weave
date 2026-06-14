@@ -4,6 +4,14 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/context';
 import styles from '../legal.module.css';
 
+function renderHTML(text) {
+  const parts = text.split(/<strong>(.*?)<\/strong>/g);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) return <strong key={i}>{part}</strong>;
+    return part;
+  });
+}
+
 const content = {
   en: {
     title: 'Terms of Service',
@@ -222,7 +230,7 @@ export default function TermsOfService() {
           {section.paragraphs && section.paragraphs.map((p, j) => (
             <p key={j} className={styles.paragraph}>{p}</p>
           ))}
-          {section.body && <p className={styles.paragraph} dangerouslySetInnerHTML={{ __html: section.body }} />}
+          {section.body && <p className={styles.paragraph}>{renderHTML(section.body)}</p>}
           {section.list && (
             <ul className={styles.list}>
               {section.list.map((item, j) => (

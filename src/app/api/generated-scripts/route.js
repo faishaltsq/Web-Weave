@@ -70,7 +70,11 @@ export async function POST(req) {
       target_url: targetUrl,
       code,
       quality_gate: body.quality_gate || null,
-      quality_checks: Array.isArray(body.quality_checks) ? body.quality_checks : [],
+      quality_checks: Array.isArray(body.quality_checks) ? body.quality_checks.slice(0, 100).map((c) => ({
+        label: String(c?.label || '').slice(0, 200),
+        status: ['pass', 'fail', 'warn'].includes(c?.status) ? c.status : 'pass',
+        detail: String(c?.detail || '').slice(0, 200),
+      })) : [],
       locator_summary: Array.isArray(body.locator_summary) ? body.locator_summary : [],
       provider: body.provider || null,
     })

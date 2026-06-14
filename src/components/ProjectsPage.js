@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Folder, Plus, Search, ArrowRight, Globe, Clock, FileText, X } from 'lucide-react';
+import { Folder, Plus, Search, ArrowRight, Globe, Clock, FileText, X, Trash2 } from 'lucide-react';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import { useLanguage } from '@/lib/i18n/context';
 import styles from './ProjectsPage.module.css';
@@ -37,6 +37,15 @@ export default function ProjectsPage() {
 
   const handleSelectProject = (project) => {
     window.location.href = `/?project=${encodeURIComponent(project.id)}`;
+  };
+
+  const handleDeleteProject = async (e, projectId) => {
+    e.stopPropagation();
+    if (!confirm('Delete this project and all its scripts?')) return;
+    const headers = await getAuthHeaders().catch(() => null);
+    if (!headers) return;
+    const res = await fetch(`/api/projects?id=${encodeURIComponent(projectId)}`, { method: 'DELETE', headers });
+    if (res.ok) await loadPrivateData();
   };
 
   const handleNewAutomation = (project) => {
@@ -140,6 +149,9 @@ export default function ProjectsPage() {
                 </div>
 
                 {lastPreview && <p className={styles.cardPreview}>{lastPreview}</p>}
+                <button type="button" className={styles.cardDelete} onClick={(e) => handleDeleteProject(e, project.id)} title="Delete project">
+                  <Trash2 size={14} />
+                </button>
               </button>
             );
           })}

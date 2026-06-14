@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import crypto from 'node:crypto';
 import { getPlanConfig, getPlanPrice, normalizeBillingCycle } from './plans';
 
@@ -42,7 +43,7 @@ export async function createMidtransSnapCheckout({ planId, billingCycle, user, e
   }
 
   const timestamp = Date.now();
-  const userPrefix = String(user?.id || user?.email || 'user')
+  const userPrefix = String(user?.id || '')
     .replace(/[^a-zA-Z0-9]/g, '')
     .slice(0, 12) || 'user';
   const orderId = `ww_${userPrefix}_${plan.id}_${cycle}_${timestamp}`;

@@ -4,6 +4,14 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/context';
 import styles from '../legal.module.css';
 
+function renderHTML(text) {
+  const parts = text.split(/<strong>(.*?)<\/strong>/g);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) return <strong key={i}>{part}</strong>;
+    return part;
+  });
+}
+
 const content = {
   en: {
     title: 'Privacy Policy',
@@ -148,7 +156,7 @@ const content = {
 };
 
 export default function PrivacyPolicy() {
-  const { t, lang } = useLanguage();
+  const { lang } = useLanguage();
   const c = content[lang] || content.en;
 
   return (
@@ -165,7 +173,7 @@ export default function PrivacyPolicy() {
           {section.list && (
             <ul className={styles.list}>
               {section.list.map((item, j) => (
-                <li key={j} dangerouslySetInnerHTML={{ __html: item }} />
+                <li key={j}>{renderHTML(item)}</li>
               ))}
             </ul>
           )}

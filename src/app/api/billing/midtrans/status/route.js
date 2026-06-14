@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { NextResponse } from 'next/server';
 import { createSupabaseServiceClient, getAuthenticatedUser } from '@/lib/supabase/server';
 import { getMidtransConfig, mapMidtransNotificationToEntitlement } from '@/lib/billing/midtrans';

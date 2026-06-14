@@ -6,6 +6,11 @@ const ACTIVE_MIDTRANS_STATUSES = new Set(['settlement', 'capture']);
 const REVOKED_MIDTRANS_STATUSES = new Set(['refund', 'partial_refund', 'chargeback', 'partial_chargeback']);
 
 export async function POST(req) {
+  const contentLength = Number(req.headers.get('content-length') || 0);
+  if (contentLength > 64 * 1024) {
+    return NextResponse.json({ success: false, error: 'Payload too large.' }, { status: 413 });
+  }
+
   const notification = await req.json().catch(() => null);
   const config = getMidtransConfig();
 

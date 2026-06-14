@@ -13,7 +13,17 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            try {
+              var theme = localStorage.getItem('webweave-theme');
+              if (theme === 'light') document.documentElement.classList.add('light-theme');
+            } catch(e) {}
+          })();
+        `}} />
+      </head>
       <body>
         <ClientWrap>{children}</ClientWrap>
       </body>
