@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import PricingPage from '@/components/PricingPage';
 import SettingsModal from '@/components/SettingsModal';
+import ProjectsPage from '@/components/ProjectsPage';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import styles from './page.module.css';
@@ -113,7 +114,11 @@ export default function WebWeave() {
   const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
-  const deriveView = (path) => (path === '/chats' ? 'chats' : 'home');
+  const deriveView = (path) => {
+    if (path === '/chats') return 'chats';
+    if (path === '/projects') return 'projects';
+    return 'home';
+  };
   const [activeView, setActiveView] = useState(() => deriveView(pathname));
 
   useEffect(() => {
@@ -212,6 +217,7 @@ export default function WebWeave() {
   };
 
   const visibleScripts = scripts.filter((script) => {
+    if (selectedProjectId && script.project_id !== selectedProjectId) return false;
     const scriptLabel = getScriptDisplayName(script).toLowerCase();
     return !scriptSearchTerm || scriptLabel.includes(scriptSearchTerm) || (script.prompt || '').toLowerCase().includes(scriptSearchTerm);
   });
@@ -558,6 +564,7 @@ export default function WebWeave() {
   };
 
   const hasWorkspace = loading || Boolean(result);
+  const currentProject = selectedProjectId ? projects.find((p) => p.id === selectedProjectId) : null;
   const renderAuthForm = () => {
     if (!SUPABASE_ENABLED) return <div className={styles.sidebarHint}>Supabase not configured.</div>;
     if (authSessionLoading) return <div className={styles.authStatusLine}><Loader size={15} className={styles.spinner} /> {t('auth.checkingSession')}</div>;
@@ -672,14 +679,14 @@ export default function WebWeave() {
 
           <nav className={styles.navList}>
             <button type="button" className={activeView === 'home' ? styles.navActive : ''} onClick={() => { setActiveView('home'); window.history.pushState(null, '', '/'); }}><Home size={18} /> Home</button>
-            <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Folder size={18} /> Projects</button>
+            <button type="button" className={activeView === 'projects' ? styles.navActive : ''} onClick={() => { setActiveView('projects'); window.history.pushState(null, '', '/projects'); }}><Folder size={18} /> Projects</button>
             <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }}><MessageSquare size={18} /> Chats</button>
             <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Code2 size={18} /> Templates</button>
           </nav>
 
           <div className={styles.sidebarSection}>
             <button type="button" className={styles.sidebarSectionHeader} onClick={() => setRecentChatsOpen((value) => !value)} aria-expanded={recentChatsOpen}>
-              <span>Recent Chats</span><ChevronDown size={15} className={recentChatsOpen ? styles.chevronOpen : ''} />
+              <span>Recent Chats{currentProject ? ` — ${currentProject.name}` : ''}</span><ChevronDown size={15} className={recentChatsOpen ? styles.chevronOpen : ''} />
             </button>
             {recentChatsOpen && (
               <>
@@ -709,7 +716,9 @@ export default function WebWeave() {
       </aside>
 
       <section className={styles.appSurface}>
-        {activeView === 'chats' ? (
+        {activeView === 'projects' ? (
+          <ProjectsPage />
+        ) : activeView === 'chats' ? (
           <div className={styles.chatsView}>
             <header className={styles.chatsHeader}>
               <div>
@@ -769,7 +778,7 @@ export default function WebWeave() {
           <>
             <header className={styles.workspaceHeader}>
               <div className={styles.breadcrumbs}>
-                <span>{t('sidebar.drafts')}</span>
+                <span>{currentProject ? currentProject.name : t('sidebar.drafts')}</span>
                 <span>/</span>
                 <strong>{activeScriptId ? getScriptDisplayName(scripts.find((s) => s.id === activeScriptId) || {}) : t('sidebar.automationRun')}</strong>
               </div>
