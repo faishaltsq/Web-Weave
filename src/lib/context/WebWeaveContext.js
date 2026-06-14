@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { createBrowserSupabaseClient, hasSupabaseBrowserConfig } from '@/lib/supabase/browser';
 
 const WebWeaveContext = createContext(null);
@@ -58,14 +58,14 @@ export function WebWeaveProvider({ children }) {
     } catch {} finally { setHistoryLoading(false); }
   }, [user, supabase, getAuthHeaders, selectedProjectId]);
 
-  const value = {
+  const value = useMemo(() => ({
     supabase, SUPABASE_ENABLED, user, setUser, authSessionLoading,
     projects, setProjects, scripts, setScripts, historyLoading,
     usageStatus, setUsageStatus, selectedProjectId, setSelectedProjectId,
     activeScriptId, setActiveScriptId,
     pendingScript, setPendingScript,
     loadPrivateData, getAuthHeaders,
-  };
+  }), [supabase, SUPABASE_ENABLED, user, authSessionLoading, projects, scripts, historyLoading, usageStatus, selectedProjectId, activeScriptId, pendingScript, loadPrivateData, getAuthHeaders]);
 
   return <WebWeaveContext.Provider value={value}>{children}</WebWeaveContext.Provider>;
 }

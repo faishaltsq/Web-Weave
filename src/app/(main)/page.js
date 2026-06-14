@@ -746,7 +746,7 @@ export default function WebWeave() {
               )}
               {visibleScripts.map((script) => {
                 const isRegen = (script.prompt || '').includes('Regeneration feedback');
-                const preview = (script.prompt || '').replace(/Regeneration feedback from previous output:\n.*/s, '').substring(0, 80);
+                const preview = (script.prompt || '').replace('Regeneration feedback from previous output:', '').substring(0, 80).trim();
                 const time = script.created_at ? new Date(script.created_at) : null;
                 const timeStr = time ? time.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' + time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
 
