@@ -32,6 +32,8 @@ WebWeave uses monthly generation quotas. One successful `/api/generate` response
 
 Midtrans is the active checkout provider. Team checkout and LemonSqueezy billing are disabled in the current product.
 
+Staging deployment: [web-weave-lake.vercel.app](https://web-weave-lake.vercel.app)
+
 ## Key Features
 
 - Server-side AI provider keys only; no API key input in the browser.
@@ -44,6 +46,23 @@ Midtrans is the active checkout provider. Team checkout and LemonSqueezy billing
 - Copy and download generated script output.
 - Dark/light mode.
 - Monthly quota enforcement with plan gating (auth required).
+- Auto-open pricing modal when free quota exhausted.
+- Midtrans sandbox checkout with server-side status verification.
+- Automatic plan upgrade on return from payment (no webhook required for dev).
+
+## Deployment
+
+Deployed on Vercel. Push to `main` triggers automatic redeploy.
+
+```bash
+# Local dev
+npm run dev
+
+# Production build
+npm run build
+```
+
+Environment variables must be set in Vercel dashboard (Settings → Environment Variables).
 
 ## Supported AI Providers
 
@@ -213,6 +232,16 @@ Midtrans Snap is the default sandbox checkout. Use Midtrans sandbox keys first.
 9. Successful `settlement` or accepted `capture` notifications automatically upgrade the user profile until `billing_period_ends_at`.
 
 Webhook entitlement uses trusted `billing_orders` records created by the checkout route. Non-terminal Midtrans statuses do not downgrade active plans, and repeated settlement notifications keep the original period end.
+
+For staging, set the Midtrans Payment Notification URL to `https://web-weave-lake.vercel.app/api/billing/midtrans/webhook`. Local dev uses `GET /api/billing/midtrans/status?order_id=xxx` to verify transactions without ngrok.
+
+### Staging Environment
+
+1. Deploy on Vercel from `main` branch.
+2. Set all env vars in Vercel dashboard (Settings → Environment Variables).
+3. Set `NEXT_PUBLIC_APP_URL` to `https://web-weave-lake.vercel.app`.
+4. In Supabase dashboard (Authentication → URL Configuration), set Site URL and Redirect URLs to the Vercel domain.
+5. In Midtrans sandbox dashboard, set Payment Notification URL to `https://<vercel-domain>/api/billing/midtrans/webhook`.
 
 ## License
 

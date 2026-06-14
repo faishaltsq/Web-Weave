@@ -114,6 +114,24 @@ export default function WebWeave() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get('order_id');
+    if (orderId && user && supabase) {
+      (async () => {
+        try {
+          const headers = await getAuthHeaders();
+          const response = await fetch(`/api/billing/midtrans/status?order_id=${encodeURIComponent(orderId)}&user_id=${encodeURIComponent(user.id)}`, { headers });
+          const data = await response.json();
+          if (data.success && (data.active || data.alreadyProcessed)) {
+            window.history.replaceState(null, '', window.location.pathname);
+            await loadPrivateData();
+          }
+        } catch { /* silently ignore */ }
+      })();
+    }
+  }, [user, supabase]);
+
+  useEffect(() => {
     window.localStorage.setItem('webweave-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
@@ -191,6 +209,12 @@ export default function WebWeave() {
   const quotaLabel = usageStatus
     ? `${usageStatus.used}/${usageStatus.limit} generations used`
     : (user ? 'Loading quota...' : 'Sign in for monthly quota');
+
+  useEffect(() => {
+    if (usageStatus?.exhausted && user && !loading && !showPricing) {
+      setShowPricing(true);
+    }
+  }, [usageStatus?.exhausted, user, loading, showPricing]);
   const authEmailTrimmed = authEmail.trim().toLowerCase();
   const authEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmailTrimmed);
   const authPasswordValid = authPassword.length >= 6;
@@ -447,12 +471,12 @@ export default function WebWeave() {
     }
 
     if (quotaExhausted) {
-      setError('Monthly generation limit reached. Please upgrade your plan to continue.');
+      setShowPricing(true);
       return;
     }
 
     if (usageStatus && !isFrameworkAllowed(framework)) {
-      setError('Your current plan does not include this framework. Please upgrade your plan to continue.');
+      setShowPricing(true);
       return;
     }
 
@@ -479,6 +503,10 @@ export default function WebWeave() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 402 || response.status === 403) {
+          setShowPricing(true);
+          return;
+        }
         throw new Error(data.error || 'Terjadi kesalahan pada server.');
       }
 

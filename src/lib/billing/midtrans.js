@@ -73,7 +73,7 @@ export async function createMidtransSnapCheckout({ planId, billingCycle, user, e
           },
         ],
         callbacks: {
-          finish: config.appUrl,
+          finish: `${config.appUrl}?order_id=${orderId}`,
         },
         custom_field1: user?.id || '',
         custom_field2: plan.id,
