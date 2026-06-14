@@ -1,12 +1,12 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createBrowserSupabaseClient, hasSupabaseBrowserConfig } from '@/lib/supabase/browser';
 
 const WebWeaveContext = createContext(null);
 
 export function WebWeaveProvider({ children }) {
-  const supabase = hasSupabaseBrowserConfig() ? createBrowserSupabaseClient() : null;
+  const [supabase] = useState(() => hasSupabaseBrowserConfig() ? createBrowserSupabaseClient() : null);
   const SUPABASE_ENABLED = Boolean(supabase);
 
   const [user, setUser] = useState(null);
@@ -18,6 +18,11 @@ export function WebWeaveProvider({ children }) {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [activeScriptId, setActiveScriptId] = useState('');
   const [pendingScript, setPendingScript] = useState(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (!supabase) { setAuthSessionLoading(false); return; }
@@ -26,14 +31,11 @@ export function WebWeaveProvider({ children }) {
       .then(({ data }) => { if (mounted) setUser(data.session?.user || null); })
       .catch(() => {})
       .finally(() => { if (mounted) setAuthSessionLoading(false); });
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setUser(s?.user || null));
+    const { data } = supabase.auth.onAuthStateChange((_e, s) => {
+      if (mounted) setUser(s?.user || null);
+    });
     return () => { mounted = false; data.subscription.unsubscribe(); };
   }, [supabase]);
-
-  useEffect(() => {
-    if (!user) { setProjects([]); setScripts([]); setSelectedProjectId(''); setUsageStatus(null); return; }
-    loadPrivateData();
-  }, [user]);
 
   const getAuthHeaders = useCallback(async () => {
     if (!supabase) return {};
@@ -53,10 +55,25 @@ export function WebWeaveProvider({ children }) {
       ]);
       const pd = await pr.json(); const sd = await sr.json(); const ud = await ur.json();
       if (ud.success) setUsageStatus(ud.usage || null);
-      if (pd.success) { setProjects(pd.projects || []); if (!selectedProjectId && pd.projects?.length) setSelectedProjectId(pd.projects[0].id); }
+      if (pd.success) {
+        const nextProjects = pd.projects || [];
+        setProjects(nextProjects);
+        setSelectedProjectId((prev) => (!prev && nextProjects.length) ? nextProjects[0].id : prev);
+      }
       if (sd.success) setScripts(sd.scripts || []);
     } catch {} finally { setHistoryLoading(false); }
-  }, [user, supabase, getAuthHeaders, selectedProjectId]);
+  }, [user, supabase, getAuthHeaders]);
+
+  useEffect(() => {
+    if (!user) {
+      setProjects([]);
+      setScripts([]);
+      setSelectedProjectId('');
+      setUsageStatus(null);
+      return;
+    }
+    loadPrivateData();
+  }, [user, loadPrivateData]);
 
   const value = useMemo(() => ({
     supabase, SUPABASE_ENABLED, user, setUser, authSessionLoading,
