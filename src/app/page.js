@@ -603,31 +603,31 @@ export default function WebWeave() {
     if (authSessionLoading) return <div className={styles.authStatusLine}><Loader size={15} className={styles.spinner} /> Checking session...</div>;
 
     return (
-        <form className={styles.authForm} onSubmit={handleAuthSubmit}>
-          <button type="button" className={`${styles.secondaryButton} ${styles.googleButton}`} onClick={handleGoogleSignIn} disabled={authLoading}>
-            <span className={styles.googleMark}>G</span>
-            Continue with Google
+      <form className={styles.authForm} onSubmit={handleAuthSubmit}>
+        <button type="button" className={`${styles.secondaryButton} ${styles.googleButton}`} onClick={handleGoogleSignIn} disabled={authLoading}>
+          <span className={styles.googleMark}>G</span>
+          Continue with Google
+        </button>
+        <div className={styles.oauthDivider}><span /> or use email <span /></div>
+        <div className={styles.authModeToggle}>
+          <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_in' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_in')}>Login</button>
+          <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_up' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_up')}>Register</button>
+        </div>
+        <input type="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} placeholder="email@example.com" className={styles.authInput} autoComplete="email" required />
+        <div className={styles.authPasswordWrap}>
+          <input type={showPassword ? 'text' : 'password'} value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} placeholder="Password min. 6 chars" className={styles.authInput} autoComplete={authMode === 'sign_up' ? 'new-password' : 'current-password'} required minLength={6} />
+          <button type="button" className={styles.passwordToggle} onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
-          <div className={styles.oauthDivider}><span /> or use email <span /></div>
-          <div className={styles.authModeToggle}>
-            <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_in' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_in')}>Login</button>
-            <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_up' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_up')}>Register</button>
-          </div>
-          <input type="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} placeholder="email@example.com" className={styles.authInput} autoComplete="email" required />
-          <div className={styles.authPasswordWrap}>
-            <input type={showPassword ? 'text' : 'password'} value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} placeholder="Password min. 6 chars" className={styles.authInput} autoComplete={authMode === 'sign_up' ? 'new-password' : 'current-password'} required minLength={6} />
-            <button type="button" className={styles.passwordToggle} onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
-              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-            </button>
-          </div>
-          {authError && <div className={styles.authError}>{authError}</div>}
-          {authMessage && <div className={styles.authMessage}>{authMessage}</div>}
-          <button type="submit" className={styles.secondaryButton} disabled={authSubmitDisabled}>
-            {authLoading ? <Loader size={15} className={styles.spinner} /> : <KeyRound size={15} />}
-            {authActionLabel}
-          </button>
-          <p className={styles.authSmall}>{authMode === 'sign_up' ? 'Register to save scripts, projects, and generation history.' : 'Login to restore projects and saved scripts.'}</p>
-        </form>
+        </div>
+        {authError && <div className={styles.authError}>{authError}</div>}
+        {authMessage && <div className={styles.authMessage}>{authMessage}</div>}
+        <button type="submit" className={styles.secondaryButton} disabled={authSubmitDisabled}>
+          {authLoading ? <Loader size={15} className={styles.spinner} /> : <KeyRound size={15} />}
+          {authActionLabel}
+        </button>
+        <p className={styles.authSmall}>{authMode === 'sign_up' ? 'Register to save scripts, projects, and generation history.' : 'Login to restore projects and saved scripts.'}</p>
+      </form>
     );
   };
 
@@ -723,16 +723,16 @@ export default function WebWeave() {
             </button>
             {recentChatsOpen && (
               <>
-            {!SUPABASE_ENABLED && <div className={styles.sidebarHint}>Add Supabase env vars to enable history.</div>}
-            {SUPABASE_ENABLED && !user && <div className={styles.sidebarHint}>Sign in to save generated scripts.</div>}
-            {historyLoading && <div className={styles.sidebarHint}>Loading history...</div>}
-            {user && !historyLoading && visibleScripts.length === 0 && <div className={styles.sidebarHint}>{scriptSearchTerm ? 'No scripts match search.' : 'No saved scripts yet.'}</div>}
-            {visibleScripts.slice(0, 5).map((script) => (
-              <button type="button" key={script.id} className={styles.recentItem} onClick={() => handleOpenScript(script)}>
-                <span>{FRAMEWORKS.find((item) => item.value === script.framework)?.label || script.framework}</span>
-                <MoreHorizontal size={15} />
-              </button>
-            ))}
+                {!SUPABASE_ENABLED && <div className={styles.sidebarHint}>Add Supabase env vars to enable history.</div>}
+                {SUPABASE_ENABLED && !user && <div className={styles.sidebarHint}>Sign in to save generated scripts.</div>}
+                {historyLoading && <div className={styles.sidebarHint}>Loading history...</div>}
+                {user && !historyLoading && visibleScripts.length === 0 && <div className={styles.sidebarHint}>{scriptSearchTerm ? 'No scripts match search.' : 'No saved scripts yet.'}</div>}
+                {visibleScripts.slice(0, 5).map((script) => (
+                  <button type="button" key={script.id} className={styles.recentItem} onClick={() => handleOpenScript(script)}>
+                    <span>{FRAMEWORKS.find((item) => item.value === script.framework)?.label || script.framework}</span>
+                    <MoreHorizontal size={15} />
+                  </button>
+                ))}
               </>
             )}
           </div>

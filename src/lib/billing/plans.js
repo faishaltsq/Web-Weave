@@ -19,8 +19,7 @@ export const WEBWEAVE_PLANS = {
     allowedFrameworks: ['playwright_js'],
     checkoutEnabled: false,
     publicEnabled: true,
-    variants: {},
-    midtransPrices: {
+    prices: {
       monthly: 0,
       annual: 0,
     },
@@ -33,11 +32,7 @@ export const WEBWEAVE_PLANS = {
     allowedFrameworks: STARTER_FRAMEWORKS,
     checkoutEnabled: true,
     publicEnabled: true,
-    variants: {
-      monthly: 'LEMONSQUEEZY_STARTER_MONTHLY_VARIANT_ID',
-      annual: 'LEMONSQUEEZY_STARTER_ANNUAL_VARIANT_ID',
-    },
-    midtransPrices: {
+    prices: {
       monthly: 49000,
       annual: 470000,
     },
@@ -50,11 +45,7 @@ export const WEBWEAVE_PLANS = {
     allowedFrameworks: SUPPORTED_FRAMEWORKS,
     checkoutEnabled: true,
     publicEnabled: true,
-    variants: {
-      monthly: 'LEMONSQUEEZY_PRO_MONTHLY_VARIANT_ID',
-      annual: 'LEMONSQUEEZY_PRO_ANNUAL_VARIANT_ID',
-    },
-    midtransPrices: {
+    prices: {
       monthly: 129000,
       annual: 1238000,
     },
@@ -67,8 +58,7 @@ export const WEBWEAVE_PLANS = {
     allowedFrameworks: SUPPORTED_FRAMEWORKS,
     checkoutEnabled: false,
     publicEnabled: false,
-    variants: {},
-    midtransPrices: {
+    prices: {
       monthly: 299000,
       annual: 2870000,
     },
@@ -81,12 +71,6 @@ export function normalizeBillingCycle(value) {
 
 export function getPlanConfig(planId) {
   return WEBWEAVE_PLANS[planId] || null;
-}
-
-export function getVariantEnvName(planId, billingCycle) {
-  const plan = getPlanConfig(planId);
-  if (!plan?.checkoutEnabled) return null;
-  return plan.variants[normalizeBillingCycle(billingCycle)] || null;
 }
 
 export function getPlanLimit(planId) {
@@ -105,20 +89,8 @@ export function isFrameworkAllowedForPlan(planId, framework) {
   return getAllowedFrameworks(planId).includes(framework);
 }
 
-export function resolvePlanFromVariantId(variantId, env = process.env) {
-  const variantIdString = String(variantId || '');
-  for (const plan of Object.values(WEBWEAVE_PLANS)) {
-    for (const [billingCycle, envName] of Object.entries(plan.variants || {})) {
-      if (env[envName] && String(env[envName]) === variantIdString) {
-        return { planId: plan.id, billingCycle, limit: plan.monthlyGenerationLimit };
-      }
-    }
-  }
-  return { planId: 'free', billingCycle: 'monthly', limit: WEBWEAVE_PLANS.free.monthlyGenerationLimit };
-}
-
 export function getPlanPrice(planId, billingCycle) {
   const plan = getPlanConfig(planId);
   const cycle = normalizeBillingCycle(billingCycle);
-  return Number(plan?.midtransPrices?.[cycle] || 0);
+  return Number(plan?.prices?.[cycle] || 0);
 }

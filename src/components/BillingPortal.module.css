@@ -1,0 +1,388 @@
+.portal {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.subtitle {
+  margin: 0.2rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.closeButton {
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.closeButton:hover {
+  color: var(--text-primary);
+  border-color: var(--primary);
+}
+
+/* Plan Card */
+.planCard {
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(17, 12, 28, 0.5);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.expiringCard {
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.planHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.planBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.14);
+  color: #a5b4fc;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.cycleBadge {
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* Quota Bar */
+.quotaSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.quotaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+.quotaHeader span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.quotaHeader strong {
+  color: var(--text-primary);
+  font-size: 0.88rem;
+}
+
+.quotaBarTrack {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.quotaBarFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), #818cf8);
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  min-width: 4px;
+}
+
+.quotaWarning {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.quotaDanger {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.quotaFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.exhaustedBadge {
+  padding: 0.15rem 0.45rem;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* Expiry */
+.expiryRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.expiryWarning {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.08);
+  color: #fcd34d;
+}
+
+/* Actions */
+.planActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.upgradeButton,
+.renewButton,
+.changePlanButton {
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.65rem 1rem;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.upgradeButton {
+  flex: 1;
+  border: 0;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
+}
+
+.upgradeButton:hover {
+  transform: translateY(-1px);
+  background: var(--primary-hover);
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.35);
+}
+
+.renewButton {
+  flex: 1;
+  border: 0;
+  background: #f59e0b;
+  color: #1a1a1a;
+}
+
+.renewButton:hover {
+  transform: translateY(-1px);
+  background: #fbbf24;
+}
+
+.renewButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.changePlanButton {
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.changePlanButton:hover {
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+/* Info Grid */
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: rgba(17, 12, 28, 0.35);
+  color: var(--text-muted);
+}
+
+.infoItem strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  margin-bottom: 0.1rem;
+}
+
+.infoItem span {
+  font-size: 0.76rem;
+}
+
+/* Payment History */
+.historySection {
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  background: rgba(17, 12, 28, 0.35);
+  padding: 1rem;
+}
+
+.historyTitle {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.historyMeta strong {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.historyMeta span {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.historyRight {
+  text-align: right;
+}
+
+.historyAmount {
+  display: block;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.historyStatus {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  color: var(--text-muted);
+}
+
+.status_settlement,
+.status_capture {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.status_pending,
+.status_checkout_created {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.status_expire,
+.status_cancel,
+.status_deny,
+.status_failure {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+/* States */
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.errorState {
+  padding: 1rem;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+  font-size: 0.85rem;
+}
+
+.errorToast {
+  padding: 0.6rem 0.85rem;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+  font-size: 0.82rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

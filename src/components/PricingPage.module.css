@@ -76,8 +76,7 @@
 }
 
 .eyebrow,
-.sectionLabel,
-.planAccent {
+.sectionLabel {
   color: var(--blue);
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -267,8 +266,6 @@
   opacity: 0;
 }
 
-.disabledCard .planAccent,
-.disabledCard .fitText,
 .disabledCard .quotaBox,
 .disabledCard .checkIcon {
   color: #737373;
@@ -292,7 +289,6 @@
 .cardHeader,
 .pricing,
 .priceNote,
-.fitText,
 .ctaButton,
 .divider,
 .quotaBox,
@@ -305,11 +301,6 @@
   min-height: 148px;
 }
 
-.planAccent {
-  display: inline-flex;
-  margin-bottom: 0.7rem;
-}
-
 .planName {
   margin: 0 0 0.45rem;
   font-size: 1.45rem;
@@ -317,7 +308,6 @@
 }
 
 .planDescription,
-.fitText,
 .priceNote {
   color: var(--muted);
   line-height: 1.5;
@@ -349,15 +339,10 @@
   font-size: 0.8rem;
 }
 
-.priceNote,
-.fitText {
+.priceNote {
   margin: 0.35rem 0 0;
   min-height: 40px;
   font-size: 0.8rem;
-}
-
-.fitText {
-  color: #bfdbfe;
 }
 
 .ctaButton,
@@ -580,8 +565,7 @@
 
   .cardHeader,
   .planDescription,
-  .priceNote,
-  .fitText {
+  .priceNote {
     min-height: auto;
   }
 
