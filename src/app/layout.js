@@ -1,4 +1,5 @@
 import './globals.css';
+import ClientWrap from '@/components/ClientWrap';
 
 export const metadata = {
   title: 'WebWeave - AI Web Automation Code Generator',
@@ -14,7 +15,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        {children}
+        <ClientWrap>{children}</ClientWrap>
       </body>
     </html>
   );

@@ -2,116 +2,123 @@
 
 import { useState } from 'react';
 import { ArrowRight, Check, Sparkles, Zap } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n/context';
 import styles from './PricingPage.module.css';
 
 const formatRupiah = (value) => `Rp${new Intl.NumberFormat('id-ID').format(value)}`;
 
-const plans = [
-  {
-    id: 'free',
-    name: 'Free',
-    monthlyPrice: 0,
-    description: 'Mulai generate script automation gratis.',
-    quota: '5 generations/bulan',
-    cta: 'Mulai Gratis',
-    features: [
-      '1 project pribadi',
-      'Playwright JavaScript only',
-      'Copy dan download script',
-      'Riwayat terbaru terbatas',
-    ],
-  },
-  {
-    id: 'starter',
-    name: 'Starter',
-    monthlyPrice: 49000,
-    description: 'Untuk QA dan developer yang butuh script rutin.',
-    quota: '75 generations/bulan',
-    cta: 'Upgrade ke Starter',
-    badge: 'Paling Populer',
-    features: [
-      '5 project aktif',
-      'Playwright JS/Python, Selenium Python, Cypress JS',
-      'Saved scripts dan prompt history',
-      'Regenerate dengan feedback',
-      'Email support',
-    ],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    monthlyPrice: 129000,
-    description: 'Untuk tim dan project yang butuh lebih banyak framework.',
-    quota: '300 generations/bulan',
-    cta: 'Upgrade ke Pro',
-    badge: 'Nilai Terbaik',
-    features: [
-      '25 project aktif',
-      'Semua framework didukung',
-      'Priority generation queue',
-      'Quality gate summary',
-      'Priority support',
-    ],
-  },
-  {
-    id: 'team',
-    name: 'Team',
-    monthlyPrice: 299000,
-    description: 'Workspace bersama untuk tim QA.',
-    quota: '1.000 generations/bulan',
-    cta: 'Segera Hadir',
-    disabled: true,
-    features: [
-      'Team workspace',
-      'Shared project history',
-      'Semua framework didukung',
-      'Admin controls',
-      'Roadmap request priority',
-    ],
-  },
-];
-
 export default function PricingPage({ onClose, onCheckout }) {
+  const { t } = useLanguage();
   const [billingCycle, setBillingCycle] = useState('monthly');
-  const [actionMessage, setActionMessage] = useState('Pilih paket untuk checkout. Midtrans sandbox bisa diaktifkan dari env.');
+  const [actionMessage, setActionMessage] = useState('');
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState('');
 
+  const plans = [
+    {
+      id: 'free',
+      name: t('pricing.freePlan'),
+      monthlyPrice: 0,
+      description: t('pricing.freeTagline'),
+      quota: `5 ${t('pricing.freeGenerations')}`,
+      cta: t('pricing.freeCta'),
+      features: [
+        '1 project pribadi',
+        'Playwright JavaScript only',
+        'Copy dan download script',
+        'Riwayat terbaru terbatas',
+      ],
+    },
+    {
+      id: 'starter',
+      name: t('pricing.starterPlan'),
+      monthlyPrice: 49000,
+      description: t('pricing.starterTagline'),
+      quota: `75 ${t('pricing.freeGenerations')}`,
+      cta: t('pricing.starterCta'),
+      badge: t('pricing.mostPopular'),
+      features: [
+        '5 project aktif',
+        'Playwright JS/Python, Selenium Python, Cypress JS',
+        'Saved scripts dan prompt history',
+        'Regenerate dengan feedback',
+        'Email support',
+      ],
+    },
+    {
+      id: 'pro',
+      name: t('pricing.proPlan'),
+      monthlyPrice: 129000,
+      description: t('pricing.proTagline'),
+      quota: `300 ${t('pricing.freeGenerations')}`,
+      cta: t('pricing.proCta'),
+      badge: t('pricing.bestValue'),
+      features: [
+        '25 project aktif',
+        'Semua framework didukung',
+        'Priority generation queue',
+        'Quality gate summary',
+        'Priority support',
+      ],
+    },
+    {
+      id: 'team',
+      name: t('pricing.teamPlan'),
+      monthlyPrice: 299000,
+      description: t('pricing.teamTagline'),
+      quota: `1.000 ${t('pricing.freeGenerations')}`,
+      cta: t('pricing.teamCta'),
+      disabled: true,
+      features: [
+        'Team workspace coming soon',
+        'Shared project history',
+        'All supported frameworks',
+        'Admin controls planned',
+        'Roadmap request priority',
+      ],
+    },
+  ];
+
   const getDisplayPrice = (plan) => {
-    if (plan.monthlyPrice === 0) return { price: 'Rp0', period: '/bulan', note: 'Tanpa kartu kredit' };
+    if (plan.monthlyPrice === 0) return { price: 'Rp0', period: `/${t('pricing.monthly').toLowerCase()}`, note: t('pricing.noCreditCard') };
 
     if (billingCycle === 'annual') {
       const annualPrice = Math.round(plan.monthlyPrice * 12 * 0.8 / 1000) * 1000;
+      const monthly = formatRupiah(Math.round(annualPrice / 12 / 1000) * 1000);
       return {
         price: formatRupiah(annualPrice),
-        period: '/tahun',
-        note: `Setara ${formatRupiah(Math.round(annualPrice / 12 / 1000) * 1000)}/bulan, hemat 20%`,
+        period: `/${t('pricing.annual').toLowerCase()}`,
+        note: `Setara ${monthly}/${t('pricing.monthly').toLowerCase()}, ${t('pricing.save20')}`,
       };
     }
 
-    return { price: formatRupiah(plan.monthlyPrice), period: '/bulan', note: 'Bayar bulanan, bisa stop kapan saja' };
+    return {
+      price: formatRupiah(plan.monthlyPrice),
+      period: `/${t('pricing.monthly').toLowerCase()}`,
+      note: t('pricing.payMonthly'),
+    };
   };
 
   const handlePlanClick = async (plan) => {
     if (plan.disabled) return;
     if (!onCheckout) {
-      setActionMessage('Checkout belum terhubung. Integrasi payment perlu diaktifkan dulu.');
+      setActionMessage(t('pricing.checkoutNotConnected'));
       return;
     }
 
     setCheckoutLoadingPlan(plan.id);
-    setActionMessage(`Membuat checkout ${plan.name}...`);
+    setActionMessage(`${t('pricing.creatingCheckout').replace('...', '')} ${plan.name}...`);
 
     try {
       const checkout = await onCheckout({ plan: plan.id, billingCycle });
       if (!checkout.success) {
-        setActionMessage(checkout.error || 'Checkout belum tersedia.');
+        setActionMessage(checkout.error || t('pricing.checkoutNotAvailable'));
         return;
       }
 
-      setActionMessage('Redirecting to Midtrans checkout...');
+      setActionMessage(t('pricing.redirecting'));
       window.location.href = checkout.checkoutUrl;
     } catch (err) {
-      setActionMessage(err.message || 'Checkout gagal dibuat.');
+      setActionMessage(err.message || t('pricing.checkoutFailed'));
     } finally {
       setCheckoutLoadingPlan('');
     }
@@ -129,30 +136,28 @@ export default function PricingPage({ onClose, onCheckout }) {
 
       <header className={styles.header}>
         <button type="button" className={styles.backButton} onClick={onClose}>
-          Kembali ke builder
+          {t('pricing.backToBuilder')}
         </button>
         <div className={styles.eyebrow}><Sparkles size={16} /> Pricing</div>
-        <h1 className={styles.title}>Pilih paket yang sesuai kebutuhan kamu.</h1>
-        <p className={styles.subtitle}>
-          Mulai gratis, upgrade kapan aja. Semua paket termasuk AI script generation dan locator preview.
-        </p>
+        <h1 className={styles.title}>{t('pricing.title')}</h1>
+        <p className={styles.subtitle}>{t('pricing.subtitle')}</p>
       </header>
 
       <section className={styles.summaryStrip} aria-label="Pricing summary">
         <div>
-          <span>Mulai dari</span>
-          <strong>Rp49K/bulan</strong>
-          <small>paket berbayar pertama</small>
+          <span>{t('pricing.startingFrom')}</span>
+          <strong>Rp49K/{t('pricing.monthly').toLowerCase()}</strong>
+          <small>{t('pricing.firstPaidPlan')}</small>
         </div>
         <div>
-          <span>Gratis</span>
-          <strong>5 generation/bulan</strong>
-          <small>tanpa kartu kredit</small>
+          <span>{t('pricing.free')}</span>
+          <strong>5 {t('pricing.freeGenerations')}</strong>
+          <small>{t('pricing.noCreditCard')}</small>
         </div>
         <div>
-          <span>Tahunan</span>
-          <strong>hemat 20%</strong>
-          <small>bayar setahun sekaligus</small>
+          <span>{t('pricing.yearly')}</span>
+          <strong>{t('pricing.yearlySavings')}</strong>
+          <small>{t('pricing.payYearly')}</small>
         </div>
       </section>
 
@@ -164,7 +169,7 @@ export default function PricingPage({ onClose, onCheckout }) {
             aria-pressed={billingCycle === 'monthly'}
             onClick={() => setBillingCycle('monthly')}
           >
-            Monthly
+            {t('pricing.monthly')}
           </button>
           <button
             type="button"
@@ -172,9 +177,9 @@ export default function PricingPage({ onClose, onCheckout }) {
             aria-pressed={billingCycle === 'annual'}
             onClick={() => setBillingCycle('annual')}
           >
-            Annual
+            {t('pricing.annual')}
           </button>
-          <span className={styles.saveBadge}>hemat 20%</span>
+          <span className={styles.saveBadge}>{t('pricing.save20')}</span>
         </div>
       </div>
 
@@ -210,7 +215,7 @@ export default function PricingPage({ onClose, onCheckout }) {
                 aria-disabled={plan.disabled}
                 onClick={() => { if (!plan.disabled) handlePlanClick(plan); }}
               >
-                {checkoutLoadingPlan === plan.id ? 'Preparing checkout...' : plan.cta}
+                {checkoutLoadingPlan === plan.id ? t('pricing.creatingCheckout') : plan.cta}
                 <ArrowRight size={16} />
               </button>
 

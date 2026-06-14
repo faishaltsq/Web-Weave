@@ -35,6 +35,8 @@ import {
 } from 'lucide-react';
 import { createBrowserSupabaseClient, hasSupabaseBrowserConfig } from '@/lib/supabase/browser';
 import PricingPage from '@/components/PricingPage';
+import SettingsModal from '@/components/SettingsModal';
+import { useLanguage } from '@/lib/i18n/context';
 import styles from './page.module.css';
 
 const FRAMEWORKS = [
@@ -106,9 +108,11 @@ export default function WebWeave() {
   const [showPricing, setShowPricing] = useState(false);
   const [pricingClosing, setPricingClosing] = useState(false);
   const [activeScriptId, setActiveScriptId] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
   const promptAnimationTimer = useRef(null);
   const dropdownAnimationTimer = useRef(null);
   const profileMenuRef = useRef(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('webweave-theme');
@@ -209,8 +213,8 @@ export default function WebWeave() {
   const isFrameworkAllowed = (value) => allowedFrameworks.includes(value);
   const quotaExhausted = Boolean(usageStatus?.exhausted);
   const quotaLabel = usageStatus
-    ? `${usageStatus.used}/${usageStatus.limit} generations used`
-    : (user ? 'Loading quota...' : 'Sign in for monthly quota');
+    ? `${usageStatus.used}/${usageStatus.limit} ${t('quota.generationsUsed')}`
+    : (user ? t('quota.loadingQuota') : t('quota.signInForQuota'));
 
   useEffect(() => {
     if (usageStatus?.exhausted && user && !loading && !showPricing) {
@@ -220,9 +224,9 @@ export default function WebWeave() {
   const authEmailTrimmed = authEmail.trim().toLowerCase();
   const authEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmailTrimmed);
   const authPasswordValid = authPassword.length >= 6;
-  const authActionLabel = authMode === 'sign_up' ? 'Create account' : 'Sign in';
+  const authActionLabel = authMode === 'sign_up' ? t('auth.createAccount') : t('auth.signIn');
   const authSubmitDisabled = authLoading || !authEmailValid || !authPasswordValid;
-  const profileName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Sign in';
+  const profileName = user?.user_metadata?.name || user?.email?.split('@')[0] || t('profile.profileName');
   const profileEmail = user?.email || (SUPABASE_ENABLED ? 'Connect account' : 'Supabase not configured');
   const profileAvatar = user?.user_metadata?.avatar_url;
   const scriptSearchTerm = scriptSearch.trim().toLowerCase();
@@ -477,12 +481,12 @@ export default function WebWeave() {
 
   const handleGenerate = async (options = {}) => {
     if (!url.trim()) {
-      setError('Harap masukkan URL website target.');
+      setError(t('generate.errorEnterURL'));
       return;
     }
 
     if (!objective.trim()) {
-      setError('Harap masukkan tujuan automasi.');
+      setError(t('generate.errorEnterObjective'));
       return;
     }
 
@@ -499,7 +503,7 @@ export default function WebWeave() {
     setLoading(true);
     setError('');
     setResult(null);
-    setLogs(['Memulai proses generasi...']);
+    setLogs([t('generate.startingGeneration')]);
 
     const feedbackText = typeof options.feedback === 'string' ? options.feedback.trim() : '';
     const requestPrompt = feedbackText
@@ -507,7 +511,7 @@ export default function WebWeave() {
       : objective.trim();
 
     const authHeaders = user && supabase ? await getAuthHeaders() : {};
-    if (SUPABASE_ENABLED && !authHeaders.Authorization) throw new Error('Sign in required to generate automations.');
+    if (SUPABASE_ENABLED && !authHeaders.Authorization) throw new Error(t('auth.signInToWebWeave'));
 
     try {
       const response = await fetch('/api/generate', {
@@ -523,11 +527,11 @@ export default function WebWeave() {
           setShowPricing(true);
           return;
         }
-        throw new Error(data.error || 'Terjadi kesalahan pada server.');
+        throw new Error(data.error || t('errors.serverError'));
       }
 
       if (!data.success) {
-        throw new Error(data.error || 'Gagal menghasilkan skrip automasi.');
+        throw new Error(data.error || t('errors.generationFailed'));
       }
 
       let savedScript = null;
@@ -596,7 +600,7 @@ export default function WebWeave() {
 
   const handlePricingCheckout = async ({ plan, billingCycle }) => {
     if (!user || !supabase) {
-      return { success: false, error: 'Sign in dulu sebelum checkout.' };
+      return { success: false, error: t('pricing.signInFirst') };
     }
 
     const headers = await getAuthHeaders();
@@ -608,7 +612,7 @@ export default function WebWeave() {
 
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.success) {
-      return { success: false, error: data.error || 'Checkout belum bisa dibuat.' };
+      return { success: false, error: data.error || t('pricing.checkoutNotAvailable') };
     }
 
     return { success: true, checkoutUrl: data.checkoutUrl };
@@ -617,22 +621,22 @@ export default function WebWeave() {
   const hasWorkspace = loading || Boolean(result);
   const renderAuthForm = () => {
     if (!SUPABASE_ENABLED) return <div className={styles.sidebarHint}>Supabase not configured.</div>;
-    if (authSessionLoading) return <div className={styles.authStatusLine}><Loader size={15} className={styles.spinner} /> Checking session...</div>;
+    if (authSessionLoading) return <div className={styles.authStatusLine}><Loader size={15} className={styles.spinner} /> {t('auth.checkingSession')}</div>;
 
     return (
       <form className={styles.authForm} onSubmit={handleAuthSubmit}>
         <button type="button" className={`${styles.secondaryButton} ${styles.googleButton}`} onClick={handleGoogleSignIn} disabled={authLoading}>
           <span className={styles.googleMark}>G</span>
-          Continue with Google
+          {t('auth.continueWithGoogle')}
         </button>
-        <div className={styles.oauthDivider}><span /> or use email <span /></div>
+        <div className={styles.oauthDivider}><span /> {t('auth.orUseEmail')} <span /></div>
         <div className={styles.authModeToggle}>
-          <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_in' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_in')}>Login</button>
-          <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_up' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_up')}>Register</button>
+          <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_in' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_in')}>{t('auth.login')}</button>
+          <button type="button" className={`${styles.authModeButton} ${authMode === 'sign_up' ? styles.authModeActive : ''}`} onClick={() => switchAuthMode('sign_up')}>{t('auth.register')}</button>
         </div>
-        <input type="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} placeholder="email@example.com" className={styles.authInput} autoComplete="email" required />
+        <input type="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} placeholder={t('auth.emailPlaceholder')} className={styles.authInput} autoComplete="email" required />
         <div className={styles.authPasswordWrap}>
-          <input type={showPassword ? 'text' : 'password'} value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} placeholder="Password min. 6 chars" className={styles.authInput} autoComplete={authMode === 'sign_up' ? 'new-password' : 'current-password'} required minLength={6} />
+          <input type={showPassword ? 'text' : 'password'} value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} placeholder={t('auth.passwordPlaceholder')} className={styles.authInput} autoComplete={authMode === 'sign_up' ? 'new-password' : 'current-password'} required minLength={6} />
           <button type="button" className={styles.passwordToggle} onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
             {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
@@ -643,7 +647,7 @@ export default function WebWeave() {
           {authLoading ? <Loader size={15} className={styles.spinner} /> : <KeyRound size={15} />}
           {authActionLabel}
         </button>
-        <p className={styles.authSmall}>{authMode === 'sign_up' ? 'Register to save scripts, projects, and generation history.' : 'Login to restore projects and saved scripts.'}</p>
+        <p className={styles.authSmall}>{authMode === 'sign_up' ? t('auth.registerHint') : t('auth.loginHint')}</p>
       </form>
     );
   };
@@ -656,15 +660,15 @@ export default function WebWeave() {
             <strong>{profileName}</strong>
             <span>{profileEmail}</span>
           </div>
-          <button type="button" className={styles.profileMenuItem}><Settings size={17} /> Account Settings</button>
-          <button type="button" className={styles.profileMenuItem} onClick={handleOpenPricing}><DollarSign size={17} /> Pricing</button>
-          <button type="button" className={styles.profileMenuItem} onClick={handleSignOut}><LogOut size={17} /> Sign Out</button>
+          <button type="button" className={styles.profileMenuItem} onClick={() => { setShowSettings(true); setProfileMenuOpen(false); }}><Settings size={17} /> {t('sidebar.accountSettings')}</button>
+          <button type="button" className={styles.profileMenuItem} onClick={handleOpenPricing}><DollarSign size={17} /> {t('sidebar.pricing')}</button>
+          <button type="button" className={styles.profileMenuItem} onClick={handleSignOut}><LogOut size={17} /> {t('sidebar.signOut')}</button>
         </>
       ) : (
         <>
           <div className={styles.profileMenuHeader}>
-            <strong>Sign in to WebWeave</strong>
-            <span>Save scripts, projects, and generation history.</span>
+            <strong>{t('auth.signInToWebWeave')}</strong>
+            <span>{t('auth.saveScriptsHistory')}</span>
           </div>
           {renderAuthForm()}
         </>
@@ -708,7 +712,7 @@ export default function WebWeave() {
           </div>
 
           <div className={styles.newChatWrap}>
-            <button type="button" className={styles.newChatButton} onClick={startNewAutomation}>New Automation</button>
+            <button type="button" className={styles.newChatButton} onClick={startNewAutomation}>{t('sidebar.newAutomation')}</button>
             <button type="button" className={styles.newChatDropdown} onClick={() => { setNewAutomationMenuOpen((value) => !value); setWorkspaceMenuOpen(false); }} aria-label="Open new automation options" aria-expanded={newAutomationMenuOpen}>
               <ChevronDown size={16} className={newAutomationMenuOpen ? styles.chevronOpen : ''} />
             </button>
@@ -740,10 +744,10 @@ export default function WebWeave() {
             </button>
             {recentChatsOpen && (
               <>
-                {!SUPABASE_ENABLED && <div className={styles.sidebarHint}>Add Supabase env vars to enable history.</div>}
-                {SUPABASE_ENABLED && !user && <div className={styles.sidebarHint}>Sign in to save generated scripts.</div>}
-                {historyLoading && <div className={styles.sidebarHint}>Loading history...</div>}
-                {user && !historyLoading && visibleScripts.length === 0 && <div className={styles.sidebarHint}>{scriptSearchTerm ? 'No scripts match search.' : 'No saved scripts yet.'}</div>}
+                {!SUPABASE_ENABLED && <div className={styles.sidebarHint}>{t('sidebar.sidebarHint')}</div>}
+                {SUPABASE_ENABLED && !user && <div className={styles.sidebarHint}>{t('sidebar.signInToSave')}</div>}
+                {historyLoading && <div className={styles.sidebarHint}>{t('common.loading')}</div>}
+                {user && !historyLoading && visibleScripts.length === 0 && <div className={styles.sidebarHint}>{scriptSearchTerm ? t('sidebar.noResults') : t('sidebar.noScripts')}</div>}
                 {visibleScripts.slice(0, 5).map((script) => (
                   <button type="button" key={script.id} className={`${styles.recentItem} ${activeScriptId === script.id ? styles.recentItemActive : ''}`} onClick={() => handleOpenScript(script)}>
                     <span className={styles.recentItemName}>{getScriptDisplayName(script)}</span>
@@ -770,16 +774,16 @@ export default function WebWeave() {
           <>
             <header className={styles.workspaceHeader}>
               <div className={styles.breadcrumbs}>
-                <span>Drafts</span>
+                <span>{t('sidebar.drafts')}</span>
                 <span>/</span>
-                <strong>{activeScriptId ? getScriptDisplayName(scripts.find((s) => s.id === activeScriptId) || {}) : 'Automation run'}</strong>
+                <strong>{activeScriptId ? getScriptDisplayName(scripts.find((s) => s.id === activeScriptId) || {}) : t('sidebar.automationRun')}</strong>
               </div>
               <div className={styles.headerActions}>
                 <button type="button" onClick={() => setIsDark((value) => !value)} className={styles.iconButton} title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
                   {isDark ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
-                <span className={styles.publishPill}>Private beta</span>
-                {user && <span className={styles.publishPill}><Save size={14} /> History on</span>}
+                <span className={styles.publishPill}>{t('sidebar.privateBeta')}</span>
+                {user && <span className={styles.publishPill}><Save size={14} /> {t('sidebar.historyOn')}</span>}
               </div>
             </header>
 
@@ -820,7 +824,7 @@ export default function WebWeave() {
                   {error && <div className={styles.errorBanner}><AlertCircle size={18} /><span>{error}</span></div>}
                   <button type="button" onClick={() => handleGenerate()} disabled={loading || quotaExhausted || (usageStatus && !isFrameworkAllowed(framework))} className={styles.generateButton}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
-                    {loading ? 'Generating...' : 'Generate'}
+                    {loading ? t('generate.generating') : t('generate.generate')}
                   </button>
                 </div>
 
@@ -923,7 +927,7 @@ export default function WebWeave() {
                             Gate: {result.qualityGate.status}
                           </span>
                         )}
-                        <button type="button" onClick={handleCopyCode} className={styles.actionButton}>{copied ? <CheckCircle size={16} /> : <Copy size={16} />}{copied ? 'Copied' : 'Copy'}</button>
+                        <button type="button" onClick={handleCopyCode} className={styles.actionButton}>                       {copied ? <CheckCircle size={16} /> : <Copy size={16} />}{copied ? t('generate.copied') : t('generate.copyCode')}</button>
                         <button type="button" onClick={handleDownloadCode} className={styles.actionButton}><Download size={16} />Download</button>
                       </div>
                     )}
@@ -977,7 +981,7 @@ export default function WebWeave() {
                   )}
                   <button type="button" onClick={() => handleGenerate()} disabled={loading || quotaExhausted || (usageStatus && !isFrameworkAllowed(framework))} className={styles.sendButton}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
-                    Generate
+                    {t('generate.generate')}
                   </button>
                 </div>
               </div>
@@ -1013,6 +1017,7 @@ export default function WebWeave() {
           </div>
         </div>
       )}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   );
 }
