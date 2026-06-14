@@ -36,13 +36,11 @@ export default function ProjectsPage() {
   });
 
   const handleSelectProject = (project) => {
-    setSelectedProjectId(project.id);
-    window.location.href = '/';
+    window.location.href = `/?project=${encodeURIComponent(project.id)}`;
   };
 
   const handleNewAutomation = (project) => {
-    setSelectedProjectId(project?.id || '');
-    window.location.href = '/';
+    window.location.href = `/?project=${encodeURIComponent(project?.id || '')}`;
   };
 
   const handleCreate = async (e) => {

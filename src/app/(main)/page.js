@@ -124,6 +124,11 @@ export default function WebWeave() {
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('webweave-theme');
     if (savedTheme) setIsDark(savedTheme === 'dark');
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('project');
+    if (projectId && projects.some((p) => p.id === projectId)) {
+      setSelectedProjectId(projectId);
+    }
   }, []);
 
   useEffect(() => {
