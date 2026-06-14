@@ -226,6 +226,18 @@ export default function WebWeave() {
   const profileEmail = user?.email || (SUPABASE_ENABLED ? 'Connect account' : 'Supabase not configured');
   const profileAvatar = user?.user_metadata?.avatar_url;
   const scriptSearchTerm = scriptSearch.trim().toLowerCase();
+
+  const getScriptDisplayName = (script) => {
+    if (!script?.target_url) return FRAMEWORKS.find((f) => f.value === script.framework)?.label || 'Script';
+    try {
+      const hostname = new URL(script.target_url).hostname.replace(/^www\./, '');
+      const isRegeneration = (script.prompt || '').includes('Regeneration feedback');
+      return isRegeneration ? `${hostname} (revisi)` : hostname;
+    } catch {
+      return script.target_url;
+    }
+  };
+
   const visibleScripts = scripts.filter((script) => {
     const scriptLabel = getScriptDisplayName(script).toLowerCase();
     return !scriptSearchTerm || scriptLabel.includes(scriptSearchTerm) || (script.prompt || '').toLowerCase().includes(scriptSearchTerm);
@@ -239,17 +251,6 @@ export default function WebWeave() {
       setter(value);
       timerRef.current = window.setTimeout(() => setter(''), 520);
     });
-  };
-
-  const getScriptDisplayName = (script) => {
-    if (!script?.target_url) return FRAMEWORKS.find((f) => f.value === script.framework)?.label || 'Script';
-    try {
-      const hostname = new URL(script.target_url).hostname.replace(/^www\./, '');
-      const isRegeneration = (script.prompt || '').includes('Regeneration feedback');
-      return isRegeneration ? `${hostname} (revisi)` : hostname;
-    } catch {
-      return script.target_url;
-    }
   };
 
   const triggerPromptAnimation = (area) => {
