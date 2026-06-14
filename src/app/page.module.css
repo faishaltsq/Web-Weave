@@ -472,6 +472,25 @@
   white-space: nowrap;
 }
 
+.recentItemName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentItemActive {
+  color: var(--text) !important;
+  background: var(--surface-3) !important;
+}
+
+.revisionIcon {
+  flex-shrink: 0;
+  color: var(--violet);
+  opacity: 0.7;
+}
+
 .authCard {
   border: 1px solid var(--border);
   border-radius: 14px;

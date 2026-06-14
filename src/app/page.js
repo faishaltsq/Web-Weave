@@ -23,6 +23,7 @@ import {
   MoreHorizontal,
   PanelLeft,
   PanelRight,
+  RefreshCw,
   Save,
   Search,
   Settings,
@@ -104,6 +105,7 @@ export default function WebWeave() {
   const [sidebarCompact, setSidebarCompact] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
   const [pricingClosing, setPricingClosing] = useState(false);
+  const [activeScriptId, setActiveScriptId] = useState('');
   const promptAnimationTimer = useRef(null);
   const dropdownAnimationTimer = useRef(null);
   const profileMenuRef = useRef(null);
@@ -225,8 +227,8 @@ export default function WebWeave() {
   const profileAvatar = user?.user_metadata?.avatar_url;
   const scriptSearchTerm = scriptSearch.trim().toLowerCase();
   const visibleScripts = scripts.filter((script) => {
-    const scriptLabel = FRAMEWORKS.find((item) => item.value === script.framework)?.label || script.framework || '';
-    return !scriptSearchTerm || scriptLabel.toLowerCase().includes(scriptSearchTerm) || (script.prompt || '').toLowerCase().includes(scriptSearchTerm);
+    const scriptLabel = getScriptDisplayName(script).toLowerCase();
+    return !scriptSearchTerm || scriptLabel.includes(scriptSearchTerm) || (script.prompt || '').toLowerCase().includes(scriptSearchTerm);
   });
 
   const triggerTemporaryAnimation = (setter, timerRef, value) => {
@@ -237,6 +239,17 @@ export default function WebWeave() {
       setter(value);
       timerRef.current = window.setTimeout(() => setter(''), 520);
     });
+  };
+
+  const getScriptDisplayName = (script) => {
+    if (!script?.target_url) return FRAMEWORKS.find((f) => f.value === script.framework)?.label || 'Script';
+    try {
+      const hostname = new URL(script.target_url).hostname.replace(/^www\./, '');
+      const isRegeneration = (script.prompt || '').includes('Regeneration feedback');
+      return isRegeneration ? `${hostname} (revisi)` : hostname;
+    } catch {
+      return script.target_url;
+    }
   };
 
   const triggerPromptAnimation = (area) => {
@@ -434,6 +447,7 @@ export default function WebWeave() {
     setObjective(script.prompt || '');
     setFramework(script.framework || 'playwright_js');
     setSelectedProjectId(script.project_id || '');
+    setActiveScriptId(script.id || '');
     setResult({
       success: true,
       code: script.code,
@@ -454,6 +468,7 @@ export default function WebWeave() {
     setObjective('');
     setUrl('');
     setGenerationFeedback('');
+    setActiveScriptId('');
     setProfileMenuOpen(false);
     setWorkspaceMenuOpen(false);
     setNewAutomationMenuOpen(false);
@@ -523,6 +538,7 @@ export default function WebWeave() {
       }
 
       setResult(savedScript ? { ...data, savedScriptId: savedScript.id } : data);
+      if (savedScript) setActiveScriptId(savedScript.id);
       setLogs([
         ...(data.logs || []),
         ...(savedScript ? [`Saved to project history (${savedScript.id}).`] : []),
@@ -728,8 +744,9 @@ export default function WebWeave() {
                 {historyLoading && <div className={styles.sidebarHint}>Loading history...</div>}
                 {user && !historyLoading && visibleScripts.length === 0 && <div className={styles.sidebarHint}>{scriptSearchTerm ? 'No scripts match search.' : 'No saved scripts yet.'}</div>}
                 {visibleScripts.slice(0, 5).map((script) => (
-                  <button type="button" key={script.id} className={styles.recentItem} onClick={() => handleOpenScript(script)}>
-                    <span>{FRAMEWORKS.find((item) => item.value === script.framework)?.label || script.framework}</span>
+                  <button type="button" key={script.id} className={`${styles.recentItem} ${activeScriptId === script.id ? styles.recentItemActive : ''}`} onClick={() => handleOpenScript(script)}>
+                    <span className={styles.recentItemName}>{getScriptDisplayName(script)}</span>
+                    {(script.prompt || '').includes('Regeneration feedback') && <RefreshCw size={12} className={styles.revisionIcon} />}
                     <MoreHorizontal size={15} />
                   </button>
                 ))}
@@ -754,7 +771,7 @@ export default function WebWeave() {
               <div className={styles.breadcrumbs}>
                 <span>Drafts</span>
                 <span>/</span>
-                <strong>Automation run</strong>
+                <strong>{activeScriptId ? getScriptDisplayName(scripts.find((s) => s.id === activeScriptId) || {}) : 'Automation run'}</strong>
               </div>
               <div className={styles.headerActions}>
                 <button type="button" onClick={() => setIsDark((value) => !value)} className={styles.iconButton} title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
