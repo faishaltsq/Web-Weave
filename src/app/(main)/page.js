@@ -671,9 +671,9 @@ export default function WebWeave() {
           )}
 
           <nav className={styles.navList}>
-            <button type="button" className={activeView === 'home' ? styles.navActive : ''} onClick={() => { setActiveView('home'); router.push('/'); }}><Home size={18} /> Home</button>
+            <button type="button" className={activeView === 'home' ? styles.navActive : ''} onClick={() => { setActiveView('home'); window.history.pushState(null, '', '/'); }}><Home size={18} /> Home</button>
             <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Folder size={18} /> Projects</button>
-            <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => { setActiveView('chats'); router.push('/chats'); }}><MessageSquare size={18} /> Chats</button>
+            <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }}><MessageSquare size={18} /> Chats</button>
             <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Code2 size={18} /> Templates</button>
           </nav>
 
@@ -730,7 +730,7 @@ export default function WebWeave() {
                     <button type="button" className={styles.chatsSearchClear} onClick={() => setScriptSearch('')}>✕</button>
                   )}
                 </div>
-                <button type="button" className={styles.chatsNewChatBtn} onClick={() => { startNewAutomation(); setActiveView('home'); router.push('/'); }}>
+                <button type="button" className={styles.chatsNewChatBtn} onClick={() => { startNewAutomation(); setActiveView('home'); window.history.pushState(null, '', '/'); }}>
                   <Sparkles size={16} />
                   {t('sidebar.newAutomation')}
                 </button>
@@ -751,7 +751,7 @@ export default function WebWeave() {
                 const timeStr = time ? time.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' + time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
 
                 return (
-                  <button key={script.id} type="button" className={`${styles.chatItem} ${activeScriptId === script.id ? styles.chatItemActive : ''}`} onClick={() => { handleOpenScript(script); setActiveView('home'); router.push('/'); }}>
+                  <button key={script.id} type="button" className={`${styles.chatItem} ${activeScriptId === script.id ? styles.chatItemActive : ''}`} onClick={() => { handleOpenScript(script); setActiveView('home'); window.history.pushState(null, '', '/'); }}>
                     <div className={styles.chatItemMain}>
                       <span className={styles.chatItemName}>
                         {getScriptDisplayName(script)}
