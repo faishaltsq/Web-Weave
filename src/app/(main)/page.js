@@ -217,7 +217,6 @@ export default function WebWeave() {
   };
 
   const visibleScripts = scripts.filter((script) => {
-    if (selectedProjectId && script.project_id !== selectedProjectId) return false;
     const scriptLabel = getScriptDisplayName(script).toLowerCase();
     return !scriptSearchTerm || scriptLabel.includes(scriptSearchTerm) || (script.prompt || '').toLowerCase().includes(scriptSearchTerm);
   });
@@ -686,7 +685,7 @@ export default function WebWeave() {
 
           <div className={styles.sidebarSection}>
             <button type="button" className={styles.sidebarSectionHeader} onClick={() => setRecentChatsOpen((value) => !value)} aria-expanded={recentChatsOpen}>
-              <span>Recent Chats{currentProject ? ` — ${currentProject.name}` : ''}</span><ChevronDown size={15} className={recentChatsOpen ? styles.chevronOpen : ''} />
+              <span>Recent Chats</span><ChevronDown size={15} className={recentChatsOpen ? styles.chevronOpen : ''} />
             </button>
             {recentChatsOpen && (
               <>
