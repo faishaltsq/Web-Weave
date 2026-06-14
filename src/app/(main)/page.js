@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   AlertCircle,
   ChevronDown,
@@ -107,17 +107,18 @@ export default function WebWeave() {
   const [showPricing, setShowPricing] = useState(false);
   const [pricingClosing, setPricingClosing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [activeView, setActiveView] = useState('home');
   const promptAnimationTimer = useRef(null);
   const dropdownAnimationTimer = useRef(null);
   const profileMenuRef = useRef(null);
   const { t } = useLanguage();
   const router = useRouter();
+  const pathname = usePathname();
+  const deriveView = (path) => (path === '/chats' ? 'chats' : 'home');
+  const [activeView, setActiveView] = useState(() => deriveView(pathname));
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('webweave-theme');
     if (savedTheme) setIsDark(savedTheme === 'dark');
-    if (window.location.pathname === '/chats') setActiveView('chats');
   }, []);
 
   useEffect(() => {
