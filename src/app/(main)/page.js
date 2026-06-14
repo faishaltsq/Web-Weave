@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
   ChevronDown,
@@ -33,10 +34,10 @@ import {
   User,
   Zap,
 } from 'lucide-react';
-import { createBrowserSupabaseClient, hasSupabaseBrowserConfig } from '@/lib/supabase/browser';
 import PricingPage from '@/components/PricingPage';
 import SettingsModal from '@/components/SettingsModal';
 import { useLanguage } from '@/lib/i18n/context';
+import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import styles from './page.module.css';
 
 const FRAMEWORKS = [
@@ -46,8 +47,6 @@ const FRAMEWORKS = [
   { value: 'selenium_python', label: 'Selenium Python' },
   { value: 'cypress_js', label: 'Cypress JavaScript' },
 ];
-
-const SUPABASE_ENABLED = hasSupabaseBrowserConfig();
 
 function getFileExtension(frameworkValue) {
   const extMap = {
@@ -71,21 +70,21 @@ function getTargetDomain(rawUrl) {
 }
 
 export default function WebWeave() {
-  const [supabase] = useState(() => createBrowserSupabaseClient());
-  const [user, setUser] = useState(null);
+  const {
+    supabase, SUPABASE_ENABLED, user, setUser, authSessionLoading,
+    projects, setProjects, scripts, setScripts, historyLoading,
+    usageStatus, setUsageStatus, selectedProjectId, setSelectedProjectId,
+    activeScriptId, setActiveScriptId, loadPrivateData,
+    pendingScript, setPendingScript,
+  } = useWebWeave();
+
   const [authMode, setAuthMode] = useState('sign_in');
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
-  const [authSessionLoading, setAuthSessionLoading] = useState(SUPABASE_ENABLED);
   const [authError, setAuthError] = useState('');
   const [authMessage, setAuthMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [projects, setProjects] = useState([]);
-  const [scripts, setScripts] = useState([]);
-  const [selectedProjectId, setSelectedProjectId] = useState('');
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [usageStatus, setUsageStatus] = useState(null);
   const [url, setUrl] = useState('');
   const [objective, setObjective] = useState('');
   const [framework, setFramework] = useState('playwright_js');
@@ -107,18 +106,26 @@ export default function WebWeave() {
   const [sidebarCompact, setSidebarCompact] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
   const [pricingClosing, setPricingClosing] = useState(false);
-  const [activeScriptId, setActiveScriptId] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState('home');
   const promptAnimationTimer = useRef(null);
   const dropdownAnimationTimer = useRef(null);
   const profileMenuRef = useRef(null);
   const { t } = useLanguage();
+  const router = useRouter();
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('webweave-theme');
     if (savedTheme) setIsDark(savedTheme === 'dark');
+    if (window.location.pathname === '/chats') setActiveView('chats');
   }, []);
+
+  useEffect(() => {
+    if (pendingScript) {
+      handleOpenScript(pendingScript);
+      setPendingScript(null);
+    }
+  }, [pendingScript]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -168,46 +175,6 @@ export default function WebWeave() {
       document.removeEventListener('keydown', closeProfileMenuWithEscape);
     };
   }, [profileMenuOpen]);
-
-  useEffect(() => {
-    if (!supabase) {
-      setAuthSessionLoading(false);
-      return undefined;
-    }
-
-    let mounted = true;
-    supabase.auth.getSession()
-      .then(({ data }) => {
-        if (mounted) setUser(data.session?.user || null);
-      })
-      .catch((err) => {
-        if (mounted) setAuthError(err.message);
-      })
-      .finally(() => {
-        if (mounted) setAuthSessionLoading(false);
-      });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      mounted = false;
-      data.subscription.unsubscribe();
-    };
-  }, [supabase]);
-
-  useEffect(() => {
-    if (!user) {
-      setProjects([]);
-      setScripts([]);
-      setSelectedProjectId('');
-      setUsageStatus(null);
-      return;
-    }
-
-    loadPrivateData();
-  }, [user]);
 
   const selectedFrameworkLabel = FRAMEWORKS.find((item) => item.value === framework)?.label || framework;
   const allowedFrameworks = usageStatus?.allowedFrameworks || ['playwright_js'];
@@ -280,38 +247,6 @@ export default function WebWeave() {
     if (!token) throw new Error('Sign in required.');
 
     return { Authorization: `Bearer ${token}` };
-  };
-
-  const loadPrivateData = async () => {
-    if (!user || !supabase) return;
-
-    setHistoryLoading(true);
-    try {
-      const headers = await getAuthHeaders();
-      const [projectResponse, scriptResponse, usageResponse] = await Promise.all([
-        fetch('/api/projects', { headers }),
-        fetch('/api/generated-scripts', { headers }),
-        fetch('/api/account/usage', { headers }),
-      ]);
-
-      const projectData = await projectResponse.json();
-      const scriptData = await scriptResponse.json();
-      const usageData = await usageResponse.json();
-
-      if (usageData.success) setUsageStatus(usageData.usage || null);
-
-      if (projectData.success) {
-        const nextProjects = projectData.projects || [];
-        setProjects(nextProjects);
-        if (!selectedProjectId && nextProjects.length) setSelectedProjectId(nextProjects[0].id);
-      }
-
-      if (scriptData.success) setScripts(scriptData.scripts || []);
-    } catch (err) {
-      setAuthError(err.message);
-    } finally {
-      setHistoryLoading(false);
-    }
   };
 
   const createProject = async (name = 'Default project') => {
@@ -455,6 +390,7 @@ export default function WebWeave() {
     setSelectedProjectId(script.project_id || '');
     setActiveScriptId(script.id || '');
     setActiveView('home');
+    window.history.pushState(null, '', '/');
     setResult({
       success: true,
       code: script.code,
@@ -734,9 +670,9 @@ export default function WebWeave() {
           )}
 
           <nav className={styles.navList}>
-            <button type="button" className={activeView === 'home' ? styles.navActive : ''} onClick={() => setActiveView('home')}><Home size={18} /> Home</button>
+            <button type="button" className={activeView === 'home' ? styles.navActive : ''} onClick={() => { setActiveView('home'); router.push('/'); }}><Home size={18} /> Home</button>
             <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Folder size={18} /> Projects</button>
-            <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => setActiveView('chats')}><MessageSquare size={18} /> Chats</button>
+            <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => { setActiveView('chats'); router.push('/chats'); }}><MessageSquare size={18} /> Chats</button>
             <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Code2 size={18} /> Templates</button>
           </nav>
 
@@ -793,7 +729,7 @@ export default function WebWeave() {
                     <button type="button" className={styles.chatsSearchClear} onClick={() => setScriptSearch('')}>✕</button>
                   )}
                 </div>
-                <button type="button" className={styles.chatsNewChatBtn} onClick={() => { startNewAutomation(); setActiveView('home'); }}>
+                <button type="button" className={styles.chatsNewChatBtn} onClick={() => { startNewAutomation(); setActiveView('home'); router.push('/'); }}>
                   <Sparkles size={16} />
                   {t('sidebar.newAutomation')}
                 </button>
@@ -814,7 +750,7 @@ export default function WebWeave() {
                 const timeStr = time ? time.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' + time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
 
                 return (
-                  <button key={script.id} type="button" className={`${styles.chatItem} ${activeScriptId === script.id ? styles.chatItemActive : ''}`} onClick={() => { handleOpenScript(script); setActiveView('home'); }}>
+                  <button key={script.id} type="button" className={`${styles.chatItem} ${activeScriptId === script.id ? styles.chatItemActive : ''}`} onClick={() => { handleOpenScript(script); setActiveView('home'); router.push('/'); }}>
                     <div className={styles.chatItemMain}>
                       <span className={styles.chatItemName}>
                         {getScriptDisplayName(script)}
