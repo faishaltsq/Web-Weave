@@ -124,12 +124,16 @@ export default function WebWeave() {
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('webweave-theme');
     if (savedTheme) setIsDark(savedTheme === 'dark');
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const projectId = params.get('project');
     if (projectId && projects.some((p) => p.id === projectId)) {
       setSelectedProjectId(projectId);
+      window.history.replaceState(null, '', '/');
     }
-  }, []);
+  }, [projects]);
 
   useEffect(() => {
     if (pendingScript) {
