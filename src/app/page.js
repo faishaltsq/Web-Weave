@@ -109,6 +109,7 @@ export default function WebWeave() {
   const [pricingClosing, setPricingClosing] = useState(false);
   const [activeScriptId, setActiveScriptId] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [activeView, setActiveView] = useState('home');
   const promptAnimationTimer = useRef(null);
   const dropdownAnimationTimer = useRef(null);
   const profileMenuRef = useRef(null);
@@ -453,6 +454,7 @@ export default function WebWeave() {
     setFramework(script.framework || 'playwright_js');
     setSelectedProjectId(script.project_id || '');
     setActiveScriptId(script.id || '');
+    setActiveView('home');
     setResult({
       success: true,
       code: script.code,
@@ -732,9 +734,9 @@ export default function WebWeave() {
           )}
 
           <nav className={styles.navList}>
-            <button type="button" className={styles.navActive}><Home size={18} /> Home</button>
+            <button type="button" className={activeView === 'home' ? styles.navActive : ''} onClick={() => setActiveView('home')}><Home size={18} /> Home</button>
             <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Folder size={18} /> Projects</button>
-            <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><MessageSquare size={18} /> Chats</button>
+            <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => setActiveView('chats')}><MessageSquare size={18} /> Chats</button>
             <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Code2 size={18} /> Templates</button>
           </nav>
 
@@ -770,7 +772,63 @@ export default function WebWeave() {
       </aside>
 
       <section className={styles.appSurface}>
-        {hasWorkspace ? (
+        {activeView === 'chats' ? (
+          <div className={styles.chatsView}>
+            <header className={styles.chatsHeader}>
+              <div>
+                <h1 className={styles.chatsTitle}>Chats</h1>
+                <p className={styles.chatsSubtitle}>{scripts.length} saved scripts</p>
+              </div>
+              <div className={styles.chatsHeaderActions}>
+                <div className={styles.chatsSearchWrap}>
+                  <Search size={15} className={styles.chatsSearchIcon} />
+                  <input
+                    type="search"
+                    value={scriptSearch}
+                    onChange={(event) => setScriptSearch(event.target.value)}
+                    className={styles.chatsSearchInput}
+                    placeholder="Search chats..."
+                  />
+                  {scriptSearch && (
+                    <button type="button" className={styles.chatsSearchClear} onClick={() => setScriptSearch('')}>✕</button>
+                  )}
+                </div>
+                <button type="button" className={styles.chatsNewChatBtn} onClick={() => { startNewAutomation(); setActiveView('home'); }}>
+                  <Sparkles size={16} />
+                  {t('sidebar.newAutomation')}
+                </button>
+              </div>
+            </header>
+
+            <div className={styles.chatsList}>
+              {historyLoading && <div className={styles.chatsEmpty}>Loading...</div>}
+              {!SUPABASE_ENABLED && <div className={styles.chatsEmpty}>Add Supabase env vars to enable chat history.</div>}
+              {SUPABASE_ENABLED && !user && <div className={styles.chatsEmpty}>Sign in to view chat history.</div>}
+              {user && !historyLoading && visibleScripts.length === 0 && (
+                <div className={styles.chatsEmpty}>{scriptSearchTerm ? 'No chats match your search.' : 'No chats yet. Create your first automation.'}</div>
+              )}
+              {visibleScripts.map((script) => {
+                const isRegen = (script.prompt || '').includes('Regeneration feedback');
+                const preview = (script.prompt || '').replace(/Regeneration feedback from previous output:\n.*/s, '').substring(0, 80);
+                const time = script.created_at ? new Date(script.created_at) : null;
+                const timeStr = time ? time.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' + time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
+
+                return (
+                  <button key={script.id} type="button" className={`${styles.chatItem} ${activeScriptId === script.id ? styles.chatItemActive : ''}`} onClick={() => { handleOpenScript(script); setActiveView('home'); }}>
+                    <div className={styles.chatItemMain}>
+                      <span className={styles.chatItemName}>
+                        {getScriptDisplayName(script)}
+                        {isRegen && <RefreshCw size={12} className={styles.revisionIcon} />}
+                      </span>
+                      <span className={styles.chatItemPreview}>{preview}</span>
+                    </div>
+                    <span className={styles.chatItemTime}>{timeStr}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : hasWorkspace ? (
           <>
             <header className={styles.workspaceHeader}>
               <div className={styles.breadcrumbs}>
