@@ -242,33 +242,31 @@ export default function PricingPage({ onClose, onCheckout }) {
       <section className={styles.faqSection}>
         <div>
           <p className={styles.sectionLabel}>FAQ</p>
-          <h2 className={styles.faqTitle}>Pertanyaan umum</h2>
+          <h2 className={styles.faqTitle}>{t('faq.title')}</h2>
         </div>
         <div className={styles.faqGrid}>
           <div className={styles.faqItem}>
-            <h4>Apa itu generation?</h4>
-            <p>Satu generation = satu script automation dari URL + objective yang kamu masukkan ke WebWeave.</p>
+            <h4>{t('faq.q1')}</h4>
+            <p>{t('faq.a1')}</p>
           </div>
           <div className={styles.faqItem}>
-            <h4>Bisa ganti paket kapan saja?</h4>
-            <p>Bisa. Upgrade langsung aktif, downgrade berlaku di akhir periode billing kamu.</p>
+            <h4>{t('faq.q2')}</h4>
+            <p>{t('faq.a2')}</p>
           </div>
           <div className={styles.faqItem}>
-            <h4>Framework apa saja yang didukung?</h4>
-            <p>Playwright JS/Python, Selenium Python, Puppeteer JS, dan Cypress. Paket Free hanya Playwright JS.</p>
+            <h4>{t('faq.q3')}</h4>
+            <p>{t('faq.a3')}</p>
           </div>
         </div>
       </section>
 
       <section className={styles.ctaSection}>
         <div>
-          <h2>Siap generate script pertama kamu?</h2>
-          <p>
-            Mulai gratis sekarang, upgrade kalau butuh lebih.
-          </p>
+          <h2>{t('cta.ready')}</h2>
+          <p>{t('cta.startNow')}</p>
         </div>
         <button type="button" className={styles.ctaButtonLarge} onClick={handlePrimaryCta}>
-          Coba Sekarang
+          {t('cta.tryNow')}
           <ArrowRight size={17} />
         </button>
       </section>

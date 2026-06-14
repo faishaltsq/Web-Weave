@@ -136,6 +136,20 @@ const translations = {
       dark: 'Dark',
       light: 'Light',
     },
+    faq: {
+      title: 'Frequently Asked Questions',
+      q1: 'What is a generation?',
+      a1: 'One generation = one automation script from the URL + objective you enter into WebWeave.',
+      q2: 'Can I change plans anytime?',
+      a2: 'Yes. Upgrades take effect immediately, downgrades apply at the end of your billing period.',
+      q3: 'Which frameworks are supported?',
+      a3: 'Playwright JS/Python, Selenium Python, Puppeteer JS, and Cypress. Free plan is Playwright JS only.',
+    },
+    cta: {
+      ready: 'Ready to generate your first script?',
+      startNow: 'Start free now, upgrade when you need more.',
+      tryNow: 'Try Now',
+    },
   },
 
   id: {
@@ -274,6 +288,20 @@ const translations = {
       theme: 'Tema',
       dark: 'Gelap',
       light: 'Terang',
+    },
+    faq: {
+      title: 'Pertanyaan Umum',
+      q1: 'Apa itu generation?',
+      a1: 'Satu generation = satu script automation dari URL + objective yang kamu masukkan ke WebWeave.',
+      q2: 'Bisa ganti paket kapan saja?',
+      a2: 'Bisa. Upgrade langsung aktif, downgrade berlaku di akhir periode billing kamu.',
+      q3: 'Framework apa saja yang didukung?',
+      a3: 'Playwright JS/Python, Selenium Python, Puppeteer JS, dan Cypress. Paket Free hanya Playwright JS.',
+    },
+    cta: {
+      ready: 'Siap generate script pertama kamu?',
+      startNow: 'Mulai gratis sekarang, upgrade kalau butuh lebih.',
+      tryNow: 'Coba Sekarang',
     },
   },
 };

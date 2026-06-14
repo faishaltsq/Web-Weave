@@ -13,6 +13,46 @@ const MAX_URL_LENGTH = 2048;
 const MAX_PROMPT_LENGTH = 4000;
 const MAX_DOM_CONTEXT_LENGTH = 14000;
 const MAX_OUTPUT_TOKENS = 8192;
+
+function detectLang(req) {
+  const header = req.headers.get('accept-language') || '';
+  return header.startsWith('id') ? 'id' : 'en';
+}
+
+const serverMessages = {
+  providerNotSupported: {
+    id: (p) => `Provider "${p}" tidak didukung. Gunakan: gemini, openai, anthropic, openrouter, atau opencode.`,
+    en: (p) => `Provider "${p}" is not supported. Use: gemini, openai, anthropic, openrouter, or opencode.`,
+  },
+  apiKeyNotConfigured: {
+    id: (name) => `API Key untuk ${name} tidak dikonfigurasi di server. Hubungi administrator.`,
+    en: (name) => `API key for ${name} is not configured on the server. Contact the administrator.`,
+  },
+  apiKeyInvalid: {
+    id: 'API Key tidak valid atau telah expired. Periksa kembali API Key Anda.',
+    en: 'API key is invalid or has expired. Please check your API key.',
+  },
+  requestFailed: {
+    id: (msg) => `Gagal memproses request: ${msg}`,
+    en: (msg) => `Failed to process request: ${msg}`,
+  },
+  rateLimited: {
+    id: 'Terlalu banyak request. Coba lagi dalam beberapa saat.',
+    en: 'Too many requests. Please try again later.',
+  },
+  payloadTooLarge: {
+    id: 'Request body terlalu besar.',
+    en: 'Request body too large.',
+  },
+};
+
+function msg(lang, key, ...args) {
+  const entry = serverMessages[key];
+  if (!entry) return key;
+  const val = entry[lang] || entry.en;
+  return typeof val === 'function' ? val(...args) : val;
+}
+
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
 const rateLimitStore = new Map();
@@ -435,7 +475,7 @@ async function callAIProvider(provider, systemPrompt, userPrompt, apiKey, modelI
     case 'opencode':
       return callOpenCodeGo(systemPrompt, userPrompt, apiKey, modelId);
     default:
-      throw new Error(`Provider "${provider}" tidak didukung. Gunakan: gemini, openai, anthropic, openrouter, atau opencode.`);
+      throw new Error(msg(lang, 'providerNotSupported', provider));
   }
 }
 
@@ -981,11 +1021,12 @@ Generate using resilient selectors. Prefer id/name-based selectors. Add comments
 
 export async function POST(req) {
   let browser = null;
+  const lang = detectLang(req);
   try {
     const retryAfter = checkRateLimit(getClientId(req));
     if (retryAfter) {
       return NextResponse.json({
-        error: `Rate limit reached. Try again in ${retryAfter} seconds.`
+        error: msg(lang, 'rateLimited')
       }, {
         status: 429,
         headers: { 'Retry-After': String(retryAfter) }
@@ -995,7 +1036,7 @@ export async function POST(req) {
     const contentLength = Number(req.headers.get('content-length') || 0);
     if (contentLength > MAX_REQUEST_BYTES) {
       return NextResponse.json({
-        error: `Request body is too large. Max ${MAX_REQUEST_BYTES} bytes.`
+        error: msg(lang, 'payloadTooLarge')
       }, { status: 413 });
     }
 
@@ -1056,7 +1097,7 @@ export async function POST(req) {
     if (!activeApiKey) {
       const providerNames = { gemini: 'Gemini', openai: 'OpenAI', anthropic: 'Anthropic', openrouter: 'OpenRouter', opencode: 'OpenCode Go' };
       return NextResponse.json({ 
-        error: `API Key untuk ${providerNames[activeProvider] || activeProvider} tidak dikonfigurasi di server. Hubungi administrator.` 
+        error: msg(lang, 'apiKeyNotConfigured', providerNames[activeProvider] || activeProvider)
       }, { status: 400 });
     }
 
@@ -1193,7 +1234,7 @@ export async function POST(req) {
     // Provide helpful error messages per provider
     let errorMessage = error.message;
     if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('invalid')) {
-      errorMessage = 'API Key tidak valid atau telah expired. Periksa kembali API Key Anda.';
+      errorMessage = msg(lang, 'apiKeyInvalid');
     } else if (errorMessage.includes('429') || errorMessage.includes('rate') || errorMessage.includes('quota')) {
       errorMessage = 'Rate limit/quota tercapai. Tunggu beberapa saat atau upgrade plan API Anda.';
     } else if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
@@ -1201,7 +1242,7 @@ export async function POST(req) {
     }
     
     return NextResponse.json({ 
-      error: `Gagal memproses request: ${errorMessage}` 
+      error: msg(lang, 'requestFailed', errorMessage)
     }, { status: 500 });
   }
 }
