@@ -11,11 +11,9 @@ const plans = [
     id: 'free',
     name: 'Free',
     monthlyPrice: 0,
-    description: 'Cocok untuk coba WebWeave tanpa komitmen.',
-    fit: 'Belajar automation dan validasi ide tanpa cepat mentok.',
+    description: 'Mulai generate script automation gratis.',
     quota: '5 generations/bulan',
-    cta: 'Pakai Free',
-    accent: 'Starter safe',
+    cta: 'Mulai Gratis',
     features: [
       '1 project pribadi',
       'Playwright JavaScript only',
@@ -27,33 +25,29 @@ const plans = [
     id: 'starter',
     name: 'Starter',
     monthlyPrice: 49000,
-    description: 'Harga masuk akal untuk builder solo dan QA intern.',
-    fit: 'Paket rekomendasi awal: murah, quota cukup untuk kerja rutin.',
+    description: 'Untuk QA dan developer yang butuh script rutin.',
     quota: '75 generations/bulan',
-    cta: 'Mulai Starter',
-    badge: 'Recommended',
-    accent: 'Best entry price',
+    cta: 'Upgrade ke Starter',
+    badge: 'Paling Populer',
     features: [
       '5 project aktif',
       'Playwright JS/Python, Selenium Python, Cypress JS',
       'Saved scripts dan prompt history',
       'Regenerate dengan feedback',
-      'Email support best-effort',
+      'Email support',
     ],
   },
   {
     id: 'pro',
     name: 'Pro',
     monthlyPrice: 129000,
-    description: 'Untuk freelance QA, developer, dan tim kecil.',
-    fit: 'Lebih lega untuk sprint, demo client, dan iterasi locator.',
+    description: 'Untuk tim dan project yang butuh lebih banyak framework.',
     quota: '300 generations/bulan',
-    cta: 'Coba Pro',
-    badge: 'Best value',
-    accent: 'Most useful',
+    cta: 'Upgrade ke Pro',
+    badge: 'Nilai Terbaik',
     features: [
       '25 project aktif',
-      'All supported frameworks',
+      'Semua framework didukung',
       'Priority generation queue',
       'Quality gate summary',
       'Priority support',
@@ -63,17 +57,15 @@ const plans = [
     id: 'team',
     name: 'Team',
     monthlyPrice: 299000,
-    description: 'Untuk shared workspace kecil tanpa harga enterprise.',
-    fit: '3 seats untuk QA lead, intern, developer, dan smoke suite rutin.',
+    description: 'Workspace bersama untuk tim QA.',
     quota: '1.000 generations/bulan',
-    cta: 'Coming soon',
-    accent: 'Small team',
+    cta: 'Segera Hadir',
     disabled: true,
     features: [
-      'Team workspace coming soon',
+      'Team workspace',
       'Shared project history',
-      'All supported frameworks',
-      'Admin controls planned',
+      'Semua framework didukung',
+      'Admin controls',
       'Roadmap request priority',
     ],
   },
@@ -85,7 +77,7 @@ export default function PricingPage({ onClose, onCheckout }) {
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState('');
 
   const getDisplayPrice = (plan) => {
-    if (plan.monthlyPrice === 0) return { price: 'Rp0', period: '/bulan', note: 'Gratis selamanya' };
+    if (plan.monthlyPrice === 0) return { price: 'Rp0', period: '/bulan', note: 'Tanpa kartu kredit' };
 
     if (billingCycle === 'annual') {
       const annualPrice = Math.round(plan.monthlyPrice * 12 * 0.8 / 1000) * 1000;
@@ -137,35 +129,30 @@ export default function PricingPage({ onClose, onCheckout }) {
 
       <header className={styles.header}>
         <button type="button" className={styles.backButton} onClick={onClose}>
-          Back to builder
+          Kembali ke builder
         </button>
-        <div className={styles.eyebrow}><Sparkles size={16} /> Pricing recommendation</div>
-        <h1 className={styles.title}>Paket automation yang ramah kantong.</h1>
+        <div className={styles.eyebrow}><Sparkles size={16} /> Pricing</div>
+        <h1 className={styles.title}>Pilih paket yang sesuai kebutuhan kamu.</h1>
         <p className={styles.subtitle}>
-          WebWeave masih early product. Quota dirancang sesuai kebutuhan QA rutin untuk intern, freelance, dan tim kecil.
+          Mulai gratis, upgrade kapan aja. Semua paket termasuk AI script generation dan locator preview.
         </p>
       </header>
 
-      <section className={styles.summaryStrip} aria-label="Pricing recommendation summary">
+      <section className={styles.summaryStrip} aria-label="Pricing summary">
         <div>
           <span>Mulai dari</span>
-          <strong>Rp49.000</strong>
-          <small>untuk paket berbayar pertama</small>
+          <strong>Rp49K/bulan</strong>
+          <small>paket berbayar pertama</small>
         </div>
         <div>
-          <span>Rekomendasi</span>
-          <strong>Starter</strong>
-          <small>Rp49.000 dengan 75 generations/bulan</small>
+          <span>Gratis</span>
+          <strong>5 generation/bulan</strong>
+          <small>tanpa kartu kredit</small>
         </div>
         <div>
-          <span>Usage</span>
-          <strong>quota cukup</strong>
-          <small>cukup untuk generate dan refine script harian</small>
-        </div>
-        <div>
-          <span>Annual</span>
+          <span>Tahunan</span>
           <strong>hemat 20%</strong>
-          <small>tanpa mengunci harga terlalu tinggi</small>
+          <small>bayar setahun sekaligus</small>
         </div>
       </section>
 
@@ -205,7 +192,6 @@ export default function PricingPage({ onClose, onCheckout }) {
               )}
 
               <div className={styles.cardHeader}>
-                <span className={styles.planAccent}>{plan.accent}</span>
                 <h3 className={styles.planName}>{plan.name}</h3>
                 <p className={styles.planDescription}>{plan.description}</p>
               </div>
@@ -215,7 +201,7 @@ export default function PricingPage({ onClose, onCheckout }) {
                 <span className={styles.period}>{displayPrice.period}</span>
               </div>
               <p className={styles.priceNote}>{displayPrice.note}</p>
-              <p className={styles.fitText}>{plan.fit}</p>
+
 
               <button
                 type="button"
@@ -250,35 +236,34 @@ export default function PricingPage({ onClose, onCheckout }) {
 
       <section className={styles.faqSection}>
         <div>
-          <p className={styles.sectionLabel}>Pricing note</p>
-          <h2 className={styles.faqTitle}>Rekomendasi harga final</h2>
+          <p className={styles.sectionLabel}>FAQ</p>
+          <h2 className={styles.faqTitle}>Pertanyaan umum</h2>
         </div>
         <div className={styles.faqGrid}>
           <div className={styles.faqItem}>
-            <h4>Kenapa Starter Rp49.000?</h4>
-            <p>Angka ini rendah untuk user Indonesia, dan 75 generations/bulan cukup untuk daily QA ringan.</p>
+            <h4>Apa itu generation?</h4>
+            <p>Satu generation = satu script automation dari URL + objective yang kamu masukkan ke WebWeave.</p>
           </div>
           <div className={styles.faqItem}>
-            <h4>Kenapa Pro Rp129.000?</h4>
-            <p>300 generations/bulan memberi ruang sprint, regenerasi, dan eksperimen locator tanpa terasa pelit.</p>
+            <h4>Bisa ganti paket kapan saja?</h4>
+            <p>Bisa. Upgrade langsung aktif, downgrade berlaku di akhir periode billing kamu.</p>
           </div>
           <div className={styles.faqItem}>
-            <h4>Kenapa Team Rp299.000?</h4>
-            <p>1.000 generations/bulan cukup untuk tim kecil, tapi tetap aman sebagai fair-use awal.</p>
+            <h4>Framework apa saja yang didukung?</h4>
+            <p>Playwright JS/Python, Selenium Python, Puppeteer JS, dan Cypress. Paket Free hanya Playwright JS.</p>
           </div>
         </div>
       </section>
 
       <section className={styles.ctaSection}>
         <div>
-          <p className={styles.sectionLabel}>Best next move</p>
-          <h2>Launch murah dulu, naikkan harga setelah usage jelas.</h2>
+          <h2>Siap generate script pertama kamu?</h2>
           <p>
-            Saran: mulai dari Free 5, Starter 75, Pro 300, Team 1.000 generations/bulan. Harga tetap murah, usage terasa lega.
+            Mulai gratis sekarang, upgrade kalau butuh lebih.
           </p>
         </div>
         <button type="button" className={styles.ctaButtonLarge} onClick={handlePrimaryCta}>
-          Simulasi pilih Starter
+          Coba Sekarang
           <ArrowRight size={17} />
         </button>
       </section>

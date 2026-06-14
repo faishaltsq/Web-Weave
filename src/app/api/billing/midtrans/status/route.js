@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseServiceClient } from '@/lib/supabase/server';
+import { createSupabaseServiceClient, getAuthenticatedUser } from '@/lib/supabase/server';
 import { getMidtransConfig, mapMidtransNotificationToEntitlement } from '@/lib/billing/midtrans';
 
 const ACTIVE_MIDTRANS_STATUSES = new Set(['settlement', 'capture']);
@@ -86,9 +86,12 @@ async function applyEntitlementUpdate(supabase, order, entitlement) {
 }
 
 export async function GET(req) {
+  // Require authenticated user — prevents unauthenticated order enumeration
+  const auth = await getAuthenticatedUser(req);
+  if (auth.error) return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get('order_id');
-  const userId = searchParams.get('user_id');
 
   if (!orderId) {
     return NextResponse.json({ success: false, error: 'Missing order_id.' }, { status: 400 });
@@ -112,7 +115,8 @@ export async function GET(req) {
     return NextResponse.json({ success: false, error: 'Unknown payment order.' }, { status: 400 });
   }
 
-  if (userId && order.owner_id !== userId) {
+  // Verify the order belongs to the authenticated user
+  if (order.owner_id !== auth.user.id) {
     return NextResponse.json({ success: false, error: 'Order does not belong to this user.' }, { status: 403 });
   }
 
@@ -159,3 +163,4 @@ export async function GET(req) {
     status: result.status,
   });
 }
+
