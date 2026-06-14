@@ -15,14 +15,16 @@ export function LanguageProvider({ children, translations }) {
   const [lang, setLangState] = useState('en');
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(LANGUAGE_KEY);
-    if (saved && SUPPORTED_LANGUAGES.includes(saved)) {
-      setLangState(saved);
-    } else {
-      const browserLang = (navigator.language || '').split('-')[0];
-      if (SUPPORTED_LANGUAGES.includes(browserLang)) {
-        setLangState(browserLang);
+    try {
+      const saved = window.localStorage.getItem(LANGUAGE_KEY);
+      if (saved && SUPPORTED_LANGUAGES.includes(saved)) {
+        setLangState(saved);
+        return;
       }
+    } catch { /* storage unavailable */ }
+    const browserLang = (navigator.language || '').split('-')[0];
+    if (SUPPORTED_LANGUAGES.includes(browserLang)) {
+      setLangState(browserLang);
     }
   }, []);
 
@@ -32,7 +34,9 @@ export function LanguageProvider({ children, translations }) {
 
   const setLang = useCallback((value) => {
     if (!SUPPORTED_LANGUAGES.includes(value)) return;
-    window.localStorage.setItem(LANGUAGE_KEY, value);
+    try {
+      window.localStorage.setItem(LANGUAGE_KEY, value);
+    } catch { /* storage unavailable */ }
     setLangState(value);
   }, []);
 

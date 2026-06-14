@@ -44,6 +44,14 @@ const serverMessages = {
     id: 'Request body terlalu besar.',
     en: 'Request body too large.',
   },
+  providerRateLimited: {
+    id: 'Rate limit/quota API tercapai. Tunggu beberapa saat atau upgrade plan API.',
+    en: 'API rate limit/quota reached. Wait a moment or upgrade your API plan.',
+  },
+  providerForbidden: {
+    id: 'Akses API ditolak. Pastikan API Key memiliki permission yang benar.',
+    en: 'API access denied. Make sure your API key has the correct permissions.',
+  },
 };
 
 function msg(lang, key, ...args) {
@@ -1236,9 +1244,9 @@ export async function POST(req) {
     if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('invalid')) {
       errorMessage = msg(lang, 'apiKeyInvalid');
     } else if (errorMessage.includes('429') || errorMessage.includes('rate') || errorMessage.includes('quota')) {
-      errorMessage = 'Rate limit/quota tercapai. Tunggu beberapa saat atau upgrade plan API Anda.';
+      errorMessage = msg(lang, 'providerRateLimited');
     } else if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
-      errorMessage = 'Akses ditolak. Pastikan API Key memiliki permission yang benar.';
+      errorMessage = msg(lang, 'providerForbidden');
     }
     
     return NextResponse.json({ 

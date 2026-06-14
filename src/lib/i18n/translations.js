@@ -53,6 +53,7 @@ const translations = {
       loginHint: 'Login to restore projects and saved scripts.',
       signInToWebWeave: 'Sign in to WebWeave',
       saveScriptsHistory: 'Save scripts, projects, and generation history.',
+      signInRequiredToGenerate: 'Sign in required to generate automations.',
     },
     generate: {
       prompt: 'Prompt',
@@ -180,7 +181,7 @@ const translations = {
       historyOn: 'Riwayat aktif',
       privateBeta: 'Private beta',
       drafts: 'Draf',
-      automationRun: 'Automation run',
+      automationRun: 'Automation berjalan',
       signIn: 'Masuk',
       signOut: 'Keluar',
       accountSettings: 'Pengaturan Akun',
@@ -206,6 +207,7 @@ const translations = {
       loginHint: 'Login untuk memulihkan proyek dan skrip tersimpan.',
       signInToWebWeave: 'Masuk ke WebWeave',
       saveScriptsHistory: 'Simpan skrip, proyek, dan riwayat generasi.',
+      signInRequiredToGenerate: 'Login diperlukan untuk membuat automasi.',
     },
     generate: {
       prompt: 'Prompt',

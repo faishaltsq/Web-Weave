@@ -511,7 +511,7 @@ export default function WebWeave() {
       : objective.trim();
 
     const authHeaders = user && supabase ? await getAuthHeaders() : {};
-    if (SUPABASE_ENABLED && !authHeaders.Authorization) throw new Error(t('auth.signInToWebWeave'));
+    if (SUPABASE_ENABLED && !authHeaders.Authorization) throw new Error(t('auth.signInRequiredToGenerate'));
 
     try {
       const response = await fetch('/api/generate', {
