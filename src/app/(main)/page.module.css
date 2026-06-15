@@ -2258,6 +2258,11 @@
     touch-action: manipulation;
   }
 
+  .profileButton {
+    background: red !important;
+    min-height: 56px !important;
+  }
+
   .workspaceSwitch div,
   .workspaceSwitch svg,
   .newChatButton span,
