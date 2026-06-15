@@ -2,34 +2,69 @@ import { readFileSync } from 'node:fs';
 
 const css = readFileSync('src/app/(main)/page.module.css', 'utf8');
 
-const requiredSnippets = [
-  '.darkMode {',
-  '.lightMode {',
-  '--output-bg:',
-  '--output-text:',
-  '--output-log-text:',
-  '--output-prompt:',
-  'background: var(--output-bg);',
-  'color: var(--output-text);',
-  'color: var(--output-log-text);',
-  'color: var(--output-prompt);',
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const getBlock = (selector) => {
+  const match = css.match(new RegExp(`${escapeRegex(selector)}\\s*{[^}]*}`, 'i'));
+  return match?.[0] ?? '';
+};
+
+const hasProperty = (block, property) =>
+  new RegExp(`${escapeRegex(property)}\\s*:`, 'i').test(block);
+
+const hasDeclaration = (block, property, value) =>
+  new RegExp(`${escapeRegex(property)}\\s*:\\s*${escapeRegex(value)}\\s*;`, 'i').test(block);
+
+const themeVariables = ['--output-bg', '--output-text', '--output-log-text', '--output-prompt'];
+
+const missingThemeVariables = ['.darkMode', '.lightMode'].flatMap((selector) => {
+  const block = getBlock(selector);
+
+  if (!block) {
+    return [`${selector} block`];
+  }
+
+  return themeVariables
+    .filter((property) => !hasProperty(block, property))
+    .map((property) => `${selector} ${property}`);
+});
+
+const selectorDeclarations = [
+  ['.console', 'background', 'var(--output-bg)'],
+  ['.consoleLine', 'color', 'var(--output-log-text)'],
+  ['.consolePrompt', 'color', 'var(--output-prompt)'],
+  ['.codeBlock', 'background', 'var(--output-bg)'],
+  ['.code', 'color', 'var(--output-text)'],
+  ['.codeEmptyState', 'background', 'var(--output-bg)'],
 ];
 
-const missing = requiredSnippets.filter((snippet) => !css.includes(snippet));
+const missingSelectorDeclarations = selectorDeclarations.flatMap(([selector, property, value]) => {
+  const block = getBlock(selector);
+
+  if (!block) {
+    return [`${selector} block`];
+  }
+
+  return hasDeclaration(block, property, value) ? [] : [`${selector} ${property}: ${value};`];
+});
+
+const missing = [...missingThemeVariables, ...missingSelectorDeclarations];
 
 if (missing.length > 0) {
-  console.error(`Missing themed output panel CSS snippets:\n${missing.join('\n')}`);
+  console.error(`Missing themed output panel CSS declarations:\n${missing.join('\n')}`);
   process.exit(1);
 }
 
-const selectorPatterns = [
-  /\.console\s*{[^}]*background:\s*#050505/i,
-  /\.consoleLine\s*{[^}]*color:\s*#93c5fd/i,
-  /\.codeBlock\s*{[^}]*background:\s*#050505/i,
-  /\.code\s*{[^}]*color:\s*#dbeafe/i,
+const forbiddenDeclarations = [
+  ['.console', 'background', '#050505'],
+  ['.consoleLine', 'color', '#93c5fd'],
+  ['.codeBlock', 'background', '#050505'],
+  ['.code', 'color', '#dbeafe'],
 ];
 
-const hardcodedMatches = selectorPatterns.filter((pattern) => pattern.test(css));
+const hardcodedMatches = forbiddenDeclarations.filter(([selector, property, value]) =>
+  hasDeclaration(getBlock(selector), property, value),
+);
 
 if (hardcodedMatches.length > 0) {
   console.error('Output panels still contain hardcoded dark-only colors.');
