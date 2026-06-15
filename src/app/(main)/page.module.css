@@ -2263,9 +2263,7 @@
   .sidebarSection,
   .profileText,
   .planBadge,
-  .workspaceMenu,
-  .newAutomationMenu,
-  .profileMenu {
+  .newAutomationMenu {
     display: none;
   }
 
