@@ -2203,17 +2203,17 @@
   }
 
   .sidebar {
-    display: flex;
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: 30;
+    display: flex !important;
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    bottom: 0;
     width: var(--mobile-rail-width);
-    height: 100dvh;
+    z-index: 999 !important;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
     padding: 0.55rem 0.4rem;
-    align-items: center;
     overflow: visible;
-    transform: translateZ(0);
-    -webkit-overflow-scrolling: touch;
   }
 
   .appSurface {
@@ -2230,7 +2230,6 @@
 
   .sidebarMain {
     width: 100%;
-    align-items: center;
     gap: 0.65rem;
     overflow: visible;
     padding-right: 0;
