@@ -2265,11 +2265,6 @@
     -webkit-touch-callout: none;
   }
 
-  .profileButton {
-    background: red !important;
-    min-height: 56px !important;
-  }
-
   .workspaceSwitch div,
   .workspaceSwitch svg,
   .newChatButton span,
@@ -2299,6 +2294,10 @@
     right: auto;
     width: 260px;
     z-index: 100;
+  }
+
+  .profileMenu {
+    display: flex;
   }
 
   .heroMode {
