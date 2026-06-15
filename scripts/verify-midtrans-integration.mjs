@@ -63,7 +63,7 @@ const expectations = [
   ['Env has Midtrans sandbox flag', '.env.local.example', 'MIDTRANS_IS_PRODUCTION=false'],
   ['Generate route imports quota helper', 'src/app/api/generate/route.js', "@/lib/billing/quota'"],
   ['Quota helper reads billing expiry', 'src/lib/billing/quota.js', 'billing_period_ends_at'],
-  ['Pricing copy mentions Midtrans', 'src/components/PricingPage.js', 'Redirecting to Midtrans checkout...'],
+  ['Pricing copy mentions Midtrans', 'src/lib/i18n/translations.js', 'Redirecting to Midtrans checkout...'],
 ];
 
 const missing = expectations.filter(([, path, token]) => {

@@ -14,7 +14,7 @@ function getMidtransErrorMessage(payload) {
 export function getMidtransConfig(env = process.env) {
   const serverKey = env.MIDTRANS_SERVER_KEY || '';
   const clientKey = env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '';
-  const appUrl = env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = env.NEXT_PUBLIC_APP_URL || env.VERCEL_URL || 'http://localhost:3000';
   const isProduction = env.MIDTRANS_IS_PRODUCTION === 'true';
   const snapUrl = isProduction ? MIDTRANS_PRODUCTION_SNAP_URL : MIDTRANS_SANDBOX_SNAP_URL;
 
@@ -26,6 +26,23 @@ export function getMidtransConfig(env = process.env) {
     snapUrl,
     checkoutConfigured: Boolean(serverKey),
   };
+}
+
+function getMerchantOrigin(env = process.env) {
+  const rawUrl = env.NEXT_PUBLIC_APP_URL || env.VERCEL_URL || 'http://localhost:3000';
+  try {
+    const normalized = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+    return new URL(normalized).origin;
+  } catch {
+    return 'http://localhost:3000';
+  }
+}
+
+export function buildMidtransReturnUrl(orderId, env = process.env) {
+  const merchantOrigin = getMerchantOrigin(env);
+  const url = new URL('/', merchantOrigin);
+  url.searchParams.set('order_id', orderId);
+  return url.toString();
 }
 
 export async function createMidtransSnapCheckout({ planId, billingCycle, user, env = process.env }) {
@@ -74,7 +91,7 @@ export async function createMidtransSnapCheckout({ planId, billingCycle, user, e
           },
         ],
         callbacks: {
-          finish: `${config.appUrl}?order_id=${orderId}`,
+          finish: buildMidtransReturnUrl(orderId, env),
         },
         custom_field1: user?.id || '',
         custom_field2: plan.id,
