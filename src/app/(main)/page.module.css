@@ -2276,15 +2276,19 @@
   }
 
   .profileMenu {
-    left: 0.4rem;
-    right: auto;
+    position: fixed;
+    left: calc(var(--mobile-rail-width) + 0.5rem);
+    bottom: 0.5rem;
     width: 260px;
+    z-index: 100;
   }
 
   .workspaceMenu {
-    left: 0.4rem;
-    right: auto;
+    position: fixed;
+    left: calc(var(--mobile-rail-width) + 0.5rem);
+    top: 0.5rem;
     width: 220px;
+    z-index: 100;
   }
 
   .heroMode {

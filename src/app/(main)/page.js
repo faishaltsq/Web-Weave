@@ -200,11 +200,11 @@ export default function WebWeave() {
       if (event.key === 'Escape') setProfileMenuOpen(false);
     };
 
-    document.addEventListener('pointerdown', closeProfileMenuFromOutside);
+    document.addEventListener('click', closeProfileMenuFromOutside);
     document.addEventListener('keydown', closeProfileMenuWithEscape);
 
     return () => {
-      document.removeEventListener('pointerdown', closeProfileMenuFromOutside);
+      document.removeEventListener('click', closeProfileMenuFromOutside);
       document.removeEventListener('keydown', closeProfileMenuWithEscape);
     };
   }, [profileMenuOpen]);
