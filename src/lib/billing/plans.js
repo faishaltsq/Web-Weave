@@ -15,6 +15,7 @@ export const WEBWEAVE_PLANS = {
     id: 'free',
     label: 'Free',
     monthlyGenerationLimit: 5,
+    scriptSlotLimit: 0,
     projectLimit: 1,
     allowedFrameworks: ['playwright_js'],
     checkoutEnabled: false,
@@ -29,6 +30,7 @@ export const WEBWEAVE_PLANS = {
     label: 'Starter',
     monthlyGenerationLimit: 75,
     projectLimit: 5,
+    scriptSlotLimit: 5,
     allowedFrameworks: STARTER_FRAMEWORKS,
     checkoutEnabled: true,
     publicEnabled: true,
@@ -42,6 +44,7 @@ export const WEBWEAVE_PLANS = {
     label: 'Pro',
     monthlyGenerationLimit: 300,
     projectLimit: 25,
+    scriptSlotLimit: 12,
     allowedFrameworks: SUPPORTED_FRAMEWORKS,
     checkoutEnabled: true,
     publicEnabled: true,
@@ -55,6 +58,7 @@ export const WEBWEAVE_PLANS = {
     label: 'Team',
     monthlyGenerationLimit: 1000,
     projectLimit: 50,
+    scriptSlotLimit: 0,
     allowedFrameworks: SUPPORTED_FRAMEWORKS,
     checkoutEnabled: false,
     publicEnabled: false,
@@ -79,6 +83,10 @@ export function getPlanLimit(planId) {
 
 export function getProjectLimit(planId) {
   return getPlanConfig(planId)?.projectLimit ?? WEBWEAVE_PLANS.free.projectLimit;
+}
+
+export function getScriptSlotLimit(planId) {
+  return getPlanConfig(planId)?.scriptSlotLimit ?? WEBWEAVE_PLANS.free.scriptSlotLimit;
 }
 
 export function getAllowedFrameworks(planId) {

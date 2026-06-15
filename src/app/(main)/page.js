@@ -12,6 +12,7 @@ import {
   Download,
   Eye,
   EyeOff,
+  FileCode2,
   Folder,
   Globe,
   Home,
@@ -38,6 +39,7 @@ import {
 import PricingPage from '@/components/PricingPage';
 import SettingsModal from '@/components/SettingsModal';
 import ProjectsPage from '@/components/ProjectsPage';
+import ScriptsPage from '@/components/ScriptsPage';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
@@ -122,6 +124,7 @@ export default function WebWeave() {
   const deriveView = (path) => {
     if (path === '/chats') return 'chats';
     if (path === '/projects') return 'projects';
+    if (path === '/scripts') return 'scripts';
     return 'home';
   };
   const [activeView, setActiveView] = useState(() => deriveView(pathname));
@@ -724,6 +727,7 @@ export default function WebWeave() {
             <button type="button" className={activeView === 'home' ? styles.navActive : ''} onClick={() => { setActiveView('home'); window.history.pushState(null, '', '/'); }}><Home size={18} /> Home</button>
             <button type="button" className={activeView === 'projects' ? styles.navActive : ''} onClick={() => { setActiveView('projects'); window.history.pushState(null, '', '/projects'); }}><Folder size={18} /> Projects</button>
             <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }}><MessageSquare size={18} /> Chats</button>
+            <button type="button" className={activeView === 'scripts' ? styles.navActive : ''} onClick={() => { setActiveView('scripts'); window.history.pushState(null, '', '/scripts'); }}><FileCode2 size={18} /> Scripts</button>
             <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Code2 size={18} /> Templates</button>
           </nav>
 
@@ -846,6 +850,13 @@ export default function WebWeave() {
               })}
             </div>
           </div>
+        ) : activeView === 'scripts' ? (
+          <ScriptsPage
+            onOpenPricing={handleOpenPricing}
+            onNewAutomation={() => { startNewAutomation(); setActiveView('home'); window.history.pushState(null, '', '/'); }}
+            onBrowseChats={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }}
+            onOpenScript={(script) => { handleOpenScript(script); setActiveView('home'); window.history.pushState(null, '', '/'); }}
+          />
         ) : hasWorkspace ? (
           <>
             <header className={styles.workspaceHeader}>
