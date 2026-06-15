@@ -1,9 +1,11 @@
 'use client';
 
-import { Code2, Crown, FileCode2, Lock, Play, Sparkles, TerminalSquare, Trash2 } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Code2, Crown, FileCode2, Lock, Play, Sparkles, TerminalSquare, Trash2, XCircle } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import { getScriptSlotLimit } from '@/lib/billing/plans';
+import { getCloudScriptIds, removeCloudScriptId } from '@/lib/utils/cloud-scripts';
 import styles from './ScriptsPage.module.css';
 
 function extractDomain(url) {
@@ -21,15 +23,23 @@ function getScriptName(script) {
   return `${domain}${isRevision ? ' (revisi)' : ''}`;
 }
 
-export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseChats, onOpenScript, onDeleteScript }) {
+export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseChats, onOpenScript }) {
   const { t } = useLanguage();
   const { SUPABASE_ENABLED, user, scripts, historyLoading, usageStatus } = useWebWeave();
   const planId = usageStatus?.planId || 'free';
   const planLabel = usageStatus?.planLabel || 'Free';
   const slotLimit = getScriptSlotLimit(planId);
   const isPaid = planId !== 'free' && slotLimit > 0;
-  const visibleScripts = scripts || [];
-  const usedSlots = Math.min(visibleScripts.length, slotLimit);
+  const [cloudScriptIds, setCloudScriptIds] = useState(() => getCloudScriptIds(user?.id));
+  const cloudScripts = (scripts || []).filter((s) => cloudScriptIds.includes(s.id));
+  const usedSlots = cloudScripts.length;  const refreshCloud = useCallback(() => {
+    setCloudScriptIds(getCloudScriptIds(user?.id));
+  }, [user?.id]);
+
+  const handleRemoveFromCloud = (scriptId) => {
+    removeCloudScriptId(user?.id, scriptId);
+    refreshCloud();
+  };
 
   if (!SUPABASE_ENABLED) {
     return (
@@ -111,24 +121,26 @@ export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseCh
 
       {historyLoading ? (
         <div className={styles.emptyState}>{t('common.loading')}</div>
-      ) : visibleScripts.length === 0 ? (
+      ) : cloudScripts.length === 0 ? (
         <div className={styles.emptyState}>
           <Code2 size={36} />
           <h2>{t('scripts.emptyTitle')}</h2>
           <p>{t('scripts.emptyBody')}</p>
-          <button type="button" className={styles.primaryButton} onClick={onNewAutomation}>{t('scripts.newAutomation')}</button>
+          <div className={styles.emptyActions}>
+            <button type="button" className={styles.primaryButton} onClick={onNewAutomation}><Sparkles size={16} /> {t('scripts.newAutomation')}</button>
+            <button type="button" className={styles.secondaryButton} onClick={onBrowseChats}>{t('scripts.browseChats')}</button>
+          </div>
         </div>
       ) : (
         <div className={styles.grid}>
-          {visibleScripts.map((script, index) => {
-            const locked = index >= slotLimit;
+          {cloudScripts.map((script) => {
             const preview = (script.prompt || '').replace('Regeneration feedback from previous output:', '').slice(0, 110).trim();
             const date = script.created_at ? new Date(script.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
             return (
-              <article key={script.id} className={`${styles.scriptCard} ${locked ? styles.lockedCard : ''}`}>
+              <article key={script.id} className={styles.scriptCard}>
                 <div className={styles.cardTop}>
                   <div className={styles.scriptIcon}><FileCode2 size={18} /></div>
-                  <span className={styles.statusPill}>{locked ? t('scripts.lockedOverflow') : t('scripts.cloudReady')}</span>
+                  <span className={styles.statusPill}>{t('scripts.cloudReady')}</span>
                 </div>
                 <h3>{getScriptName(script)}</h3>
                 <p>{preview}</p>
@@ -139,7 +151,7 @@ export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseCh
                 <div className={styles.cardActions}>
                   <button type="button" className={styles.secondaryButton} onClick={() => onOpenScript(script)}>{t('scripts.viewCode')}</button>
                   <button type="button" className={styles.disabledRunButton} disabled><Play size={14} /> {t('scripts.comingSoon')}</button>
-                  <button type="button" className={styles.deleteButton} onClick={(e) => { e.stopPropagation(); if (onDeleteScript) onDeleteScript(script.id); }} title={t('common.delete') || 'Delete'}><Trash2 size={14} /></button>
+                  <button type="button" className={styles.deleteButton} onClick={() => handleRemoveFromCloud(script.id)} title="Remove from Cloud"><XCircle size={14} /></button>
                 </div>
               </article>
             );
