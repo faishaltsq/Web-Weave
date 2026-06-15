@@ -1,6 +1,6 @@
 'use client';
 
-import { Code2, Crown, FileCode2, Lock, Play, Sparkles, TerminalSquare } from 'lucide-react';
+import { Code2, Crown, FileCode2, Lock, Play, Sparkles, TerminalSquare, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import { getScriptSlotLimit } from '@/lib/billing/plans';
@@ -21,7 +21,7 @@ function getScriptName(script) {
   return `${domain}${isRevision ? ' (revisi)' : ''}`;
 }
 
-export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseChats, onOpenScript }) {
+export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseChats, onOpenScript, onDeleteScript }) {
   const { t } = useLanguage();
   const { SUPABASE_ENABLED, user, scripts, historyLoading, usageStatus } = useWebWeave();
   const planId = usageStatus?.planId || 'free';
@@ -139,6 +139,7 @@ export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseCh
                 <div className={styles.cardActions}>
                   <button type="button" className={styles.secondaryButton} onClick={() => onOpenScript(script)}>{t('scripts.viewCode')}</button>
                   <button type="button" className={styles.disabledRunButton} disabled><Play size={14} /> {t('scripts.comingSoon')}</button>
+                  <button type="button" className={styles.deleteButton} onClick={(e) => { e.stopPropagation(); if (onDeleteScript) onDeleteScript(script.id); }} title={t('common.delete') || 'Delete'}><Trash2 size={14} /></button>
                 </div>
               </article>
             );
