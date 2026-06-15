@@ -24,14 +24,14 @@ const scriptsPage = existsSync(join(root, files.scriptsPage)) ? read(files.scrip
 const scriptsCss = existsSync(join(root, files.scriptsCss)) ? read(files.scriptsCss) : '';
 
 const expectations = [
-  ['sidebar has Scripts nav item', page, 'Scripts</button>'],
+  ['sidebar has Scripts nav item', page, 'Automation Scripts</button>'],
   ['scripts route maps to view', page, "path === '/scripts'"],
   ['scripts view renders component', page, '<ScriptsPage'],
   ['Starter has 5 script slots', plans, 'scriptSlotLimit: 5'],
   ['Pro has 12 script slots', plans, 'scriptSlotLimit: 12'],
   ['script slot helper exported', plans, 'export function getScriptSlotLimit'],
-  ['English scripts copy exists', translations, 'Cloud execution is being prepared'],
-  ['Indonesian scripts copy exists', translations, 'Eksekusi cloud sedang disiapkan'],
+  ['English scripts copy exists', translations, 'Cloud execution engine is in development'],
+  ['Indonesian scripts copy exists', translations, 'Cloud execution engine sedang dikembangkan'],
   ['ScriptsPage exports component', scriptsPage, 'export default function ScriptsPage'],
   ['free users are locked', scriptsPage, "planId === 'free'"],
   ['Run in Cloud disabled', scriptsPage, 'disabled'],
