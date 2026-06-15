@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/supabase/server';
 import { createMidtransSnapCheckout } from '@/lib/billing/midtrans';
 import { getPlanConfig, normalizeBillingCycle } from '@/lib/billing/plans';
+import { validateOrigin } from '@/lib/server/security';
 
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 5;
@@ -25,17 +26,6 @@ function checkRateLimit(clientId) {
     return Math.ceil((current.resetAt - now) / 1000);
   }
   return null;
-}
-
-function validateOrigin(req) {
-  const origin = req.headers.get('origin');
-  const referer = req.headers.get('referer');
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-  if (!appUrl) return true;
-  const isSameOrigin = (header) => header && (header.startsWith(appUrl) || header === appUrl);
-  if (origin && !isSameOrigin(origin)) return false;
-  if (!origin && referer && !isSameOrigin(referer)) return false;
-  return true;
 }
 
 export async function POST(req) {
