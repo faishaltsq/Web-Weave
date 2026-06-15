@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const midtrans = readFileSync(join(process.cwd(), 'src/lib/billing/midtrans.js'), 'utf8');
+const checkout = readFileSync(join(process.cwd(), 'src/app/api/billing/checkout/route.js'), 'utf8');
+const security = readFileSync(join(process.cwd(), 'src/lib/server/security.js'), 'utf8');
 const failures = [];
 
 const expectations = [
@@ -15,6 +17,18 @@ const expectations = [
 
 for (const [label, token] of expectations) {
   if (!midtrans.includes(token)) failures.push(`${label}: missing "${token}"`);
+}
+
+const routeExpectations = [
+  ['security exports request origin helper', security, 'export function getRequestOrigin'],
+  ['checkout imports request origin helper', checkout, 'getRequestOrigin'],
+  ['checkout stores request origin', checkout, 'const requestOrigin = getRequestOrigin(req)'],
+  ['checkout overrides callback app URL', checkout, 'NEXT_PUBLIC_APP_URL: requestOrigin'],
+  ['checkout passes env override to Midtrans', checkout, 'env: checkoutEnv'],
+];
+
+for (const [label, source, token] of routeExpectations) {
+  if (!source.includes(token)) failures.push(`${label}: missing "${token}"`);
 }
 
 if (midtrans.includes('finish: `${config.appUrl}?order_id=${orderId}`')) {

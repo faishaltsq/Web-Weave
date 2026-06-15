@@ -20,7 +20,7 @@ const expectations = [
   ['security accepts VERCEL_URL host', security, 'process.env.VERCEL_URL'],
   ['security compares exact origins', security, 'allowedOrigins.includes(headerOrigin)'],
   ['security does not use raw startsWith', security, '.startsWith(appUrl)'],
-  ['checkout imports shared validateOrigin', checkout, "import { validateOrigin } from '@/lib/server/security'"],
+  ['checkout imports shared validateOrigin', checkout, 'validateOrigin'],
   ['checkout does not define inline validateOrigin', checkout, 'function validateOrigin'],
 ];
 

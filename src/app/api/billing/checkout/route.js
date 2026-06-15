@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/supabase/server';
 import { createMidtransSnapCheckout } from '@/lib/billing/midtrans';
 import { getPlanConfig, normalizeBillingCycle } from '@/lib/billing/plans';
-import { validateOrigin } from '@/lib/server/security';
+import { getRequestOrigin, validateOrigin } from '@/lib/server/security';
 
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 5;
@@ -49,7 +49,11 @@ export async function POST(req) {
   if (!plan) return NextResponse.json({ success: false, error: 'Unknown billing plan.' }, { status: 400 });
   if (!plan.checkoutEnabled) return NextResponse.json({ success: false, error: 'This plan is not available for checkout.' }, { status: 400 });
 
-  const checkout = await createMidtransSnapCheckout({ planId, billingCycle, user: auth.user });
+  const requestOrigin = getRequestOrigin(req);
+  const checkoutEnv = requestOrigin
+    ? { ...process.env, NEXT_PUBLIC_APP_URL: requestOrigin }
+    : process.env;
+  const checkout = await createMidtransSnapCheckout({ planId, billingCycle, user: auth.user, env: checkoutEnv });
   if (!checkout.success) {
     return NextResponse.json({ success: false, error: checkout.error || 'Failed to create checkout.' }, { status: checkout.configured === false ? 503 : 400 });
   }

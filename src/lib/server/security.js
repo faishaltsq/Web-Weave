@@ -8,6 +8,14 @@ function getUrlOrigin(value) {
   }
 }
 
+export function getRequestOrigin(req) {
+  return getUrlOrigin(req.headers.get('origin'))
+    || getUrlOrigin(req.headers.get('referer'))
+    || getUrlOrigin(req.url)
+    || getUrlOrigin(process.env.NEXT_PUBLIC_APP_URL)
+    || getUrlOrigin(process.env.VERCEL_URL);
+}
+
 export function validateOrigin(req) {
   const origin = req.headers.get('origin');
   const referer = req.headers.get('referer');
