@@ -10,6 +10,7 @@
 
 # misc
 .DS_Store
+.worktrees/
 *.pem
 *.png
 *.jpg
