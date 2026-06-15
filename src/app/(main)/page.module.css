@@ -2213,6 +2213,7 @@
     background: var(--sidebar);
     border-right: 1px solid var(--border);
     padding: 0.55rem 0.4rem;
+    padding-bottom: calc(0.55rem + env(safe-area-inset-bottom, 10px));
     overflow: visible;
   }
 
@@ -2293,19 +2294,11 @@
     border-radius: 12px;
   }
 
-  .profileMenu {
-    position: fixed;
-    left: calc(var(--mobile-rail-width) + 0.5rem);
-    bottom: 0.5rem;
-    width: 260px;
-    z-index: 100;
-  }
-
+  .profileMenu,
   .workspaceMenu {
-    position: fixed;
-    left: calc(var(--mobile-rail-width) + 0.5rem);
-    top: 0.5rem;
-    width: 220px;
+    left: calc(var(--mobile-rail-width) + 0.4rem);
+    right: auto;
+    width: 260px;
     z-index: 100;
   }
 
