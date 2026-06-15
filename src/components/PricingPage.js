@@ -23,7 +23,7 @@ export default function PricingPage({ onClose, onCheckout }) {
       monthlyPrice: 0,
       description: t('pricing.freeTagline'),
       quota: `5 ${t('pricing.freeGenerations')}`,
-      cta: currentPlan === 'free' ? t('pricing.freeCta') : (currentPlan !== 'free' ? 'Downgrade to Free' : t('pricing.freeCta')),
+      cta: t('pricing.freeCta'),
       features: [
         '1 project pribadi',
         'Playwright JavaScript only',
@@ -231,13 +231,15 @@ export default function PricingPage({ onClose, onCheckout }) {
 
               <button
                 type="button"
-                className={`${styles.ctaButton} ${plan.badge ? styles.ctaPrimary : styles.ctaSecondary} ${plan.disabled ? styles.disabledButton : ''} ${currentPlan === plan.id ? styles.ctaCurrent : ''}`}
+                className={`${styles.ctaButton} ${plan.badge && plan.id !== 'free' ? styles.ctaPrimary : styles.ctaSecondary} ${plan.disabled ? styles.disabledButton : ''} ${currentPlan === plan.id && plan.id !== 'free' ? styles.ctaCurrent : ''}`}
                 disabled={plan.disabled || (plan.id === 'starter' && currentPlan === 'pro')}
                 aria-disabled={plan.disabled}
                 onClick={() => {
                   if (plan.disabled) return;
                   if (currentPlan === plan.id && plan.id !== 'free') {
                     handleCancelPlan();
+                  } else if (plan.id === 'free' && currentPlan !== 'free') {
+                    window.location.href = '/';
                   } else if (plan.cta) {
                     handlePlanClick(plan);
                   }
@@ -245,9 +247,9 @@ export default function PricingPage({ onClose, onCheckout }) {
               >
                 {checkoutLoadingPlan === plan.id ? t('pricing.creatingCheckout') : (currentPlan === plan.id && plan.id !== 'free' ? (
                   <><XCircle size={16} /> {plan.cta}</>
-                ) : plan.cta ? (
+                ) : (
                   <>{plan.cta} <ArrowRight size={16} /></>
-                ) : null)}
+                ))}
               </button>
 
               <div className={styles.divider} />
