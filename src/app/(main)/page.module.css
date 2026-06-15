@@ -2204,12 +2204,11 @@
 
   .sidebar {
     display: flex !important;
-    position: fixed !important;
-    left: 0;
+    position: sticky;
     top: 0;
-    bottom: 0;
-    width: var(--mobile-rail-width);
-    z-index: 999 !important;
+    align-self: start;
+    height: 100dvh;
+    z-index: 30;
     background: var(--sidebar);
     border-right: 1px solid var(--border);
     padding: 0.55rem 0.4rem;
