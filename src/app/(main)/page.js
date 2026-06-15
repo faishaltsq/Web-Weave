@@ -38,6 +38,7 @@ import {
 import PricingPage from '@/components/PricingPage';
 import SettingsModal from '@/components/SettingsModal';
 import ProjectsPage from '@/components/ProjectsPage';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import styles from './page.module.css';
@@ -110,6 +111,8 @@ export default function WebWeave() {
   const [pricingClosing, setPricingClosing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [contextMenuScript, setContextMenuScript] = useState(null);
+  const [pendingDeleteScriptId, setPendingDeleteScriptId] = useState('');
+  const [deletingScript, setDeletingScript] = useState(false);
   const promptAnimationTimer = useRef(null);
   const dropdownAnimationTimer = useRef(null);
   const profileMenuRef = useRef(null);
@@ -445,14 +448,27 @@ export default function WebWeave() {
     setNewAutomationMenuOpen(false);
   };
 
-  const handleDeleteScript = async (scriptId) => {
+  const requestDeleteScript = (scriptId) => {
     setContextMenuScript(null);
-    const headers = await getAuthHeaders().catch(() => null);
-    if (!headers) return;
-    const res = await fetch(`/api/generated-scripts?id=${encodeURIComponent(scriptId)}`, { method: 'DELETE', headers });
-    if (res.ok) {
-      if (activeScriptId === scriptId) startNewAutomation();
-      await loadPrivateData();
+    setPendingDeleteScriptId(scriptId);
+  };
+
+  const handleDeleteScript = async () => {
+    if (!pendingDeleteScriptId) return;
+    const scriptId = pendingDeleteScriptId;
+    setDeletingScript(true);
+    try {
+      const headers = await getAuthHeaders().catch(() => null);
+      if (!headers) return;
+
+      const res = await fetch(`/api/generated-scripts?id=${encodeURIComponent(scriptId)}`, { method: 'DELETE', headers });
+      if (res.ok) {
+        if (activeScriptId === scriptId) startNewAutomation();
+        setPendingDeleteScriptId('');
+        await loadPrivateData();
+      }
+    } finally {
+      setDeletingScript(false);
     }
   };
 
@@ -742,7 +758,7 @@ export default function WebWeave() {
                     </button>
                     {contextMenuScript === script.id && (
                       <div className={styles.recentItemMenu}>
-                        <button type="button" className={styles.recentItemMenuBtn} onClick={() => handleDeleteScript(script.id)}>
+                        <button type="button" className={styles.recentItemMenuBtn} onClick={() => requestDeleteScript(script.id)}>
                           <Trash2 size={14} /> Delete
                         </button>
                       </div>
@@ -825,7 +841,7 @@ export default function WebWeave() {
                     <button
                       type="button"
                       className={styles.chatItemDelete}
-                      onClick={(e) => { e.stopPropagation(); handleDeleteScript(script.id); }}
+                      onClick={(e) => { e.stopPropagation(); requestDeleteScript(script.id); }}
                       title="Delete chat"
                     >
                       <Trash2 size={14} />
@@ -1083,6 +1099,17 @@ export default function WebWeave() {
         </div>
       )}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      <ConfirmDialog
+        open={Boolean(pendingDeleteScriptId)}
+        title={t('confirmDialog.deleteChatTitle')}
+        message={t('confirmDialog.deleteChatMessage')}
+        cancelLabel={t('confirmDialog.no')}
+        confirmLabel={t('confirmDialog.yesDelete')}
+        loadingLabel={t('confirmDialog.deleting')}
+        loading={deletingScript}
+        onCancel={() => setPendingDeleteScriptId('')}
+        onConfirm={handleDeleteScript}
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Folder, Plus, Search, ArrowRight, Globe, Clock, FileText, X, Trash2 } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import { useLanguage } from '@/lib/i18n/context';
 import styles from './ProjectsPage.module.css';
@@ -28,6 +29,8 @@ export default function ProjectsPage() {
   const [newDomain, setNewDomain] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState('');
+  const [deletingProject, setDeletingProject] = useState(false);
 
   const searchTerm = search.trim().toLowerCase();
   const visibleProjects = projects.filter((p) => {
@@ -39,13 +42,27 @@ export default function ProjectsPage() {
     window.location.href = `/?project=${encodeURIComponent(project.id)}`;
   };
 
-  const handleDeleteProject = async (e, projectId) => {
+  const requestDeleteProject = (e, projectId) => {
     e.stopPropagation();
-    if (!confirm('Delete this project and all its scripts?')) return;
-    const headers = await getAuthHeaders().catch(() => null);
-    if (!headers) return;
-    const res = await fetch(`/api/projects?id=${encodeURIComponent(projectId)}`, { method: 'DELETE', headers });
-    if (res.ok) await loadPrivateData();
+    setPendingDeleteProjectId(projectId);
+  };
+
+  const handleDeleteProject = async () => {
+    if (!pendingDeleteProjectId) return;
+    const projectId = pendingDeleteProjectId;
+    setDeletingProject(true);
+    try {
+      const headers = await getAuthHeaders().catch(() => null);
+      if (!headers) return;
+
+      const res = await fetch(`/api/projects?id=${encodeURIComponent(projectId)}`, { method: 'DELETE', headers });
+      if (res.ok) {
+        setPendingDeleteProjectId('');
+        await loadPrivateData();
+      }
+    } finally {
+      setDeletingProject(false);
+    }
   };
 
   const handleNewAutomation = (project) => {
@@ -149,7 +166,7 @@ export default function ProjectsPage() {
                 </div>
 
                 {lastPreview && <p className={styles.cardPreview}>{lastPreview}</p>}
-                <button type="button" className={styles.cardDelete} onClick={(e) => handleDeleteProject(e, project.id)} title="Delete project">
+                <button type="button" className={styles.cardDelete} onClick={(e) => requestDeleteProject(e, project.id)} title="Delete project">
                   <Trash2 size={14} />
                 </button>
               </button>
@@ -188,6 +205,18 @@ export default function ProjectsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(pendingDeleteProjectId)}
+        title={t('confirmDialog.deleteProjectTitle')}
+        message={t('confirmDialog.deleteProjectMessage')}
+        cancelLabel={t('confirmDialog.no')}
+        confirmLabel={t('confirmDialog.yesDelete')}
+        loadingLabel={t('confirmDialog.deleting')}
+        loading={deletingProject}
+        onCancel={() => setPendingDeleteProjectId('')}
+        onConfirm={handleDeleteProject}
+      />
     </div>
   );
 }

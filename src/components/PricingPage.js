@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ArrowRight, Check, Sparkles, Zap, XCircle } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import styles from './PricingPage.module.css';
@@ -15,6 +16,8 @@ export default function PricingPage({ onClose, onCheckout }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [actionMessage, setActionMessage] = useState('');
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState('');
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   const plans = [
     {
@@ -132,8 +135,12 @@ export default function PricingPage({ onClose, onCheckout }) {
     handlePlanClick(starterPlan);
   };
 
-  const handleCancelPlan = async () => {
-    if (!confirm(t('pricing.cancelConfirm') || 'Cancel your plan and switch to Free?')) return;
+  const handleCancelPlan = () => {
+    setCancelConfirmOpen(true);
+  };
+
+  const confirmCancelPlan = async () => {
+    setCancelLoading(true);
     setActionMessage(t('pricing.cancelling') || 'Cancelling...');
     try {
       const headers = await getAuthHeaders();
@@ -141,12 +148,15 @@ export default function PricingPage({ onClose, onCheckout }) {
       const data = await res.json();
       if (data.success) {
         setActionMessage(t('pricing.cancelled') || 'Plan cancelled. You are now on Free.');
+        setCancelConfirmOpen(false);
         await loadPrivateData();
       } else {
         setActionMessage(data.error || t('pricing.cancelFailed') || 'Failed to cancel.');
       }
     } catch {
       setActionMessage(t('pricing.cancelFailed') || 'Failed to cancel.');
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -303,6 +313,18 @@ export default function PricingPage({ onClose, onCheckout }) {
           <ArrowRight size={17} />
         </button>
       </section>
+
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        title={t('confirmDialog.cancelPlanTitle')}
+        message={t('confirmDialog.cancelPlanMessage')}
+        cancelLabel={t('confirmDialog.no')}
+        confirmLabel={t('confirmDialog.yesCancelPlan')}
+        loadingLabel={t('confirmDialog.cancelling')}
+        loading={cancelLoading}
+        onCancel={() => setCancelConfirmOpen(false)}
+        onConfirm={confirmCancelPlan}
+      />
     </div>
   );
 }
