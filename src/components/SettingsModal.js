@@ -13,7 +13,7 @@ export default function SettingsModal({ onClose }) {
       <div className={styles.modal}>
         <div className={styles.header}>
           <h2 className={styles.title}>{t('settings.title')}</h2>
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label={t('common.close')}>
+          <button type="button" className={styles.closeButton} onClick={onClose} aria-label={t('common.close')} title={t('common.close')}>
             <X size={18} />
           </button>
         </div>

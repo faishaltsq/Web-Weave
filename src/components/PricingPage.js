@@ -166,7 +166,7 @@ export default function PricingPage({ onClose, onCheckout }) {
       <div className={styles.orbTwo} />
 
       <header className={styles.header}>
-        <button type="button" className={styles.backButton} onClick={onClose}>
+        <button type="button" className={styles.backButton} onClick={onClose} title={t('pricing.backToBuilder')}>
           {t('pricing.backToBuilder')}
         </button>
         <div className={styles.eyebrow}><Sparkles size={16} /> Pricing</div>
@@ -199,6 +199,7 @@ export default function PricingPage({ onClose, onCheckout }) {
             className={`${styles.toggleButton} ${billingCycle === 'monthly' ? styles.active : ''}`}
             aria-pressed={billingCycle === 'monthly'}
             onClick={() => setBillingCycle('monthly')}
+            title={t('pricing.monthly')}
           >
             {t('pricing.monthly')}
           </button>
@@ -207,6 +208,7 @@ export default function PricingPage({ onClose, onCheckout }) {
             className={`${styles.toggleButton} ${billingCycle === 'annual' ? styles.active : ''}`}
             aria-pressed={billingCycle === 'annual'}
             onClick={() => setBillingCycle('annual')}
+            title={t('pricing.annual')}
           >
             {t('pricing.annual')}
           </button>
@@ -308,7 +310,7 @@ export default function PricingPage({ onClose, onCheckout }) {
           <h2>{t('cta.ready')}</h2>
           <p>{t('cta.startNow')}</p>
         </div>
-        <button type="button" className={styles.ctaButtonLarge} onClick={handlePrimaryCta}>
+        <button type="button" className={styles.ctaButtonLarge} onClick={handlePrimaryCta} title={t('cta.tryNow')}>
           {t('cta.tryNow')}
           <ArrowRight size={17} />
         </button>

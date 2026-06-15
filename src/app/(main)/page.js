@@ -655,7 +655,7 @@ export default function WebWeave() {
         <input type="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} placeholder={t('auth.emailPlaceholder')} className={styles.authInput} autoComplete="email" required />
         <div className={styles.authPasswordWrap}>
           <input type={showPassword ? 'text' : 'password'} value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} placeholder={t('auth.passwordPlaceholder')} className={styles.authInput} autoComplete={authMode === 'sign_up' ? 'new-password' : 'current-password'} required minLength={6} />
-          <button type="button" className={styles.passwordToggle} onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+          <button type="button" className={styles.passwordToggle} onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'} title={showPassword ? 'Hide password' : 'Show password'}>
             {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
@@ -730,8 +730,8 @@ export default function WebWeave() {
           </div>
 
           <div className={styles.newChatWrap}>
-            <button type="button" className={styles.newChatButton} onClick={startNewAutomation}>{t('sidebar.newAutomation')}</button>
-            <button type="button" className={styles.newChatDropdown} onClick={() => { setNewAutomationMenuOpen((value) => !value); setWorkspaceMenuOpen(false); }} aria-label="Open new automation options" aria-expanded={newAutomationMenuOpen}>
+            <button type="button" className={styles.newChatButton} onClick={startNewAutomation} title={t('sidebar.newAutomation')}>{t('sidebar.newAutomation')}</button>
+            <button type="button" className={styles.newChatDropdown} onClick={() => { setNewAutomationMenuOpen((value) => !value); setWorkspaceMenuOpen(false); }} aria-label="Open new automation options" aria-expanded={newAutomationMenuOpen} title="New automation options">
               <ChevronDown size={16} className={newAutomationMenuOpen ? styles.chevronOpen : ''} />
             </button>
             {newAutomationMenuOpen && (
@@ -742,7 +742,7 @@ export default function WebWeave() {
             )}
           </div>
 
-          <button type="button" className={`${styles.sidebarSearch} ${searchOpen ? styles.sidebarSearchOpen : ''}`} onClick={() => setSearchOpen((value) => !value)} aria-expanded={searchOpen}>
+          <button type="button" className={`${styles.sidebarSearch} ${searchOpen ? styles.sidebarSearchOpen : ''}`} onClick={() => setSearchOpen((value) => !value)} aria-expanded={searchOpen} title="Search scripts">
             <Search size={18} /> <span>Search</span>
           </button>
           {searchOpen && (
@@ -750,15 +750,15 @@ export default function WebWeave() {
           )}
 
           <nav className={styles.navList}>
-            <button type="button" className={activeView === 'home' ? styles.navActive : ''} onClick={() => { setActiveView('home'); window.history.pushState(null, '', '/'); }}><Home size={18} /> Home</button>
-            <button type="button" className={activeView === 'projects' ? styles.navActive : ''} onClick={() => { setActiveView('projects'); window.history.pushState(null, '', '/projects'); }}><Folder size={18} /> Projects</button>
-            <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }}><MessageSquare size={18} /> Chats</button>
-            <button type="button" className={activeView === 'scripts' ? styles.navActive : ''} onClick={() => { setActiveView('scripts'); window.history.pushState(null, '', '/scripts'); }}><FileCode2 size={18} /> Automation Scripts</button>
+            <button type="button" className={activeView === 'home' ? styles.navActive : ''} onClick={() => { setActiveView('home'); window.history.pushState(null, '', '/'); }} title="Home"><Home size={18} /> Home</button>
+            <button type="button" className={activeView === 'projects' ? styles.navActive : ''} onClick={() => { setActiveView('projects'); window.history.pushState(null, '', '/projects'); }} title="Projects"><Folder size={18} /> Projects</button>
+            <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }} title="Chats"><MessageSquare size={18} /> Chats</button>
+            <button type="button" className={activeView === 'scripts' ? styles.navActive : ''} onClick={() => { setActiveView('scripts'); window.history.pushState(null, '', '/scripts'); }} title="Automation Scripts"><FileCode2 size={18} /> Automation Scripts</button>
             <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Code2 size={18} /> Templates</button>
           </nav>
 
           <div className={styles.sidebarSection}>
-            <button type="button" className={styles.sidebarSectionHeader} onClick={() => setRecentChatsOpen((value) => !value)} aria-expanded={recentChatsOpen}>
+            <button type="button" className={styles.sidebarSectionHeader} onClick={() => setRecentChatsOpen((value) => !value)} aria-expanded={recentChatsOpen} title="Toggle recent chats">
               <span>Recent Chats</span><ChevronDown size={15} className={recentChatsOpen ? styles.chevronOpen : ''} />
             </button>
             {recentChatsOpen && (
@@ -778,12 +778,13 @@ export default function WebWeave() {
                       className={`${styles.recentItemMore} ${contextMenuScript === script.id ? styles.recentItemMoreOpen : ''}`}
                       onClick={(e) => { e.stopPropagation(); setContextMenuScript(contextMenuScript === script.id ? null : script.id); }}
                       aria-label="More options"
+                      title="More options"
                     >
                       <MoreHorizontal size={15} />
                     </button>
                     {contextMenuScript === script.id && (
                       <div className={styles.recentItemMenu}>
-                        <button type="button" className={styles.recentItemMenuBtn} onClick={() => requestDeleteScript(script.id)}>
+                        <button type="button" className={styles.recentItemMenuBtn} onClick={() => requestDeleteScript(script.id)} title="Delete script">
                           <Trash2 size={14} /> Delete
                         </button>
                       </div>
@@ -828,10 +829,10 @@ export default function WebWeave() {
                     placeholder="Search chats..."
                   />
                   {scriptSearch && (
-                    <button type="button" className={styles.chatsSearchClear} onClick={() => setScriptSearch('')}>✕</button>
+                    <button type="button" className={styles.chatsSearchClear} onClick={() => setScriptSearch('')} title="Clear search">✕</button>
                   )}
                 </div>
-                <button type="button" className={styles.chatsNewChatBtn} onClick={() => { startNewAutomation(); setActiveView('home'); window.history.pushState(null, '', '/'); }}>
+                <button type="button" className={styles.chatsNewChatBtn} onClick={() => { startNewAutomation(); setActiveView('home'); window.history.pushState(null, '', '/'); }} title={t('sidebar.newAutomation')}>
                   <Sparkles size={16} />
                   {t('sidebar.newAutomation')}
                 </button>
@@ -944,7 +945,7 @@ export default function WebWeave() {
                     )}
                   </div>
                   {error && <div className={styles.errorBanner}><AlertCircle size={18} /><span>{error}</span></div>}
-                  <button type="button" onClick={() => handleGenerate()} disabled={loading || (usageStatus && !isFrameworkAllowed(framework))} className={styles.generateButton}>
+                  <button type="button" onClick={() => handleGenerate()} disabled={loading || (usageStatus && !isFrameworkAllowed(framework))} className={styles.generateButton} title={t('generate.generate')}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
                     {loading ? t('generate.generating') : t('generate.generate')}
                   </button>
@@ -974,7 +975,7 @@ export default function WebWeave() {
                     <p className={styles.kicker}>Regenerate</p>
                     <h2>Improve with feedback</h2>
                     <textarea value={generationFeedback} onChange={(event) => setGenerationFeedback(event.target.value)} className={styles.feedbackTextarea} placeholder="Tell WebWeave what failed or what should be stricter." disabled={loading} />
-                    <button type="button" className={styles.regenerateButton} disabled={loading || (usageStatus && !isFrameworkAllowed(framework)) || !generationFeedback.trim()} onClick={() => handleGenerate({ feedback: generationFeedback })}>
+                    <button type="button" className={styles.regenerateButton} disabled={loading || (usageStatus && !isFrameworkAllowed(framework)) || !generationFeedback.trim()} onClick={() => handleGenerate({ feedback: generationFeedback })} title={t('generate.regenerate')}>
                       {loading ? <Loader size={16} className={styles.spinner} /> : <Zap size={16} />}
                       Regenerate with Feedback
                     </button>
@@ -1049,8 +1050,8 @@ export default function WebWeave() {
                             Gate: {result.qualityGate.status}
                           </span>
                         )}
-                        <button type="button" onClick={handleCopyCode} className={styles.actionButton}>                       {copied ? <CheckCircle size={16} /> : <Copy size={16} />}{copied ? t('generate.copied') : t('generate.copyCode')}</button>
-                        <button type="button" onClick={handleDownloadCode} className={styles.actionButton}><Download size={16} />Download</button>
+                        <button type="button" onClick={handleCopyCode} className={styles.actionButton} title={t('generate.copyCode')}>                       {copied ? <CheckCircle size={16} /> : <Copy size={16} />}{copied ? t('generate.copied') : t('generate.copyCode')}</button>
+                        <button type="button" onClick={handleDownloadCode} className={styles.actionButton} title={t('generate.downloadScript')}><Download size={16} />Download</button>
                       </div>
                     )}
                   </div>
@@ -1101,7 +1102,7 @@ export default function WebWeave() {
                       {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
                     </select>
                   )}
-                  <button type="button" onClick={() => handleGenerate()} disabled={loading || (usageStatus && !isFrameworkAllowed(framework))} className={styles.sendButton}>
+                  <button type="button" onClick={() => handleGenerate()} disabled={loading || (usageStatus && !isFrameworkAllowed(framework))} className={styles.sendButton} title={t('generate.generate')}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
                     {t('generate.generate')}
                   </button>
@@ -1132,6 +1133,7 @@ export default function WebWeave() {
               className={styles.pricingModalClose}
               onClick={handleClosePricing}
               aria-label="Close pricing"
+              title="Close pricing"
             >
               ✕
             </button>

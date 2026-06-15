@@ -114,9 +114,9 @@ export default function ProjectsPage() {
           <div className={styles.searchWrap}>
             <Search size={15} className={styles.searchIcon} />
             <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} className={styles.searchInput} placeholder="Search projects..." />
-            {search && <button type="button" className={styles.searchClear} onClick={() => setSearch('')}><X size={14} /></button>}
+            {search && <button type="button" className={styles.searchClear} onClick={() => setSearch('')} title="Clear search"><X size={14} /></button>}
           </div>
-          <button type="button" className={styles.createBtn} onClick={() => setShowCreate(true)}>
+          <button type="button" className={styles.createBtn} onClick={() => setShowCreate(true)} title="Create new project">
             <Plus size={16} /> New Project
           </button>
         </div>
@@ -127,7 +127,7 @@ export default function ProjectsPage() {
           <Folder size={48} className={styles.emptyIcon} />
           <h2>No projects yet</h2>
           <p>Create a project to organize your automation scripts by client, website, or workflow.</p>
-          <button type="button" className={styles.createBtn} onClick={() => setShowCreate(true)}>
+          <button type="button" className={styles.createBtn} onClick={() => setShowCreate(true)} title="Create your first project">
             <Plus size={16} /> Create your first project
           </button>
         </div>
@@ -181,7 +181,7 @@ export default function ProjectsPage() {
           <div className={styles.modal}>
             <div className={styles.modalHeader}>
               <h2>New Project</h2>
-              <button type="button" className={styles.modalClose} onClick={() => setShowCreate(false)}><X size={18} /></button>
+              <button type="button" className={styles.modalClose} onClick={() => setShowCreate(false)} title="Close"><X size={18} /></button>
             </div>
             <form onSubmit={handleCreate}>
               <div className={styles.field}>
