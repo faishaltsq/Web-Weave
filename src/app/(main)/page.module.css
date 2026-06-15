@@ -2274,37 +2274,103 @@
   }
 
   .heroMode {
+    min-height: 100dvh;
     padding: 1rem;
+    place-items: start center;
+    overflow-x: hidden;
   }
 
-  .composerMeta,
-  .previewTopbar,
-  .locatorStrip {
+  .heroContent {
+    align-items: stretch;
+    text-align: left;
+    padding-top: 1rem;
+  }
+
+  .heroLogo {
+    margin-bottom: 1.25rem;
+  }
+
+  .heroContent h1 {
+    font-size: clamp(2rem, 12vw, 3rem);
+    line-height: 1;
+  }
+
+  .composerMeta {
     grid-template-columns: 1fr;
+  }
+
+  .heroPrompt {
+    min-height: 132px;
   }
 
   .workspaceHeader {
     position: sticky;
     top: 0;
     z-index: 5;
+    min-height: auto;
+    flex-wrap: wrap;
+    padding: 0.75rem;
+  }
+
+  .breadcrumbs,
+  .headerActions {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .workspaceLayout {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: calc(100dvh - 56px);
+    overflow: visible;
   }
 
   .promptRail,
   .workspacePanel {
+    height: auto;
+    max-height: none;
+    min-height: auto;
+    overflow: visible;
     padding: 1rem;
   }
 
   .promptRail {
-    max-height: 44vh;
+    max-height: none;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
   }
 
   .workspacePanel {
-    height: calc(56vh - 56px);
+    overscroll-behavior: auto;
+  }
+
+  .previewTopbar,
+  .locatorStrip,
+  .codeToolbar,
+  .qualityPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .codeToolbar,
+  .codeActions,
+  .generateRow,
+  .formRow {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .previewContainer {
     min-height: 300px;
     padding: 1rem;
+  }
+
+  .console {
+    max-height: 180px;
+  }
+
+  .code {
+    min-height: 240px;
+    font-size: 0.78rem;
   }
 
   .loadingPreviewShell,
@@ -2774,9 +2840,16 @@
 }
 
 @media (max-width: 760px) {
+  .chatsView {
+    min-height: 100dvh;
+    height: auto;
+    overflow: visible;
+  }
+
   .chatsHeader {
     flex-direction: column;
     gap: 0.75rem;
+    padding: 1rem;
   }
 
   .chatsHeaderActions {
@@ -2791,5 +2864,17 @@
 
   .chatsNewChatBtn {
     justify-content: center;
+  }
+
+  .chatItem {
+    align-items: flex-start;
+  }
+
+  .chatItemMain {
+    min-width: 0;
+  }
+
+  .chatItemTime {
+    white-space: nowrap;
   }
 }
