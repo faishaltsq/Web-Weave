@@ -925,6 +925,25 @@
   margin-top: 0.16rem;
 }
 
+.planBadge {
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--blue);
+  padding: 0.18rem 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.planBadgePro {
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--violet);
+}
+
 .pricePill {
   min-width: 48px;
   padding: 0 0.75rem;

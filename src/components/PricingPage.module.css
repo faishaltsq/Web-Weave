@@ -396,6 +396,19 @@
   transform: none;
 }
 
+.ctaCurrent {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.ctaCurrent:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+  box-shadow: 0 14px 32px rgba(239, 68, 68, 0.2);
+}
+
 .divider {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--border-strong), transparent);

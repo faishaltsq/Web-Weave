@@ -1,14 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowRight, Check, Sparkles, Zap } from 'lucide-react';
+import { ArrowRight, Check, Sparkles, Zap, XCircle } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/context';
+import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import styles from './PricingPage.module.css';
 
 const formatRupiah = (value) => `Rp${new Intl.NumberFormat('id-ID').format(value)}`;
 
 export default function PricingPage({ onClose, onCheckout }) {
   const { t } = useLanguage();
+  const { usageStatus, loadPrivateData, getAuthHeaders } = useWebWeave();
+  const currentPlan = usageStatus?.planId || 'free';
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [actionMessage, setActionMessage] = useState('');
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState('');
@@ -20,7 +23,7 @@ export default function PricingPage({ onClose, onCheckout }) {
       monthlyPrice: 0,
       description: t('pricing.freeTagline'),
       quota: `5 ${t('pricing.freeGenerations')}`,
-      cta: t('pricing.freeCta'),
+      cta: currentPlan === 'free' ? t('pricing.freeCta') : (currentPlan !== 'free' ? 'Downgrade to Free' : t('pricing.freeCta')),
       features: [
         '1 project pribadi',
         'Playwright JavaScript only',
@@ -34,7 +37,7 @@ export default function PricingPage({ onClose, onCheckout }) {
       monthlyPrice: 49000,
       description: t('pricing.starterTagline'),
       quota: `75 ${t('pricing.freeGenerations')}`,
-      cta: t('pricing.starterCta'),
+      cta: currentPlan === 'starter' ? 'Cancel Plan' : (currentPlan === 'pro' ? null : t('pricing.starterCta')),
       badge: t('pricing.mostPopular'),
       features: [
         '5 project aktif',
@@ -50,7 +53,7 @@ export default function PricingPage({ onClose, onCheckout }) {
       monthlyPrice: 129000,
       description: t('pricing.proTagline'),
       quota: `300 ${t('pricing.freeGenerations')}`,
-      cta: t('pricing.proCta'),
+      cta: currentPlan === 'pro' ? 'Cancel Plan' : t('pricing.proCta'),
       badge: t('pricing.bestValue'),
       features: [
         '25 project aktif',
@@ -127,6 +130,24 @@ export default function PricingPage({ onClose, onCheckout }) {
   const handlePrimaryCta = () => {
     const starterPlan = plans.find((plan) => plan.id === 'starter');
     handlePlanClick(starterPlan);
+  };
+
+  const handleCancelPlan = async () => {
+    if (!confirm(t('pricing.cancelConfirm') || 'Cancel your plan and switch to Free?')) return;
+    setActionMessage(t('pricing.cancelling') || 'Cancelling...');
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/account/cancel-subscription', { method: 'POST', headers });
+      const data = await res.json();
+      if (data.success) {
+        setActionMessage(t('pricing.cancelled') || 'Plan cancelled. You are now on Free.');
+        await loadPrivateData();
+      } else {
+        setActionMessage(data.error || t('pricing.cancelFailed') || 'Failed to cancel.');
+      }
+    } catch {
+      setActionMessage(t('pricing.cancelFailed') || 'Failed to cancel.');
+    }
   };
 
   return (
@@ -210,13 +231,23 @@ export default function PricingPage({ onClose, onCheckout }) {
 
               <button
                 type="button"
-                className={`${styles.ctaButton} ${plan.badge ? styles.ctaPrimary : styles.ctaSecondary} ${plan.disabled ? styles.disabledButton : ''}`}
-                disabled={plan.disabled}
+                className={`${styles.ctaButton} ${plan.badge ? styles.ctaPrimary : styles.ctaSecondary} ${plan.disabled ? styles.disabledButton : ''} ${currentPlan === plan.id ? styles.ctaCurrent : ''}`}
+                disabled={plan.disabled || (plan.id === 'starter' && currentPlan === 'pro')}
                 aria-disabled={plan.disabled}
-                onClick={() => { if (!plan.disabled) handlePlanClick(plan); }}
+                onClick={() => {
+                  if (plan.disabled) return;
+                  if (currentPlan === plan.id && plan.id !== 'free') {
+                    handleCancelPlan();
+                  } else if (plan.cta) {
+                    handlePlanClick(plan);
+                  }
+                }}
               >
-                {checkoutLoadingPlan === plan.id ? t('pricing.creatingCheckout') : plan.cta}
-                <ArrowRight size={16} />
+                {checkoutLoadingPlan === plan.id ? t('pricing.creatingCheckout') : (currentPlan === plan.id && plan.id !== 'free' ? (
+                  <><XCircle size={16} /> {plan.cta}</>
+                ) : plan.cta ? (
+                  <>{plan.cta} <ArrowRight size={16} /></>
+                ) : null)}
               </button>
 
               <div className={styles.divider} />

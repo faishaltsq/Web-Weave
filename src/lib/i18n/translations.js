@@ -123,6 +123,10 @@ const translations = {
       checkoutNotConnected: 'Checkout not connected. Payment integration needs activation.',
       checkoutNotAvailable: 'Checkout is not available yet.',
       signInFirst: 'Sign in first before checkout.',
+      cancelConfirm: 'Cancel your plan and switch to Free?',
+      cancelling: 'Cancelling...',
+      cancelled: 'Plan cancelled. You are now on Free.',
+      cancelFailed: 'Failed to cancel plan.',
     },
     errors: {
       serverError: 'A server error occurred.',
@@ -279,6 +283,10 @@ const translations = {
       checkoutNotConnected: 'Checkout belum terhubung. Integrasi payment perlu diaktifkan dulu.',
       checkoutNotAvailable: 'Checkout belum tersedia.',
       signInFirst: 'Sign in dulu sebelum checkout.',
+      cancelConfirm: 'Batalkan paket dan kembali ke Free?',
+      cancelling: 'Membatalkan...',
+      cancelled: 'Paket dibatalkan. Kamu sekarang di Free.',
+      cancelFailed: 'Gagal membatalkan paket.',
     },
     errors: {
       serverError: 'Terjadi kesalahan pada server.',

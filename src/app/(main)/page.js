@@ -759,6 +759,9 @@ export default function WebWeave() {
           <button type="button" className={styles.profileButton} onClick={() => setProfileMenuOpen((value) => !value)} aria-expanded={profileMenuOpen}>
             <span className={styles.profileAvatar}>{profileAvatar ? <img src={profileAvatar} alt="" referrerPolicy="no-referrer" /> : <img src="/logo" alt="" />}</span>
             <span className={styles.profileText}><strong>{profileName}</strong><small>{profileEmail}</small></span>
+            {usageStatus && usageStatus.planId !== 'free' && (
+              <span className={`${styles.planBadge} ${usageStatus.planId === 'pro' ? styles.planBadgePro : ''}`}>{usageStatus.planLabel}</span>
+            )}
           </button>
         </div>
       </aside>
