@@ -215,11 +215,6 @@ export default function WebWeave() {
     ? `${usageStatus.used}/${usageStatus.limit} ${t('quota.generationsUsed')}`
     : (user ? t('quota.loadingQuota') : t('quota.signInForQuota'));
 
-  useEffect(() => {
-    if (usageStatus?.exhausted && user && !loading && !showPricing) {
-      setShowPricing(true);
-    }
-  }, [usageStatus?.exhausted, user, loading, showPricing]);
   const authEmailTrimmed = authEmail.trim().toLowerCase();
   const authEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmailTrimmed);
   const authPasswordValid = authPassword.length >= 6;
@@ -903,7 +898,7 @@ export default function WebWeave() {
                     )}
                   </div>
                   {error && <div className={styles.errorBanner}><AlertCircle size={18} /><span>{error}</span></div>}
-                  <button type="button" onClick={() => handleGenerate()} disabled={loading || quotaExhausted || (usageStatus && !isFrameworkAllowed(framework))} className={styles.generateButton}>
+                  <button type="button" onClick={() => handleGenerate()} disabled={loading || (usageStatus && !isFrameworkAllowed(framework))} className={styles.generateButton}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
                     {loading ? t('generate.generating') : t('generate.generate')}
                   </button>
@@ -933,7 +928,7 @@ export default function WebWeave() {
                     <p className={styles.kicker}>Regenerate</p>
                     <h2>Improve with feedback</h2>
                     <textarea value={generationFeedback} onChange={(event) => setGenerationFeedback(event.target.value)} className={styles.feedbackTextarea} placeholder="Tell WebWeave what failed or what should be stricter." disabled={loading} />
-                    <button type="button" className={styles.regenerateButton} disabled={loading || quotaExhausted || (usageStatus && !isFrameworkAllowed(framework)) || !generationFeedback.trim()} onClick={() => handleGenerate({ feedback: generationFeedback })}>
+                    <button type="button" className={styles.regenerateButton} disabled={loading || (usageStatus && !isFrameworkAllowed(framework)) || !generationFeedback.trim()} onClick={() => handleGenerate({ feedback: generationFeedback })}>
                       {loading ? <Loader size={16} className={styles.spinner} /> : <Zap size={16} />}
                       Regenerate with Feedback
                     </button>
@@ -1060,7 +1055,7 @@ export default function WebWeave() {
                       {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
                     </select>
                   )}
-                  <button type="button" onClick={() => handleGenerate()} disabled={loading || quotaExhausted || (usageStatus && !isFrameworkAllowed(framework))} className={styles.sendButton}>
+                  <button type="button" onClick={() => handleGenerate()} disabled={loading || (usageStatus && !isFrameworkAllowed(framework))} className={styles.sendButton}>
                     {loading ? <Loader size={18} className={styles.spinner} /> : <Zap size={18} />}
                     {t('generate.generate')}
                   </button>
