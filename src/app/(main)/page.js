@@ -730,7 +730,10 @@ export default function WebWeave() {
           </div>
 
           <div className={styles.newChatWrap}>
-            <button type="button" className={styles.newChatButton} onClick={startNewAutomation} title={t('sidebar.newAutomation')}>{t('sidebar.newAutomation')}</button>
+            <button type="button" className={styles.newChatButton} onClick={startNewAutomation} title={t('sidebar.newAutomation')} aria-label={t('sidebar.newAutomation')}>
+              <Sparkles size={16} />
+              <span>{t('sidebar.newAutomation')}</span>
+            </button>
             <button type="button" className={styles.newChatDropdown} onClick={() => { setNewAutomationMenuOpen((value) => !value); setWorkspaceMenuOpen(false); }} aria-label="Open new automation options" aria-expanded={newAutomationMenuOpen} title="New automation options">
               <ChevronDown size={16} className={newAutomationMenuOpen ? styles.chevronOpen : ''} />
             </button>
@@ -750,11 +753,11 @@ export default function WebWeave() {
           )}
 
           <nav className={styles.navList}>
-            <button type="button" className={activeView === 'home' ? styles.navActive : ''} onClick={() => { setActiveView('home'); window.history.pushState(null, '', '/'); }} title="Home"><Home size={18} /> Home</button>
-            <button type="button" className={activeView === 'projects' ? styles.navActive : ''} onClick={() => { setActiveView('projects'); window.history.pushState(null, '', '/projects'); }} title="Projects"><Folder size={18} /> Projects</button>
-            <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }} title="Chats"><MessageSquare size={18} /> Chats</button>
-            <button type="button" className={activeView === 'scripts' ? styles.navActive : ''} onClick={() => { setActiveView('scripts'); window.history.pushState(null, '', '/scripts'); }} title="Automation Scripts"><FileCode2 size={18} /> Automation Scripts</button>
-            <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Code2 size={18} /> Templates</button>
+            <button type="button" className={activeView === 'home' ? styles.navActive : ''} onClick={() => { setActiveView('home'); window.history.pushState(null, '', '/'); }} title="Home"><Home size={18} /> <span>Home</span></button>
+            <button type="button" className={activeView === 'projects' ? styles.navActive : ''} onClick={() => { setActiveView('projects'); window.history.pushState(null, '', '/projects'); }} title="Projects"><Folder size={18} /> <span>Projects</span></button>
+            <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }} title="Chats"><MessageSquare size={18} /> <span>Chats</span></button>
+            <button type="button" className={activeView === 'scripts' ? styles.navActive : ''} onClick={() => { setActiveView('scripts'); window.history.pushState(null, '', '/scripts'); }} title="Automation Scripts"><FileCode2 size={18} /> <span>Automation Scripts</span></button>
+            <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Code2 size={18} /> <span>Templates</span></button>
           </nav>
 
           <div className={styles.sidebarSection}>
