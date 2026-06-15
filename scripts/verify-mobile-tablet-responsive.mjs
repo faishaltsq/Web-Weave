@@ -18,24 +18,55 @@ function fail(message) {
   process.exit(1);
 }
 
-function getMediaBlock(css, query) {
-  const start = css.indexOf(`@media ${query}`);
-  if (start === -1) return '';
-  const open = css.indexOf('{', start);
-  let depth = 0;
-  for (let index = open; index < css.length; index += 1) {
-    if (css[index] === '{') depth += 1;
-    if (css[index] === '}') depth -= 1;
-    if (depth === 0) return css.slice(open + 1, index);
+function getMediaBlocks(css, query) {
+  const blocks = [];
+  const target = query.replace(/\s+/g, '');
+  const mediaPattern = /@media\s*/g;
+  let match;
+
+  while ((match = mediaPattern.exec(css)) !== null) {
+    const queryStart = mediaPattern.lastIndex;
+    const open = css.indexOf('{', queryStart);
+    if (open === -1) break;
+
+    const current = css.slice(queryStart, open).replace(/\s+/g, '');
+    let depth = 0;
+    for (let index = open; index < css.length; index += 1) {
+      if (css[index] === '{') depth += 1;
+      if (css[index] === '}') depth -= 1;
+      if (depth === 0) {
+        if (current === target) blocks.push(css.slice(open + 1, index));
+        mediaPattern.lastIndex = index + 1;
+        break;
+      }
+    }
   }
-  return '';
+
+  return blocks.join('\n');
 }
 
 function requireMatch(name, text, pattern) {
   if (!pattern.test(text)) fail(`Missing responsive guardrail: ${name}`);
 }
 
-const mainMobile = getMediaBlock(source.mainCss, '(max-width: 760px)');
+function verifyMediaExtraction() {
+  const css = '.outside{color:black;} @media(max-width:760px){.first{color:red;}} @media (max-width: 760px) {.second{color:blue;}}';
+  const mobile = getMediaBlocks(css, '(max-width: 760px)');
+
+  if (!mobile.includes('.first') || !mobile.includes('.second') || mobile.includes('.outside')) {
+    fail('Broken responsive verifier: media extraction does not collect all matching blocks');
+  }
+}
+
+verifyMediaExtraction();
+
+const mainMobile = getMediaBlocks(source.mainCss, '(max-width: 760px)');
+const projectsMobile = getMediaBlocks(source.projectsCss, '(max-width: 760px)');
+const scriptsTablet = getMediaBlocks(source.scriptsCss, '(max-width: 1024px)');
+const scriptsMobile = getMediaBlocks(source.scriptsCss, '(max-width: 760px)');
+const pricingMobile = getMediaBlocks(source.pricingCss, '(max-width: 760px)');
+const confirmPhone = getMediaBlocks(source.confirmCss, '(max-width: 520px)');
+const settingsPhone = getMediaBlocks(source.settingsCss, '(max-width: 520px)');
 
 requireMatch('main CSS defines mobile rail width', source.mainCss, /--mobile-rail-width:\s*64px/);
 requireMatch('mobile media exists', source.mainCss, /@media\s*\(max-width:\s*760px\)/);
@@ -54,12 +85,12 @@ requireMatch('prompt rail mobile max-height removed', mainMobile, /\.promptRail\
 requireMatch('workspace panel mobile auto height', mainMobile, /\.workspacePanel\s*{[^}]*height:\s*auto[^}]*max-height:\s*none/s);
 requireMatch('mobile composer stacks controls', mainMobile, /\.composerMeta\s*{[^}]*grid-template-columns:\s*1fr/s);
 
-requireMatch('projects mobile one column', source.projectsCss, /@media\s*\(max-width:\s*760px\)[\s\S]*\.grid\s*{[^}]*grid-template-columns:\s*1fr/s);
-requireMatch('scripts tablet or mobile grid guardrail', source.scriptsCss, /@media\s*\(max-width:\s*1024px\)[\s\S]*\.summaryGrid\s*{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
-requireMatch('scripts mobile one column', source.scriptsCss, /@media\s*\(max-width:\s*760px\)[\s\S]*\.summaryGrid\s*{[^}]*grid-template-columns:\s*1fr/s);
-requireMatch('pricing mobile one column', source.pricingCss, /@media\s*\(max-width:\s*760px\)[\s\S]*\.cardsGrid\s*{[^}]*grid-template-columns:\s*1fr/s);
-requireMatch('confirm dialog mobile actions stack', source.confirmCss, /@media\s*\(max-width:\s*520px\)[\s\S]*\.actions\s*{[^}]*flex-direction:\s*column/s);
-requireMatch('settings modal mobile query', source.settingsCss, /@media\s*\(max-width:\s*520px\)/);
-requireMatch('settings language buttons stack', source.settingsCss, /@media\s*\(max-width:\s*520px\)[\s\S]*\.langOptions\s*{[^}]*flex-direction:\s*column/s);
+requireMatch('projects mobile one column', projectsMobile, /\.grid\s*{[^}]*grid-template-columns:\s*1fr/s);
+requireMatch('scripts tablet or mobile grid guardrail', scriptsTablet, /\.summaryGrid\s*{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
+requireMatch('scripts mobile one column', scriptsMobile, /\.summaryGrid\s*{[^}]*grid-template-columns:\s*1fr/s);
+requireMatch('pricing mobile one column', pricingMobile, /\.cardsGrid\s*{[^}]*grid-template-columns:\s*1fr/s);
+requireMatch('confirm dialog mobile actions stack', confirmPhone, /\.actions\s*{[^}]*flex-direction:\s*column/s);
+requireMatch('settings modal mobile query', settingsPhone, /\S/);
+requireMatch('settings language buttons stack', settingsPhone, /\.langOptions\s*{[^}]*flex-direction:\s*column/s);
 
 console.log('Mobile/tablet responsive CSS verified.');
