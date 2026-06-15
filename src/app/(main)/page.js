@@ -193,6 +193,17 @@ export default function WebWeave() {
     };
   }, [profileMenuOpen]);
 
+  useEffect(() => {
+    if (!contextMenuScript) return;
+    const close = (e) => {
+      if (!e.target.closest(`.${styles.recentItemMenu}`) && !e.target.closest(`.${styles.recentItemMore}`)) {
+        setContextMenuScript(null);
+      }
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [contextMenuScript]);
+
   const selectedFrameworkLabel = FRAMEWORKS.find((item) => item.value === framework)?.label || framework;
   const allowedFrameworks = usageStatus?.allowedFrameworks || ['playwright_js'];
   const isFrameworkAllowed = (value) => allowedFrameworks.includes(value);
