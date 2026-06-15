@@ -39,6 +39,7 @@
 }
 
 .container {
+  --collapsed-rail-width: 64px;
   min-height: 100vh;
   height: 100vh;
   display: grid;
@@ -49,7 +50,7 @@
 }
 
 .sidebarCompact {
-  grid-template-columns: 0 minmax(0, 1fr);
+  grid-template-columns: var(--collapsed-rail-width) minmax(0, 1fr);
 }
 
 .sidebarCompact .sidebar {
@@ -75,6 +76,10 @@
   color: var(--text);
   cursor: pointer;
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sidebarCompact .expandButton {
+  left: calc((var(--collapsed-rail-width) - 38px) / 2);
 }
 
 .expandButton:hover {
