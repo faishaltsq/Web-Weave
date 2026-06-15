@@ -2222,6 +2222,10 @@
     overflow-y: auto;
   }
 
+  .sidebarCompact .sidebar {
+    display: flex;
+  }
+
   .sidebarMain {
     width: 100%;
     align-items: center;
