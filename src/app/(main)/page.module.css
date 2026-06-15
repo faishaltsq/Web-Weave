@@ -15,6 +15,10 @@
   --amber: #f59e0b;
   --red: #ef4444;
   --input: #121212;
+  --output-bg: #050505;
+  --output-text: #dbeafe;
+  --output-log-text: #93c5fd;
+  --output-prompt: #22c55e;
   --shadow: rgba(0, 0, 0, 0.55);
 }
 
@@ -35,6 +39,10 @@
   --amber: #d97706;
   --red: #dc2626;
   --input: #ffffff;
+  --output-bg: #f8fafc;
+  --output-text: #0f172a;
+  --output-log-text: #1e3a8a;
+  --output-prompt: #15803d;
   --shadow: rgba(15, 23, 42, 0.14);
 }
 
@@ -1528,7 +1536,7 @@
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: #050505;
+  background: var(--output-bg);
   padding: 0.85rem;
   display: flex;
   flex-direction: column;
@@ -1540,12 +1548,12 @@
 .consoleLine {
   display: flex;
   gap: 0.5rem;
-  color: #93c5fd;
+  color: var(--output-log-text);
   word-break: break-word;
 }
 
 .consolePrompt {
-  color: var(--green);
+  color: var(--output-prompt);
 }
 
 .previewShell {
@@ -1638,6 +1646,11 @@
   width: 100%;
   height: auto;
   display: block;
+}
+
+.codeEmptyState {
+  background: var(--output-bg);
+  color: var(--muted);
 }
 
 .emptyState,
@@ -2031,7 +2044,7 @@
 .qualityfail span { color: var(--red); }
 
 .codeBlock {
-  background: #050505;
+  background: var(--output-bg);
   max-height: none;
   overflow: visible;
   display: block;
@@ -2042,7 +2055,7 @@
   margin: 0;
   min-height: 300px;
   padding: 1rem;
-  color: #dbeafe;
+  color: var(--output-text);
   font-family: Consolas, 'Fira Code', monospace;
   font-size: 0.84rem;
   line-height: 1.6;
