@@ -84,3 +84,34 @@ export async function POST(req) {
 
   return NextResponse.json({ success: true, project: data });
 }
+
+export async function DELETE(req) {
+  const auth = await getAuthenticatedUser(req);
+  if (auth.error) return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+
+  const { searchParams } = new URL(req.url);
+  const projectId = searchParams.get('id');
+
+  if (!projectId) return NextResponse.json({ success: false, error: 'Project ID is required.' }, { status: 400 });
+
+  const { data: project, error: findError } = await auth.supabase
+    .from('projects')
+    .select('id, owner_id')
+    .eq('id', projectId)
+    .eq('owner_id', auth.user.id)
+    .single();
+
+  if (findError || !project) {
+    return NextResponse.json({ success: false, error: 'Project not found.' }, { status: 404 });
+  }
+
+  const { error } = await auth.supabase
+    .from('projects')
+    .delete()
+    .eq('id', projectId)
+    .eq('owner_id', auth.user.id);
+
+  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+
+  return NextResponse.json({ success: true });
+}

@@ -98,3 +98,34 @@ export async function POST(req) {
 
   return NextResponse.json({ success: true, script: data });
 }
+
+export async function DELETE(req) {
+  const auth = await getAuthenticatedUser(req);
+  if (auth.error) return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+
+  const { searchParams } = new URL(req.url);
+  const scriptId = searchParams.get('id');
+
+  if (!scriptId) return NextResponse.json({ success: false, error: 'Script ID is required.' }, { status: 400 });
+
+  const { data: script, error: findError } = await auth.supabase
+    .from('generated_scripts')
+    .select('id, owner_id')
+    .eq('id', scriptId)
+    .eq('owner_id', auth.user.id)
+    .single();
+
+  if (findError || !script) {
+    return NextResponse.json({ success: false, error: 'Script not found.' }, { status: 404 });
+  }
+
+  const { error } = await auth.supabase
+    .from('generated_scripts')
+    .delete()
+    .eq('id', scriptId)
+    .eq('owner_id', auth.user.id);
+
+  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+
+  return NextResponse.json({ success: true });
+}
