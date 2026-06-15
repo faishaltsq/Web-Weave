@@ -91,7 +91,7 @@ requireMatch('mobile composer stacks controls', mainMobile, /\.composerMeta\s*{[
 
 requireMatch('projects mobile one column', projectsMobile, /\.grid\s*{[^}]*grid-template-columns:\s*1fr/s);
 requireMatch('scripts tablet or mobile grid guardrail', scriptsTablet, /\.summaryGrid\s*{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
-requireMatch('scripts mobile one column', scriptsMobile, /\.summaryGrid\s*{[^}]*grid-template-columns:\s*1fr/s);
+requireMatch('scripts mobile one column', scriptsMobile, /\.summaryGrid[,\s]*(?:\.grid[,\s]*)*{[^}]*grid-template-columns:\s*1fr/s);
 requireMatch('pricing mobile one column', pricingMobile, /\.cardsGrid\s*{[^}]*grid-template-columns:\s*1fr/s);
 requireMatch('confirm dialog mobile actions stack', confirmPhone, /\.actions\s*{[^}]*flex-direction:\s*column/s);
 requireMatch('settings modal mobile query', settingsPhone, /\S/);

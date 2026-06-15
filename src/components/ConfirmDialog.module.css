@@ -119,10 +119,17 @@
 
 @media (max-width: 520px) {
   .dialog {
-    padding: 22px;
+    width: min(94vw, 420px);
+    max-height: 92dvh;
+    overflow-y: auto;
   }
 
   .actions {
-    flex-direction: column-reverse;
+    flex-direction: column;
+  }
+
+  .cancelButton,
+  .confirmButton {
+    width: 100%;
   }
 }

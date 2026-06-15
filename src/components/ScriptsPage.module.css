@@ -52,7 +52,52 @@
 .upgradeIcon { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; background: rgba(59, 130, 246, 0.16); color: var(--blue); }
 .lockedState { min-height: 70vh; color: var(--muted); }
 .lockedState h1, .emptyState h2, .upgradePanel h2 { margin: 0; color: var(--text); }
-@media (max-width: 760px) { .container { padding: 1rem; } .header { flex-direction: column; } .headerActions, .upgradeActions, .cardActions { width: 100%; flex-wrap: wrap; } .summaryGrid { grid-template-columns: 1fr; } .primaryButton, .secondaryButton, .disabledRunButton { flex: 1; } }
+@media (max-width: 1024px) {
+  .container {
+    min-height: 100dvh;
+    height: auto;
+    overflow-x: hidden;
+  }
+
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .headerActions,
+  .upgradeActions,
+  .cardActions,
+  .metaRow,
+  .runnerNotice {
+    width: 100%;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .summaryGrid,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .primaryButton,
+  .secondaryButton,
+  .disabledRunButton {
+    flex: 1 1 100%;
+  }
+}
 
 @keyframes cardFadeIn {
   from { opacity: 0; transform: translateY(18px); }

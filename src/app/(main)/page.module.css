@@ -2520,8 +2520,9 @@
 
 @media (max-width: 768px) {
   .pricingModalContent {
-    width: 98%;
-    max-height: 95vh;
+    width: min(98%, 720px);
+    max-height: 95dvh;
+    overflow-y: auto;
     border-radius: 12px;
   }
 

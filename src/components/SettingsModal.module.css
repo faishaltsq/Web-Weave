@@ -148,3 +148,30 @@
   background: var(--blue);
   color: #fff;
 }
+
+@media (max-width: 520px) {
+  .overlay {
+    align-items: flex-start;
+    padding: 0.75rem;
+    overflow-y: auto;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: calc(100dvh - 1.5rem);
+    padding: 1rem;
+    border-radius: 14px;
+  }
+
+  .header {
+    gap: 0.75rem;
+  }
+
+  .section {
+    padding: 1rem;
+  }
+
+  .langOptions {
+    flex-direction: column;
+  }
+}

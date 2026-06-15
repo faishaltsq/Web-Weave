@@ -563,6 +563,9 @@
 
 @media (max-width: 760px) {
   .pricingContainer {
+    min-height: 100dvh;
+    height: auto;
+    overflow-x: hidden;
     padding: 2rem 1rem;
   }
 
@@ -588,6 +591,19 @@
 
   .ctaButtonLarge {
     width: 100%;
+    white-space: normal;
+  }
+
+  .billingToggle,
+  .heroActions,
+  .cardActions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .toggleButton,
+  .ctaButton {
+    flex: 1 1 100%;
     white-space: normal;
   }
 }
