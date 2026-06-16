@@ -49,10 +49,29 @@ Staging deployment: [web-weave-lake.vercel.app](https://web-weave-lake.vercel.ap
 - Auto-open pricing modal when free quota exhausted.
 - Midtrans sandbox checkout with server-side status verification.
 - Automatic plan upgrade on return from payment (no webhook required for dev).
+- Supabase-backed projects and generated-script history.
+- Global Chats view for saved/generated scripts.
+- Automation Scripts page with paid-plan cloud-slot limits.
+- Custom confirmation dialogs for destructive actions.
+- English/Indonesian language switcher in Account Settings.
+- Mobile/tablet responsive shell with persistent icon rail and verified mobile profile/workspace popovers.
+- Theme-aware logs, generated code, pricing, and output panels.
+
+## Current Progress
+
+- Staging is active at [web-weave-lake.vercel.app](https://web-weave-lake.vercel.app).
+- `master` is the active staging branch and is pushed to GitHub.
+- Midtrans sandbox checkout, merchant return URL, webhook/status verification, and immediate sandbox plan upgrades are implemented.
+- Free-plan quota UX is stable: pricing opens only when the user tries to generate after quota exhaustion.
+- Projects, Chats, and Automation Scripts pages are implemented as SPA routes with refresh-safe middleware rewrites.
+- Automation Scripts is UI-first: paid users can mark saved scripts for cloud use; real cloud execution is still future work.
+- Mobile/tablet pass completed: app shell, workspace, chats, projects, scripts, pricing, settings, confirmation dialog, and profile/workspace popovers are responsive.
+- Latest mobile fix: Android Chrome profile button now opens the profile popover; root cause was tablet CSS still hiding `.profileMenu` under mobile.
+- Verification scripts added for quota behavior, confirmation dialogs, checkout origin security, Midtrans redirects/integration, compact sidebar, output panel theming, and mobile/tablet responsiveness.
 
 ## Deployment
 
-Deployed on Vercel. Push to `main` triggers automatic redeploy.
+Deployed on Vercel. Push to `master` triggers automatic redeploy for the current staging setup.
 
 ```bash
 # Local dev
