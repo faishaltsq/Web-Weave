@@ -207,6 +207,8 @@ export async function fetchMidtransInvoice(invoiceId, config) {
   if (!invoiceId || !config?.serverKey) return null;
   const url = buildMidtransInvoiceUrl(invoiceId, config);
   const authToken = Buffer.from(`${config.serverKey}:`).toString('base64');
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
     const response = await fetch(url, {
@@ -216,8 +218,10 @@ export async function fetchMidtransInvoice(invoiceId, config) {
         'Content-Type': 'application/json',
         Authorization: `Basic ${authToken}`,
       },
+      signal: controller.signal,
     });
 
+    clearTimeout(timeout);
     const data = await response.json().catch(() => null);
     if (!response.ok) {
       console.error('Midtrans Invoice fetch non-ok response', { status: response.status, error: getMidtransErrorMessage(data) });
@@ -225,7 +229,8 @@ export async function fetchMidtransInvoice(invoiceId, config) {
     }
     return data;
   } catch (error) {
-    console.error('Midtrans Invoice fetch failed', { error: error?.message || String(error) });
+    clearTimeout(timeout);
+    console.error('Midtrans Invoice fetch failed', { invoiceId, error: error?.message || String(error) });
     return null;
   }
 }

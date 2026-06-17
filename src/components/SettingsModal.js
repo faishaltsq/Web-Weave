@@ -97,16 +97,27 @@ export default function SettingsModal({ onClose, onOpenPricing }) {
     setDownloadingInvoiceId(orderId);
     setInvoiceDownloadError('');
 
+    const invoiceWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!invoiceWindow) {
+      setInvoiceDownloadError(t('settings.invoicePopupBlocked'));
+      setDownloadingInvoiceId('');
+      return;
+    }
+
     try {
       const headers = await getAuthHeaders();
       const response = await fetch(`/api/account/invoices/${encodeURIComponent(orderId)}`, { headers });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
+        invoiceWindow.close();
         throw new Error(data.error || t('settings.invoiceDownloadError'));
       }
-      if (!data.success || !data.midtransUrl) throw new Error(data.error || t('settings.invoiceDownloadError'));
+      if (!data.success || !data.midtransUrl) {
+        invoiceWindow.close();
+        throw new Error(data.error || t('settings.invoiceDownloadError'));
+      }
 
-      window.open(data.midtransUrl, '_blank', 'noopener,noreferrer');
+      invoiceWindow.location.href = data.midtransUrl;
     } catch (err) {
       setInvoiceDownloadError(err.message || t('settings.invoiceDownloadError'));
     } finally {

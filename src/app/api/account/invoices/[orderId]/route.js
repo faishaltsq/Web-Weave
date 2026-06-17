@@ -34,19 +34,32 @@ async function fetchMidtransStatus(orderId, config) {
     ? 'https://api.midtrans.com'
     : 'https://api.sandbox.midtrans.com';
   const authToken = Buffer.from(`${config.serverKey}:`).toString('base64');
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
-  const response = await fetch(`${baseUrl}/v2/${orderId}/status`, {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      Authorization: `Basic ${authToken}`,
-    },
-  });
+  try {
+    const response = await fetch(`${baseUrl}/v2/${orderId}/status`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${authToken}`,
+      },
+      signal: controller.signal,
+    });
 
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) return null;
-  return data;
+    clearTimeout(timeout);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      console.error('Midtrans status non-ok', { orderId, status: response.status });
+      return null;
+    }
+    return data;
+  } catch (err) {
+    clearTimeout(timeout);
+    console.error('Midtrans status fetch failed', { orderId, error: err?.message || String(err) });
+    return null;
+  }
 }
 
 export async function GET(req, { params }) {
@@ -81,25 +94,35 @@ export async function GET(req, { params }) {
   const config = getMidtransConfig();
 
   if (orderLinks?.midtrans_invoice_id && config.checkoutConfigured) {
+    console.log('Invoice route: trying Midtrans Invoice API', { orderId, invoiceId: orderLinks.midtrans_invoice_id });
     const invoiceData = await fetchMidtransInvoice(orderLinks.midtrans_invoice_id, config);
+    console.log('Invoice route: Midtrans Invoice API result', { orderId, hasData: Boolean(invoiceData), hasPdfUrl: Boolean(invoiceData?.pdf_url) });
     const invoiceUrl = pickInvoiceUrl(invoiceData);
     if (invoiceUrl) {
       return NextResponse.json({ success: true, midtransUrl: invoiceUrl, source: 'midtrans_invoice' });
     }
+    console.log('Invoice route: no invoice URL found, falling back to Snap status');
   }
 
   if (config.checkoutConfigured) {
+    console.log('Invoice route: trying Snap status', { orderId });
     const status = await fetchMidtransStatus(orderId, config);
     const statusUrl = status ? pickMidtransUrl(status) : '';
+    console.log('Invoice route: Snap status result', { orderId, hasStatus: Boolean(status), hasUrl: Boolean(statusUrl) });
     if (statusUrl) return NextResponse.json({ success: true, midtransUrl: statusUrl, source: 'midtrans_status' });
   }
 
   if (orderLinks?.midtrans_redirect_url) {
+    console.log('Invoice route: using stored Snap redirect URL', { orderId });
     return NextResponse.json({ success: true, midtransUrl: orderLinks.midtrans_redirect_url, source: 'snap_redirect' });
   }
 
   const snapUrl = buildSnapUrl(orderLinks?.midtrans_snap_token, config);
-  if (snapUrl) return NextResponse.json({ success: true, midtransUrl: snapUrl, source: 'snap_token' });
+  if (snapUrl) {
+    console.log('Invoice route: using built Snap URL', { orderId });
+    return NextResponse.json({ success: true, midtransUrl: snapUrl, source: 'snap_token' });
+  }
 
+  console.log('Invoice route: no URL available', { orderId, hasRedirectUrl: Boolean(orderLinks?.midtrans_redirect_url), hasSnapToken: Boolean(orderLinks?.midtrans_snap_token), hasInvoiceId: Boolean(orderLinks?.midtrans_invoice_id), checkoutConfigured: config.checkoutConfigured });
   return NextResponse.json({ success: false, error: 'Midtrans receipt page is not available for this order.' });
 }
