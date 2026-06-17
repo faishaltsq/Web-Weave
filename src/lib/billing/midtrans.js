@@ -167,7 +167,7 @@ export async function createMidtransInvoice({ orderId, planId, billingCycle, use
       body: JSON.stringify({
         order_id: orderId,
         invoice_number: invoiceNumber,
-        invoice_title: `WebWeave ${plan.label} ${cycle}`,
+        invoice_title: `WW ${plan.label} ${cycle === 'annual' ? 'Yr' : 'Mo'}`,
         due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' +0700'),
         invoice_date: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' +0700'),
         customer_details: {
