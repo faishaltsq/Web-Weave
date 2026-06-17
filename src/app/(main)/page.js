@@ -606,7 +606,7 @@ export default function WebWeave() {
       return { success: false, error: data.error || t('pricing.checkoutNotAvailable') };
     }
 
-    return { success: true };
+    return { success: true, paymentUrl: data.paymentUrl };
   };
 
   const hasWorkspace = loading || Boolean(result);

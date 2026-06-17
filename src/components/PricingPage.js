@@ -24,6 +24,7 @@ export default function PricingPage({ onClose, onCheckout }) {
   const [pendingCancelLoading, setPendingCancelLoading] = useState(false);
   const [showEmailPopup, setShowEmailPopup] = useState(false);
   const [checkedOutPlanId, setCheckedOutPlanId] = useState('');
+  const [checkedOutPaymentUrl, setCheckedOutPaymentUrl] = useState('');
 
   useEffect(() => {
     async function checkExistingPending() {
@@ -155,6 +156,7 @@ export default function PricingPage({ onClose, onCheckout }) {
 
       setActionMessage(t('pricing.checkEmail'));
       setCheckedOutPlanId(plan.id);
+      setCheckedOutPaymentUrl(checkout.paymentUrl || '');
       setShowEmailPopup(true);
     } catch (err) {
       setActionMessage(err.message || t('pricing.checkoutFailed'));
@@ -419,11 +421,19 @@ export default function PricingPage({ onClose, onCheckout }) {
         title={t('pricing.emailPopupTitle')}
         message={t('pricing.emailPopupMessage')}
         cancelLabel={t('common.close')}
-        confirmLabel={t('pricing.emailPopupButton')}
+        confirmLabel={checkedOutPaymentUrl ? t('pricing.emailPopupPay') : t('pricing.emailPopupButton')}
         loadingLabel={t('common.close')}
         loading={false}
+        onClose={() => setShowEmailPopup(false)}
         onCancel={() => setShowEmailPopup(false)}
-        onConfirm={() => { setShowEmailPopup(false); onClose?.(); }}
+        onConfirm={() => {
+          setShowEmailPopup(false);
+          if (checkedOutPaymentUrl) {
+            window.location.href = checkedOutPaymentUrl;
+          } else {
+            onClose?.();
+          }
+        }}
       />
     </div>
   );

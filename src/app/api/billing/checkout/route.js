@@ -85,5 +85,5 @@ export async function POST(req) {
     return NextResponse.json({ success: false, error: 'Failed to create checkout.' }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, paymentUrl: invoice.payment_link_url || '' });
 }
