@@ -200,8 +200,7 @@ export default function PricingPage({ onClose, onCheckout }) {
   };
 
   const handlePrimaryCta = () => {
-    const starterPlan = plans.find((plan) => plan.id === 'starter');
-    handlePlanClick(starterPlan);
+    window.location.href = '/';
   };
 
   const handleCancelPlan = () => {
