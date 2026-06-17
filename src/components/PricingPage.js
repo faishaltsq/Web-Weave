@@ -421,18 +421,13 @@ export default function PricingPage({ onClose, onCheckout }) {
         title={t('pricing.emailPopupTitle')}
         message={t('pricing.emailPopupMessage')}
         cancelLabel={t('common.close')}
-        confirmLabel={checkedOutPaymentUrl ? t('pricing.emailPopupPay') : t('pricing.emailPopupButton')}
-        loadingLabel={t('common.close')}
+        confirmLabel={t('pricing.emailPopupPay')}
         loading={false}
         onClose={() => setShowEmailPopup(false)}
         onCancel={() => setShowEmailPopup(false)}
         onConfirm={() => {
           setShowEmailPopup(false);
-          if (checkedOutPaymentUrl) {
-            window.location.href = checkedOutPaymentUrl;
-          } else {
-            onClose?.();
-          }
+          if (checkedOutPaymentUrl) window.location.href = checkedOutPaymentUrl;
         }}
       />
     </div>
