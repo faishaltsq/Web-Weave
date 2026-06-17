@@ -82,13 +82,18 @@ export async function POST(req) {
     return NextResponse.json({ success: false, error: 'Webhook missing user_id custom data.' }, { status: 400 });
   }
 
+  console.log('Webhook: fetching profile', { userId: entitlement.userId });
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('midtrans_order_id, midtrans_status')
     .eq('id', entitlement.userId)
     .single();
 
-  if (profileError) return NextResponse.json({ success: false, error: profileError.message }, { status: 500 });
+  console.log('Webhook: profile fetched', { found: Boolean(profile), error: profileError?.message });
+  if (profileError) {
+    console.error('Webhook: profile fetch error', { userId: entitlement.userId, error: profileError.message, details: profileError });
+    return NextResponse.json({ success: false, error: profileError.message }, { status: 500 });
+  }
 
   const existingActiveOrder = ACTIVE_MIDTRANS_STATUSES.has(String(order.status || '').toLowerCase()) && order.billing_period_ends_at;
   const existingRevokedOrder = REVOKED_MIDTRANS_STATUSES.has(String(order.status || '').toLowerCase());
@@ -142,6 +147,7 @@ export async function POST(req) {
     orderUpdateQuery = orderUpdateQuery.not('status', 'in', '("refund","partial_refund","chargeback","partial_chargeback")');
   }
 
+  console.log('Webhook: updating billing_orders', { order_id: order.order_id, status: entitlement.midtransStatus });
   const { data: updatedOrderRows, error: orderUpdateError } = await orderUpdateQuery.select('order_id');
 
   if (orderUpdateError) return NextResponse.json({ success: false, error: orderUpdateError.message }, { status: 500 });
@@ -204,6 +210,7 @@ export async function POST(req) {
 
   let expectedOrderId = active ? profile?.midtrans_order_id || null : order.order_id;
   let expectedStatus = profile?.midtrans_status || null;
+  console.log('Webhook: updating profile', { userId: entitlement.userId, plan: update.plan, expectedOrderId, expectedStatus });
   let { data: updatedProfiles, error } = await applyProfileUpdate(expectedOrderId, expectedStatus);
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
