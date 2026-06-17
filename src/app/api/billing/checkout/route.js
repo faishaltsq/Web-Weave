@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/supabase/server';
-import { createMidtransSnapCheckout, createMidtransInvoice, generateOrderId } from '@/lib/billing/midtrans';
+import { createMidtransSnapCheckout, generateOrderId } from '@/lib/billing/midtrans';
 import { getPlanConfig, normalizeBillingCycle } from '@/lib/billing/plans';
 import { getRequestOrigin, validateOrigin } from '@/lib/server/security';
 
@@ -71,24 +71,10 @@ export async function POST(req) {
     midtrans_snap_token: checkout.token,
   };
 
-  let invoice = { success: false };
-  try {
-    invoice = await createMidtransInvoice({ orderId, planId, billingCycle, user: auth.user, env: checkoutEnv });
-  } catch (err) {
-    console.error('Midtrans Invoice creation threw unexpectedly', { orderId, error: err?.message || String(err) });
-  }
-  if (invoice.success) {
-    orderRecord.midtrans_invoice_id = invoice.invoice_id;
-    orderRecord.midtrans_invoice_pdf_url = invoice.pdf_url;
-    orderRecord.midtrans_invoice_payment_link_url = invoice.payment_link_url;
-  } else {
-    console.warn('Midtrans Invoice not created for order', { orderId, reason: invoice.error });
-  }
-
   let { error: orderError } = await auth.supabase.from('billing_orders').insert(orderRecord);
 
-  if (orderError && /midtrans_(?:redirect_url|snap_token|invoice_)/i.test(orderError.message || '')) {
-    const { midtrans_redirect_url, midtrans_snap_token, midtrans_invoice_id, midtrans_invoice_pdf_url, midtrans_invoice_payment_link_url, ...legacyOrderRecord } = orderRecord;
+  if (orderError && /midtrans_(?:redirect_url|snap_token)/i.test(orderError.message || '')) {
+    const { midtrans_redirect_url, midtrans_snap_token, ...legacyOrderRecord } = orderRecord;
     ({ error: orderError } = await auth.supabase.from('billing_orders').insert(legacyOrderRecord));
   }
 
