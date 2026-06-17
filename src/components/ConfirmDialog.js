@@ -13,14 +13,17 @@ export default function ConfirmDialog({
   loading = false,
   onCancel,
   onConfirm,
+  onClose,
 }) {
   if (!open) return null;
 
+  const handleClose = onClose || onCancel;
+
   return (
     <div className={styles.overlay} role="presentation">
-      <button type="button" className={styles.backdrop} onClick={loading ? undefined : onCancel} aria-label={cancelLabel} />
+      <button type="button" className={styles.backdrop} onClick={loading ? undefined : handleClose} aria-label={cancelLabel} />
       <section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
-        <button type="button" className={styles.closeButton} onClick={onCancel} disabled={loading} aria-label={cancelLabel}>
+        <button type="button" className={styles.closeButton} onClick={handleClose} disabled={loading} aria-label={cancelLabel}>
           <X size={17} />
         </button>
         <div className={styles.iconWrap}><AlertTriangle size={22} /></div>

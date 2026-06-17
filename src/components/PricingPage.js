@@ -409,6 +409,7 @@ export default function PricingPage({ onClose, onCheckout }) {
         confirmLabel={t('pricing.pendingResume')}
         loadingLabel={t('pricing.pendingCancel')}
         loading={pendingCancelLoading}
+        onClose={() => setPendingDialogOpen(false)}
         onCancel={handleCancelPendingOrder}
         onConfirm={handleResumePayment}
       />
