@@ -49,6 +49,28 @@ export async function POST(req) {
   if (!plan) return NextResponse.json({ success: false, error: 'Unknown billing plan.' }, { status: 400 });
   if (!plan.checkoutEnabled) return NextResponse.json({ success: false, error: 'This plan is not available for checkout.' }, { status: 400 });
 
+  const { data: profile } = await auth.supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', auth.user.id)
+    .single()
+    .catch(() => ({ data: null }));
+
+  const PLAN_TIER = { free: 0, starter: 1, pro: 2, team: 3 };
+  const targetTier = PLAN_TIER[planId] ?? -1;
+  const currentPlan = (profile?.plan || 'free').toLowerCase();
+  const currentTier = PLAN_TIER[currentPlan] ?? 0;
+
+  if (targetTier <= currentTier) {
+    const alreadyPurchased = targetTier === currentTier;
+    return NextResponse.json({
+      success: false,
+      error: alreadyPurchased
+        ? `You already have the ${plan.label} plan. No need to purchase again.`
+        : `You are already on a higher plan. To change plans, cancel your current subscription first.`,
+    }, { status: 400 });
+  }
+
   const orderId = generateOrderId(auth.user.id, planId, billingCycle);
 
   const requestOrigin = getRequestOrigin(req);
