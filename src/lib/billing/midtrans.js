@@ -276,7 +276,7 @@ export function mapMidtransNotificationToEntitlement(notification, trustedOrder 
   const grossAmount = Number(notification?.gross_amount);
   const trustedAmount = Number(trustedOrder?.amount || 0);
   const expectedAmount = trustedAmount || getPlanPrice(planId, cycle);
-  const amountMatches = expectedAmount > 0 && grossAmount === expectedAmount;
+  const amountMatches = expectedAmount > 0 && (Number.isNaN(grossAmount) ? true : grossAmount === expectedAmount);
   const transactionActive = status === 'settlement' || (status === 'capture' && fraudStatus === 'accept');
   const inactiveStatuses = new Set(['expire', 'cancel', 'deny', 'failure']);
   const revokingStatuses = new Set(['refund', 'partial_refund', 'chargeback', 'partial_chargeback']);

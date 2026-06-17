@@ -56,7 +56,18 @@ export async function POST(req) {
   }
 
   const entitlement = mapMidtransNotificationToEntitlement(notification, order);
+  console.log('Webhook: entitlement result', {
+    order_id: orderId,
+    active: entitlement.active,
+    terminalInactive: entitlement.terminalInactive,
+    revokesEntitlement: entitlement.revokesEntitlement,
+    planId: entitlement.planId,
+    userId: Boolean(entitlement.userId),
+    grossAmount: notification?.gross_amount,
+    orderAmount: order?.amount,
+  });
   if (!entitlement.userId) {
+    console.error('Webhook: missing user_id');
     return NextResponse.json({ success: false, error: 'Webhook missing user_id custom data.' }, { status: 400 });
   }
 
@@ -125,6 +136,7 @@ export async function POST(req) {
   }
 
   if (!entitlement.active && !entitlement.terminalInactive) {
+    console.log('Webhook: ignoring non-terminal status', { order_id: orderId, status: entitlement.midtransStatus, active: entitlement.active, terminalInactive: entitlement.terminalInactive });
     return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'non_terminal_status' });
   }
 
