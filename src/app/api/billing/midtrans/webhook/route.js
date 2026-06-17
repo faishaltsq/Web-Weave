@@ -154,6 +154,15 @@ export async function POST(req) {
     return NextResponse.json({ success: false, error: profileUpdateError.message }, { status: 500 });
   }
 
+  if (active) {
+    await supabase
+      .from('billing_orders')
+      .update({ status: 'cancel', updated_at: new Date().toISOString() })
+      .eq('owner_id', entitlement.userId)
+      .eq('status', 'checkout_created')
+      .neq('order_id', order.order_id);
+  }
+
   console.log('Webhook: profile updated successfully', { order_id: orderId, plan: active ? entitlement.planId : 'free', status: entitlement.midtransStatus });
   return NextResponse.json({ success: true, status: entitlement.midtransStatus, plan: active ? entitlement.planId : undefined });
   } catch (err) {
