@@ -377,6 +377,18 @@
   color: var(--text);
 }
 
+.ctaEmail {
+  border: 0;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  box-shadow: 0 14px 32px rgba(245, 158, 11, 0.3);
+}
+
+.ctaEmail:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  box-shadow: 0 16px 38px rgba(245, 158, 11, 0.35);
+}
+
 .ctaButton:hover,
 .ctaButtonLarge:hover {
   transform: translateY(-2px);

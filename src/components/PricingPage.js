@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowRight, Check, Sparkles, Zap, XCircle } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useLanguage } from '@/lib/i18n/context';
@@ -23,6 +23,17 @@ export default function PricingPage({ onClose, onCheckout }) {
   const [pendingResumeUrl, setPendingResumeUrl] = useState('');
   const [pendingCancelLoading, setPendingCancelLoading] = useState(false);
   const [showEmailPopup, setShowEmailPopup] = useState(false);
+  const [checkedOutPlanId, setCheckedOutPlanId] = useState('');
+
+  useEffect(() => {
+    async function checkExistingPending() {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/account/pending-order', { headers });
+      const data = await res.json().catch(() => ({}));
+      if (data.success && data.pending) setCheckedOutPlanId(data.pending.plan);
+    }
+    checkExistingPending();
+  }, [getAuthHeaders]);
 
   const plans = [
     {
@@ -141,6 +152,7 @@ export default function PricingPage({ onClose, onCheckout }) {
       }
 
       setActionMessage(t('pricing.checkEmail'));
+      setCheckedOutPlanId(plan.id);
       setShowEmailPopup(true);
     } catch (err) {
       setActionMessage(err.message || t('pricing.checkoutFailed'));
@@ -296,11 +308,15 @@ export default function PricingPage({ onClose, onCheckout }) {
 
               <button
                 type="button"
-                className={`${styles.ctaButton} ${plan.badge && plan.id !== 'free' ? styles.ctaPrimary : styles.ctaSecondary} ${plan.disabled ? styles.disabledButton : ''} ${currentPlan === plan.id && plan.id !== 'free' ? styles.ctaCurrent : ''}`}
+                className={`${styles.ctaButton} ${checkedOutPlanId === plan.id ? styles.ctaEmail : ''} ${plan.badge && plan.id !== 'free' && checkedOutPlanId !== plan.id ? styles.ctaPrimary : styles.ctaSecondary} ${plan.disabled ? styles.disabledButton : ''} ${currentPlan === plan.id && plan.id !== 'free' ? styles.ctaCurrent : ''}`}
                 disabled={plan.disabled || (plan.id === 'starter' && currentPlan === 'pro')}
                 aria-disabled={plan.disabled}
                 onClick={() => {
                   if (plan.disabled) return;
+                  if (checkedOutPlanId === plan.id) {
+                    setShowEmailPopup(true);
+                    return;
+                  }
                   if (currentPlan === plan.id && plan.id !== 'free') {
                     handleCancelPlan();
                   } else if (plan.id === 'free' && currentPlan !== 'free') {
@@ -312,6 +328,8 @@ export default function PricingPage({ onClose, onCheckout }) {
               >
                 {checkoutLoadingPlan === plan.id ? t('pricing.creatingCheckout') : (currentPlan === plan.id && plan.id !== 'free' ? (
                   <><XCircle size={16} /> {plan.cta}</>
+                ) : checkedOutPlanId === plan.id ? (
+                  <><ArrowRight size={16} /> {t('pricing.checkEmailCta')}</>
                 ) : (
                   <>{plan.cta} <ArrowRight size={16} /></>
                 ))}
