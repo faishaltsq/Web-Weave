@@ -18,6 +18,10 @@ export default function PricingPage({ onClose, onCheckout }) {
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState('');
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState(null);
+  const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
+  const [pendingResumeUrl, setPendingResumeUrl] = useState('');
+  const [pendingCancelLoading, setPendingCancelLoading] = useState(false);
 
   const plans = [
     {
@@ -111,6 +115,20 @@ export default function PricingPage({ onClose, onCheckout }) {
       return;
     }
 
+    const headers = await getAuthHeaders();
+    const pendingRes = await fetch('/api/account/pending-order', { headers });
+    const pendingData = await pendingRes.json().catch(() => ({}));
+    if (pendingData.success && pendingData.pending) {
+      setPendingOrder(pendingData.pending);
+      setPendingResumeUrl(pendingData.pending.resumeUrl || '');
+      setPendingDialogOpen(true);
+      return;
+    }
+
+    proceedToCheckout(plan);
+  };
+
+  const proceedToCheckout = async (plan) => {
     setCheckoutLoadingPlan(plan.id);
     setActionMessage(`${t('pricing.creatingCheckout').replace('...', '')} ${plan.name}...`);
 
@@ -127,6 +145,40 @@ export default function PricingPage({ onClose, onCheckout }) {
       setActionMessage(err.message || t('pricing.checkoutFailed'));
     } finally {
       setCheckoutLoadingPlan('');
+    }
+  };
+
+  const handleResumePayment = () => {
+    if (pendingResumeUrl) {
+      window.location.href = pendingResumeUrl;
+    } else {
+      setPendingDialogOpen(false);
+      setActionMessage(t('pricing.pendingNoLink'));
+    }
+  };
+
+  const handleCancelPendingOrder = async () => {
+    if (!pendingOrder || pendingCancelLoading) return;
+    setPendingCancelLoading(true);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/billing/cancel-order', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: pendingOrder.orderId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPendingDialogOpen(false);
+        setPendingOrder(null);
+        setActionMessage(t('pricing.pendingCancelled'));
+      } else {
+        setActionMessage(data.error || t('pricing.pendingCancelFailed'));
+      }
+    } catch {
+      setActionMessage(t('pricing.pendingCancelFailed'));
+    } finally {
+      setPendingCancelLoading(false);
     }
   };
 
@@ -326,6 +378,18 @@ export default function PricingPage({ onClose, onCheckout }) {
         loading={cancelLoading}
         onCancel={() => setCancelConfirmOpen(false)}
         onConfirm={confirmCancelPlan}
+      />
+
+      <ConfirmDialog
+        open={pendingDialogOpen}
+        title={t('pricing.pendingTitle')}
+        message={pendingOrder ? t('pricing.pendingMessage').replace('{plan}', pendingOrder.plan).replace('{date}', new Date(pendingOrder.createdAt).toLocaleDateString()) : ''}
+        cancelLabel={pendingCancelLoading ? t('pricing.pendingCancelling') : t('pricing.pendingCancel')}
+        confirmLabel={t('pricing.pendingResume')}
+        loadingLabel={t('pricing.pendingCancel')}
+        loading={pendingCancelLoading}
+        onCancel={handleCancelPendingOrder}
+        onConfirm={handleResumePayment}
       />
     </div>
   );
