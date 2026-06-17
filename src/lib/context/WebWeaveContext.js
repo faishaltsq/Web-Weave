@@ -75,6 +75,13 @@ export function WebWeaveProvider({ children }) {
     loadPrivateData();
   }, [user, loadPrivateData]);
 
+  useEffect(() => {
+    if (!user) return;
+    const onVisible = () => { if (document.visibilityState === 'visible') loadPrivateData(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [user, loadPrivateData]);
+
   const value = useMemo(() => ({
     supabase, SUPABASE_ENABLED, user, setUser, authSessionLoading,
     projects, setProjects, scripts, setScripts, historyLoading,

@@ -106,11 +106,20 @@ export async function GET(req) {
   const supabase = createSupabaseServiceClient();
   if (!supabase) return NextResponse.json({ success: false, error: 'Supabase is not configured.' }, { status: 503 });
 
-  const { data: order, error: orderError } = await supabase
+  let { data: order, error: orderError } = await supabase
     .from('billing_orders')
     .select('order_id, owner_id, plan, billing_cycle, amount, status, billing_period_ends_at, created_at')
     .eq('order_id', orderId)
     .single();
+
+  if ((orderError || !order) && /-\d{10,13}$/.test(orderId)) {
+    const strippedOrderId = orderId.replace(/-\d{10,13}$/, '');
+    ({ data: order, error: orderError } = await supabase
+      .from('billing_orders')
+      .select('order_id, owner_id, plan, billing_cycle, amount, status, billing_period_ends_at, created_at')
+      .eq('order_id', strippedOrderId)
+      .single());
+  }
 
   if (orderError || !order) {
     return NextResponse.json({ success: false, error: 'Unknown payment order.' }, { status: 400 });
