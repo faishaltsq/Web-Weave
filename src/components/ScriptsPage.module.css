@@ -15,9 +15,6 @@
 .secondaryButton:active { transform: translateY(0) scale(0.97); transition: transform 0.08s ease; }
 .disabledRunButton { border: 1px solid rgba(148, 163, 184, 0.25); background: var(--surface-2); color: var(--muted); cursor: not-allowed; opacity: 0.72; }
 .disabledRunButton:hover { transform: none; }
-.deleteButton { width: 36px; height: 36px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease, transform 0.18s ease; }
-.deleteButton:hover { color: var(--red); background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.25); transform: scale(1.08); }
-.deleteButton:active { transform: scale(0.94); }
 .summaryGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; margin: 1rem 0; }
 .summaryCard, .upgradePanel, .emptyState, .scriptCard, .runnerNotice { border: 1px solid var(--border); border-radius: 22px; background: linear-gradient(180deg, var(--surface), var(--surface-2)); box-shadow: 0 20px 50px var(--shadow); }
 .summaryCard { padding: 1rem; transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.22s ease; }

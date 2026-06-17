@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Code2, Crown, FileCode2, Lock, Play, Sparkles, TerminalSquare, Trash2, XCircle } from 'lucide-react';
+import { Code2, Crown, FileCode2, Lock, Play, Sparkles, TerminalSquare } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import { getScriptSlotLimit } from '@/lib/billing/plans';
-import { getCloudScriptIds, removeCloudScriptId } from '@/lib/utils/cloud-scripts';
 import styles from './ScriptsPage.module.css';
 
 function extractDomain(url) {
@@ -30,16 +28,8 @@ export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseCh
   const planLabel = usageStatus?.planLabel || 'Free';
   const slotLimit = getScriptSlotLimit(planId);
   const isPaid = planId !== 'free' && slotLimit > 0;
-  const [cloudScriptIds, setCloudScriptIds] = useState(() => getCloudScriptIds(user?.id));
-  const cloudScripts = (scripts || []).filter((s) => cloudScriptIds.includes(s.id));
-  const usedSlots = cloudScripts.length;  const refreshCloud = useCallback(() => {
-    setCloudScriptIds(getCloudScriptIds(user?.id));
-  }, [user?.id]);
-
-  const handleRemoveFromCloud = (scriptId) => {
-    removeCloudScriptId(user?.id, scriptId);
-    refreshCloud();
-  };
+  const scriptLibrary = scripts || [];
+  const usedSlots = Math.min(scriptLibrary.length, slotLimit);
 
   if (!SUPABASE_ENABLED) {
     return (
@@ -121,7 +111,7 @@ export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseCh
 
       {historyLoading ? (
         <div className={styles.emptyState}>{t('common.loading')}</div>
-      ) : cloudScripts.length === 0 ? (
+      ) : scriptLibrary.length === 0 ? (
         <div className={styles.emptyState}>
           <Code2 size={36} />
           <h2>{t('scripts.emptyTitle')}</h2>
@@ -133,14 +123,15 @@ export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseCh
         </div>
       ) : (
         <div className={styles.grid}>
-          {cloudScripts.map((script) => {
+          {scriptLibrary.map((script, index) => {
+            const locked = index >= slotLimit;
             const preview = (script.prompt || '').replace('Regeneration feedback from previous output:', '').slice(0, 110).trim();
             const date = script.created_at ? new Date(script.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
             return (
-              <article key={script.id} className={styles.scriptCard}>
+              <article key={script.id} className={`${styles.scriptCard} ${locked ? styles.lockedCard : ''}`}>
                 <div className={styles.cardTop}>
                   <div className={styles.scriptIcon}><FileCode2 size={18} /></div>
-                  <span className={styles.statusPill}>{t('scripts.cloudReady')}</span>
+                  <span className={styles.statusPill}>{locked ? t('scripts.lockedOverflow') : t('scripts.cloudReady')}</span>
                 </div>
                 <h3>{getScriptName(script)}</h3>
                 <p>{preview}</p>
@@ -149,9 +140,12 @@ export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseCh
                   <span>{date}</span>
                 </div>
                 <div className={styles.cardActions}>
-                  <button type="button" className={styles.secondaryButton} onClick={() => onOpenScript(script)}>{t('scripts.viewCode')}</button>
+                  {locked ? (
+                    <button type="button" className={styles.disabledRunButton} disabled><Lock size={14} /> {t('scripts.lockedOverflow')}</button>
+                  ) : (
+                    <button type="button" className={styles.secondaryButton} onClick={() => onOpenScript(script)}>{t('scripts.viewCode')}</button>
+                  )}
                   <button type="button" className={styles.disabledRunButton} disabled><Play size={14} /> {t('scripts.comingSoon')}</button>
-                  <button type="button" className={styles.deleteButton} onClick={() => handleRemoveFromCloud(script.id)} title="Remove from Cloud"><XCircle size={14} /></button>
                 </div>
               </article>
             );

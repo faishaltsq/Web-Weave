@@ -64,7 +64,7 @@ Staging deployment: [web-weave-lake.vercel.app](https://web-weave-lake.vercel.ap
 - Midtrans sandbox checkout, merchant return URL, webhook/status verification, and immediate sandbox plan upgrades are implemented.
 - Free-plan quota UX is stable: pricing opens only when the user tries to generate after quota exhaustion.
 - Projects, Chats, and Automation Scripts pages are implemented as SPA routes with refresh-safe middleware rewrites.
-- Automation Scripts is UI-first: paid users can mark saved scripts for cloud use; real cloud execution is still future work.
+- Automation Scripts is UI-first: paid users see saved scripts from account history with plan-based slot limits; real cloud execution is still future work.
 - Mobile/tablet pass completed: app shell, workspace, chats, projects, scripts, pricing, settings, confirmation dialog, and profile/workspace popovers are responsive.
 - Latest mobile fix: Android Chrome profile button now opens the profile popover; root cause was tablet CSS still hiding `.profileMenu` under mobile.
 - Verification scripts added for quota behavior, confirmation dialogs, checkout origin security, Midtrans redirects/integration, compact sidebar, output panel theming, and mobile/tablet responsiveness.

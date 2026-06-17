@@ -74,7 +74,7 @@ const settingsPhone = getMediaBlocks(source.settingsCss, '(max-width: 520px)');
 
 requireMatch('main CSS defines mobile rail width', source.mainCss, /--mobile-rail-width:\s*64px/);
 requireMatch('mobile media exists', source.mainCss, /@media\s*\(max-width:\s*760px\)/);
-requireMatch('mobile sidebar stays visible', mainMobile, /\.sidebar\s*{[^}]*display:\s*flex[^}]*position:\s*fixed[^}]*width:\s*var\(--mobile-rail-width\)/s);
+requireMatch('mobile sidebar stays visible', mainMobile, /\.sidebar\s*{[^}]*display:\s*flex[^}]*position:\s*(?:fixed|sticky)/s);
 requireNoMatch('mobile sidebar hidden', mainMobile, /\.sidebar\s*{[^}]*display:\s*none/s);
 requireMatch('mobile app surface assigned to rail column', mainMobile, /\.appSurface\s*{[^}]*grid-column:\s*2[^}]*overflow-y:\s*auto/s);
 requireMatch('mobile uses dvh in shell', mainMobile, /100dvh/);

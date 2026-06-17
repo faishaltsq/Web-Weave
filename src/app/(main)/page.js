@@ -6,7 +6,6 @@ import {
   AlertCircle,
   ChevronDown,
   CheckCircle,
-  Cloud,
   Code2,
   Copy,
   DollarSign,
@@ -44,8 +43,6 @@ import ScriptsPage from '@/components/ScriptsPage';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
-import { getScriptSlotLimit } from '@/lib/billing/plans';
-import { getCloudScriptIds, addCloudScriptId, removeCloudScriptId } from '@/lib/utils/cloud-scripts';
 import styles from './page.module.css';
 
 const FRAMEWORKS = [
@@ -116,7 +113,6 @@ export default function WebWeave() {
   const [pricingClosing, setPricingClosing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [contextMenuScript, setContextMenuScript] = useState(null);
-  const [cloudScriptIds, setCloudScriptIds] = useState(() => getCloudScriptIds(user?.id));
   const [pendingDeleteScriptId, setPendingDeleteScriptId] = useState('');
   const [deletingScript, setDeletingScript] = useState(false);
   const promptAnimationTimer = useRef(null);
@@ -137,12 +133,6 @@ export default function WebWeave() {
     const savedTheme = window.localStorage.getItem('webweave-theme');
     if (savedTheme) setIsDark(savedTheme === 'dark');
   }, []);
-
-  useEffect(() => {
-    if (user?.id) {
-      setCloudScriptIds(getCloudScriptIds(user.id));
-    }
-  }, [user?.id]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -479,22 +469,6 @@ export default function WebWeave() {
       setDeletingScript(false);
     }
   };
-
-  const cloudSlotLimit = getScriptSlotLimit(usageStatus?.planId || 'free');
-
-  const handleToggleCloudImport = (scriptId) => {
-    if (!user?.id) return;
-    if (cloudScriptIds.includes(scriptId)) {
-      removeCloudScriptId(user.id, scriptId);
-      setCloudScriptIds(getCloudScriptIds(user.id));
-      return;
-    }
-    if (cloudSlotLimit > 0 && cloudScriptIds.length >= cloudSlotLimit) return;
-    addCloudScriptId(user.id, scriptId);
-    setCloudScriptIds(getCloudScriptIds(user.id));
-  };
-
-  const isScriptInCloud = (scriptId) => cloudScriptIds.includes(scriptId);
 
   const handleGenerate = async (options = {}) => {
     if (!url.trim()) {
@@ -866,15 +840,6 @@ export default function WebWeave() {
                         <span className={styles.chatItemPreview}>{preview}</span>
                       </div>
                       <span className={styles.chatItemTime}>{timeStr}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.chatItemImport} ${isScriptInCloud(script.id) ? styles.chatItemImportActive : ''}`}
-                      onClick={(e) => { e.stopPropagation(); handleToggleCloudImport(script.id); }}
-                      disabled={!isScriptInCloud(script.id) && cloudSlotLimit > 0 && cloudScriptIds.length >= cloudSlotLimit}
-                      title={isScriptInCloud(script.id) ? 'Remove from Cloud Scripts' : (cloudSlotLimit > 0 && cloudScriptIds.length >= cloudSlotLimit ? 'Cloud slots full' : 'Add to Cloud Scripts')}
-                    >
-                      <Cloud size={14} />
                     </button>
                     <button
                       type="button"

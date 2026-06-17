@@ -2833,41 +2833,6 @@
   color: #ef4444;
 }
 
-.chatItemImport {
-  flex-shrink: 0;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--muted);
-  padding: 0.35rem;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.15s, color 0.15s, background 0.15s;
-  margin-left: 0.25rem;
-}
-
-.chatItemRow:hover .chatItemImport {
-  opacity: 1;
-}
-
-.chatItemImport:hover {
-  color: #3b82f6;
-}
-
-.chatItemImport:disabled {
-  opacity: 0;
-  cursor: not-allowed;
-}
-
-.chatItemImportActive {
-  color: #3b82f6;
-  opacity: 1;
-}
-
-.chatItemImportActive:hover {
-  color: #ef4444;
-}
-
 @media (max-width: 760px) {
   .chatsView {
     min-height: 100dvh;

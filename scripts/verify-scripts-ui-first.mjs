@@ -24,7 +24,7 @@ const scriptsPage = existsSync(join(root, files.scriptsPage)) ? read(files.scrip
 const scriptsCss = existsSync(join(root, files.scriptsCss)) ? read(files.scriptsCss) : '';
 
 const expectations = [
-  ['sidebar has Scripts nav item', page, 'Automation Scripts</button>'],
+  ['sidebar has Scripts nav item', page, '<span>Automation Scripts</span>'],
   ['scripts route maps to view', page, "path === '/scripts'"],
   ['scripts view renders component', page, '<ScriptsPage'],
   ['Starter has 5 script slots', plans, 'scriptSlotLimit: 5'],
