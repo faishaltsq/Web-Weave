@@ -35,6 +35,13 @@ export function getMidtransConfig(env = process.env) {
   };
 }
 
+export function buildMidtransInvoiceUrl(invoiceId, config) {
+  const baseUrl = config.isProduction
+    ? 'https://api.midtrans.com'
+    : 'https://api.sandbox.midtrans.com';
+  return `${baseUrl}/v1/invoices/${encodeURIComponent(invoiceId)}`;
+}
+
 function getMerchantOrigin(env = process.env) {
   const rawUrl = env.NEXT_PUBLIC_APP_URL || env.VERCEL_URL || 'http://localhost:3000';
   try {
@@ -125,6 +132,94 @@ export async function createMidtransSnapCheckout({ planId, billingCycle, user, e
   } catch (error) {
     console.error('Midtrans Snap checkout request failed', { error: error?.message || String(error) });
     return { success: false, configured: true, error: 'Failed to create checkout.' };
+  }
+}
+
+export async function createMidtransInvoice({ orderId, planId, billingCycle, user, env = process.env }) {
+  const plan = getPlanConfig(planId);
+  const cycle = normalizeBillingCycle(billingCycle);
+  const config = getMidtransConfig(env);
+  const price = getPlanPrice(planId, cycle);
+
+  if (!config.serverKey || price <= 0) {
+    return { success: false, error: 'Payment gateway is not configured.' };
+  }
+
+  const baseUrl = config.isProduction
+    ? 'https://api.midtrans.com'
+    : 'https://api.sandbox.midtrans.com';
+  const authToken = Buffer.from(`${config.serverKey}:`).toString('base64');
+
+  try {
+    const response = await fetch(`${baseUrl}/v1/invoices`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${authToken}`,
+      },
+      body: JSON.stringify({
+        transaction_details: {
+          order_id: orderId,
+          gross_amount: price,
+        },
+        customer_details: {
+          email: user?.email || '',
+        },
+        item_details: [
+          {
+            id: `${plan.id}_${cycle}`,
+            price,
+            quantity: 1,
+            name: `WebWeave ${plan.label} ${cycle}`,
+          },
+        ],
+      }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      console.error('Midtrans Invoice creation failed', {
+        status: response.status,
+        error: getMidtransErrorMessage(payload),
+      });
+      return { success: false, error: 'Failed to create invoice.' };
+    }
+
+    return {
+      success: true,
+      invoice_id: payload.id || payload.invoice_id || '',
+      invoice_number: payload.invoice_number || payload.number || '',
+      pdf_url: payload.pdf_url || '',
+      payment_link_url: payload.payment_link_url || '',
+    };
+  } catch (error) {
+    console.error('Midtrans Invoice creation request failed', { error: error?.message || String(error) });
+    return { success: false, error: 'Failed to create invoice.' };
+  }
+}
+
+export async function fetchMidtransInvoice(invoiceId, config) {
+  if (!invoiceId || !config?.serverKey) return null;
+  const url = buildMidtransInvoiceUrl(invoiceId, config);
+  const authToken = Buffer.from(`${config.serverKey}:`).toString('base64');
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${authToken}`,
+      },
+    });
+
+    const data = await response.json().catch(() => null);
+    if (!response.ok) return null;
+    return data;
+  } catch (error) {
+    console.error('Midtrans Invoice fetch failed', { error: error?.message || String(error) });
+    return null;
   }
 }
 
