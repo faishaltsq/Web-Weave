@@ -104,7 +104,7 @@ export default function SettingsModal({ onClose, onOpenPricing }) {
       if (!response.ok) {
         throw new Error(data.error || t('settings.invoiceDownloadError'));
       }
-      if (!data.midtransUrl) throw new Error(t('settings.invoiceDownloadError'));
+      if (!data.success || !data.midtransUrl) throw new Error(data.error || t('settings.invoiceDownloadError'));
 
       window.open(data.midtransUrl, '_blank', 'noopener,noreferrer');
     } catch (err) {

@@ -53,7 +53,7 @@ export async function GET(req, { params }) {
 
   const { data: order, error: orderError } = await auth.supabase
     .from('billing_orders')
-    .select('order_id, owner_id, midtrans_redirect_url, midtrans_snap_token')
+    .select('order_id, owner_id')
     .eq('owner_id', auth.user.id)
     .eq('order_id', orderId)
     .single();
@@ -62,6 +62,13 @@ export async function GET(req, { params }) {
     return NextResponse.json({ success: false, error: 'Invoice not found.' }, { status: 404 });
   }
 
+  const { data: orderLinks } = await auth.supabase
+    .from('billing_orders')
+    .select('midtrans_redirect_url, midtrans_snap_token')
+    .eq('owner_id', auth.user.id)
+    .eq('order_id', orderId)
+    .single();
+
   const config = getMidtransConfig();
   if (config.checkoutConfigured) {
     const status = await fetchMidtransStatus(orderId, config);
@@ -69,15 +76,12 @@ export async function GET(req, { params }) {
     if (statusUrl) return NextResponse.json({ success: true, midtransUrl: statusUrl, source: 'midtrans_status' });
   }
 
-  if (order.midtrans_redirect_url) {
-    return NextResponse.json({ success: true, midtransUrl: order.midtrans_redirect_url, source: 'snap_redirect' });
+  if (orderLinks?.midtrans_redirect_url) {
+    return NextResponse.json({ success: true, midtransUrl: orderLinks.midtrans_redirect_url, source: 'snap_redirect' });
   }
 
-  const snapUrl = buildSnapUrl(order.midtrans_snap_token, config);
+  const snapUrl = buildSnapUrl(orderLinks?.midtrans_snap_token, config);
   if (snapUrl) return NextResponse.json({ success: true, midtransUrl: snapUrl, source: 'snap_token' });
 
-  return NextResponse.json({
-    success: false,
-    error: 'Midtrans receipt page is not available for this order.',
-  }, { status: 404 });
+  return NextResponse.json({ success: false, error: 'Midtrans receipt page is not available for this order.' });
 }
