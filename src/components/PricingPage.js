@@ -22,6 +22,7 @@ export default function PricingPage({ onClose, onCheckout }) {
   const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
   const [pendingResumeUrl, setPendingResumeUrl] = useState('');
   const [pendingCancelLoading, setPendingCancelLoading] = useState(false);
+  const [showEmailPopup, setShowEmailPopup] = useState(false);
 
   const plans = [
     {
@@ -139,8 +140,8 @@ export default function PricingPage({ onClose, onCheckout }) {
         return;
       }
 
-      setActionMessage(t('pricing.redirecting'));
-      window.location.href = checkout.checkoutUrl;
+      setActionMessage(t('pricing.checkEmail'));
+      setShowEmailPopup(true);
     } catch (err) {
       setActionMessage(err.message || t('pricing.checkoutFailed'));
     } finally {
@@ -390,6 +391,18 @@ export default function PricingPage({ onClose, onCheckout }) {
         loading={pendingCancelLoading}
         onCancel={handleCancelPendingOrder}
         onConfirm={handleResumePayment}
+      />
+
+      <ConfirmDialog
+        open={showEmailPopup}
+        title={t('pricing.emailPopupTitle')}
+        message={t('pricing.emailPopupMessage')}
+        cancelLabel={t('common.close')}
+        confirmLabel={t('pricing.emailPopupButton')}
+        loadingLabel={t('common.close')}
+        loading={false}
+        onCancel={() => setShowEmailPopup(false)}
+        onConfirm={() => { setShowEmailPopup(false); onClose?.(); }}
       />
     </div>
   );
