@@ -108,19 +108,23 @@ export async function POST(req) {
   }
 
   if (entitlement.active && profile?.midtrans_order_id && profile.midtrans_order_id !== order.order_id) {
+    console.log('Webhook: checking stale order', { currentProfileOrderId: profile.midtrans_order_id, newOrderId: order.order_id });
     const { data: currentOrder, error: currentOrderError } = await supabase
       .from('billing_orders')
       .select('order_id, created_at')
       .eq('order_id', profile.midtrans_order_id)
       .single();
 
+    console.log('Webhook: stale order check result', { found: Boolean(currentOrder), error: currentOrderError?.message });
     if (currentOrderError || !currentOrder) {
+      console.error('Webhook: current billing order not found', { profileOrderId: profile.midtrans_order_id });
       return NextResponse.json({ success: false, error: 'Current billing order was not found.' }, { status: 500 });
     }
 
     const orderCreatedAt = new Date(order.created_at).getTime();
     const currentOrderCreatedAt = new Date(currentOrder.created_at).getTime();
     const staleActiveOrder = Number.isFinite(currentOrderCreatedAt) && Number.isFinite(orderCreatedAt) && orderCreatedAt <= currentOrderCreatedAt;
+    console.log('Webhook: stale comparison', { orderCreatedAt, currentOrderCreatedAt, staleActiveOrder });
     if (staleActiveOrder) {
       console.log('Webhook: ignoring stale active order', { order_id: orderId, plan: order.plan });
       return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'stale_active_order' });
