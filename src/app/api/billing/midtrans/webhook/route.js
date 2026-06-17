@@ -6,6 +6,7 @@ const ACTIVE_MIDTRANS_STATUSES = new Set(['settlement', 'capture']);
 const REVOKED_MIDTRANS_STATUSES = new Set(['refund', 'partial_refund', 'chargeback', 'partial_chargeback']);
 
 export async function POST(req) {
+  try {
   const contentLength = Number(req.headers.get('content-length') || 0);
   if (contentLength > 64 * 1024) {
     return NextResponse.json({ success: false, error: 'Payload too large.' }, { status: 413 });
@@ -245,4 +246,8 @@ export async function POST(req) {
 
   console.log('Webhook: profile updated successfully', { order_id: orderId, plan: active ? entitlement.planId : 'free', status: entitlement.midtransStatus });
   return NextResponse.json({ success: true, status: entitlement.midtransStatus, plan: active ? entitlement.planId : undefined });
+  } catch (err) {
+    console.error('Webhook: unhandled error', { error: err?.message || String(err), stack: err?.stack?.slice(0, 300) });
+    return NextResponse.json({ success: false, error: 'Internal server error.' }, { status: 500 });
+  }
 }
