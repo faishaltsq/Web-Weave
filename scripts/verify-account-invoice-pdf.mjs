@@ -69,7 +69,7 @@ const expectations = [
   ['midtrans.js Snap checkout accepts optional orderId', midtrans, 'orderId = null'],
   ['settings has download handler', settings, 'handleDownloadInvoice'],
   ['settings fetches invoice route', settings, '/api/account/invoices/'],
-  ['settings opens Midtrans URL', settings, "invoiceWindow.location.href = data.midtransUrl"],
+  ['settings opens Midtrans URL', settings, "window.open(data.midtransUrl"],
   ['settings handles success false JSON', settings, '!data.success || !data.midtransUrl'],
   ['settings does not download blob', settings, 'response.blob()', false],
   ['settings invoice rows are buttons', settings, 'className={styles.invoiceItem}'],
