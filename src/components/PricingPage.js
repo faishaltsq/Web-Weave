@@ -27,10 +27,12 @@ export default function PricingPage({ onClose, onCheckout }) {
 
   useEffect(() => {
     async function checkExistingPending() {
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/account/pending-order', { headers });
-      const data = await res.json().catch(() => ({}));
-      if (data.success && data.pending) setCheckedOutPlanId(data.pending.plan);
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch('/api/account/pending-order', { headers });
+        const data = await res.json().catch(() => ({}));
+        if (data.success && data.pending) setCheckedOutPlanId(data.pending.plan);
+      } catch {}
     }
     checkExistingPending();
   }, [getAuthHeaders]);
@@ -308,7 +310,7 @@ export default function PricingPage({ onClose, onCheckout }) {
 
               <button
                 type="button"
-                className={`${styles.ctaButton} ${checkedOutPlanId === plan.id ? styles.ctaEmail : ''} ${plan.badge && plan.id !== 'free' && checkedOutPlanId !== plan.id ? styles.ctaPrimary : styles.ctaSecondary} ${plan.disabled ? styles.disabledButton : ''} ${currentPlan === plan.id && plan.id !== 'free' ? styles.ctaCurrent : ''}`}
+                className={`${styles.ctaButton} ${checkedOutPlanId === plan.id ? styles.ctaEmail : plan.badge && plan.id !== 'free' ? styles.ctaPrimary : styles.ctaSecondary} ${plan.disabled ? styles.disabledButton : ''} ${currentPlan === plan.id && plan.id !== 'free' ? styles.ctaCurrent : ''}`}
                 disabled={plan.disabled || (plan.id === 'starter' && currentPlan === 'pro')}
                 aria-disabled={plan.disabled}
                 onClick={() => {
