@@ -12,7 +12,9 @@ const files = {
   settings: 'src/components/SettingsModal.js',
   css: 'src/components/SettingsModal.module.css',
   translations: 'src/lib/i18n/translations.js',
-  migration: 'supabase/migrations/005_midtrans_order_links.sql',
+  midtrans: 'src/lib/billing/midtrans.js',
+  migration005: 'supabase/migrations/005_midtrans_order_links.sql',
+  migration006: 'supabase/migrations/006_midtrans_invoice_fields.sql',
 };
 
 for (const [label, path] of Object.entries(files)) {
@@ -25,24 +27,46 @@ const checkout = existsSync(join(root, files.checkout)) ? read(files.checkout) :
 const settings = existsSync(join(root, files.settings)) ? read(files.settings) : '';
 const css = existsSync(join(root, files.css)) ? read(files.css) : '';
 const translations = existsSync(join(root, files.translations)) ? read(files.translations) : '';
-const migration = existsSync(join(root, files.migration)) ? read(files.migration) : '';
+const midtrans = existsSync(join(root, files.midtrans)) ? read(files.midtrans) : '';
+const migration005 = existsSync(join(root, files.migration005)) ? read(files.migration005) : '';
+const migration006 = existsSync(join(root, files.migration006)) ? read(files.migration006) : '';
 
 const expectations = [
   ['pdf-lib dependency removed', pkg, '"pdf-lib"', false],
   ['invoice route does not import PDFDocument', route, 'PDFDocument', false],
+  ['invoice route imports getMidtransConfig', route, 'getMidtransConfig'],
+  ['invoice route imports fetchMidtransInvoice', route, 'fetchMidtransInvoice'],
   ['invoice route authenticates user', route, 'getAuthenticatedUser'],
   ['invoice route queries billing orders', route, ".from('billing_orders')"],
   ['invoice route ownership query uses legacy-safe columns', route, ".select('order_id, owner_id')"],
-  ['invoice route reads optional Midtrans link columns separately', route, ".select('midtrans_redirect_url, midtrans_snap_token')"],
+  ['invoice route reads invoice ID from orderLinks', route, "midtrans_redirect_url, midtrans_snap_token, midtrans_invoice_id"],
   ['invoice route scopes owner', route, ".eq('owner_id', auth.user.id)"],
   ['invoice route scopes order id', route, ".eq('order_id', orderId)"],
-  ['invoice route fetches Midtrans status', route, '/v2/${orderId}/status'],
+  ['invoice route calls fetchMidtransInvoice', route, 'fetchMidtransInvoice'],
+  ['invoice route picks pdf_url from invoice', route, 'pdf_url'],
+  ['invoice route falls back to Snap status', route, '/v2/${orderId}/status'],
   ['invoice route returns Midtrans URL JSON', route, 'midtransUrl'],
-  ['invoice route no-url response is not HTTP 404', route, "return NextResponse.json({ success: false, error: 'Midtrans receipt page is not available for this order.' });"],
+  ['invoice route no-url response is JSON error', route, "return NextResponse.json({ success: false, error: 'Midtrans receipt page is not available for this order.' });"],
+  ['checkout imports generateOrderId', checkout, 'generateOrderId'],
+  ['checkout imports createMidtransInvoice', checkout, 'createMidtransInvoice'],
+  ['checkout calls generateOrderId', checkout, 'generateOrderId(auth.user.id, planId, billingCycle)'],
   ['checkout stores Midtrans redirect URL', checkout, 'midtrans_redirect_url: checkout.checkoutUrl'],
   ['checkout stores Midtrans token', checkout, 'midtrans_snap_token: checkout.token'],
-  ['migration adds redirect URL column', migration, 'midtrans_redirect_url'],
-  ['migration adds snap token column', migration, 'midtrans_snap_token'],
+  ['checkout stores invoice fields', checkout, 'orderRecord.midtrans_invoice_id = invoice.invoice_id'],
+  ['checkout stores invoice PDF URL', checkout, 'orderRecord.midtrans_invoice_pdf_url = invoice.pdf_url'],
+  ['checkout stores invoice payment link URL', checkout, 'orderRecord.midtrans_invoice_payment_link_url = invoice.payment_link_url'],
+  ['checkout fallback regex includes invoice fields', checkout, 'midtrans_(?:redirect_url|snap_token|invoice_)'],
+  ['checkout fallback destructures invoice fields', checkout, 'midtrans_invoice_id, midtrans_invoice_pdf_url, midtrans_invoice_payment_link_url'],
+  ['migration005 adds redirect URL column', migration005, 'midtrans_redirect_url'],
+  ['migration005 adds snap token column', migration005, 'midtrans_snap_token'],
+  ['migration006 adds invoice ID column', migration006, 'midtrans_invoice_id'],
+  ['migration006 adds invoice PDF URL column', migration006, 'midtrans_invoice_pdf_url'],
+  ['migration006 adds invoice payment link URL column', migration006, 'midtrans_invoice_payment_link_url'],
+  ['midtrans.js exports generateOrderId', midtrans, 'export function generateOrderId'],
+  ['midtrans.js exports createMidtransInvoice', midtrans, 'export async function createMidtransInvoice'],
+  ['midtrans.js exports fetchMidtransInvoice', midtrans, 'export async function fetchMidtransInvoice'],
+  ['midtrans.js exports buildMidtransInvoiceUrl', midtrans, 'export function buildMidtransInvoiceUrl'],
+  ['midtrans.js Snap checkout accepts optional orderId', midtrans, 'orderId = null'],
   ['settings has download handler', settings, 'handleDownloadInvoice'],
   ['settings fetches invoice route', settings, '/api/account/invoices/'],
   ['settings opens Midtrans URL', settings, 'window.open(data.midtransUrl'],
