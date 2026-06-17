@@ -235,9 +235,6 @@ export default function PricingPage({ onClose, onCheckout }) {
       <div className={styles.orbTwo} />
 
       <header className={styles.header}>
-        <button type="button" className={styles.backButton} onClick={onClose} title={t('pricing.backToBuilder')}>
-          {t('pricing.backToBuilder')}
-        </button>
         <div className={styles.eyebrow}><Sparkles size={16} /> Pricing</div>
         <h1 className={styles.title}>{t('pricing.title')}</h1>
         <p className={styles.subtitle}>{t('pricing.subtitle')}</p>
