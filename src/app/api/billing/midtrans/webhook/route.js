@@ -91,11 +91,13 @@ export async function POST(req) {
 
   const existingActiveOrder = ACTIVE_MIDTRANS_STATUSES.has(String(order.status || '').toLowerCase()) && order.billing_period_ends_at;
   const existingRevokedOrder = REVOKED_MIDTRANS_STATUSES.has(String(order.status || '').toLowerCase());
-  if (existingRevokedOrder && !entitlement.revokesEntitlement) {
+   if (existingRevokedOrder && !entitlement.revokesEntitlement) {
+    console.log('Webhook: ignoring revoked order', { order_id: orderId });
     return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'revoked_order_terminal' });
   }
 
   if (existingActiveOrder && !entitlement.active && !entitlement.revokesEntitlement) {
+    console.log('Webhook: ignoring settled order not downgraded', { order_id: orderId });
     return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'settled_order_not_downgraded' });
   }
 
@@ -114,6 +116,7 @@ export async function POST(req) {
     const currentOrderCreatedAt = new Date(currentOrder.created_at).getTime();
     const staleActiveOrder = Number.isFinite(currentOrderCreatedAt) && Number.isFinite(orderCreatedAt) && orderCreatedAt <= currentOrderCreatedAt;
     if (staleActiveOrder) {
+      console.log('Webhook: ignoring stale active order', { order_id: orderId, plan: order.plan });
       return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'stale_active_order' });
     }
   }
@@ -141,7 +144,8 @@ export async function POST(req) {
   const { data: updatedOrderRows, error: orderUpdateError } = await orderUpdateQuery.select('order_id');
 
   if (orderUpdateError) return NextResponse.json({ success: false, error: orderUpdateError.message }, { status: 500 });
-  if (entitlement.active && !updatedOrderRows?.length) {
+   if (entitlement.active && !updatedOrderRows?.length) {
+    console.log('Webhook: order update blocked (revoked or active)', { order_id: orderId });
     return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'revoked_order_not_reactivated' });
   }
 
@@ -152,6 +156,7 @@ export async function POST(req) {
 
   const active = entitlement.active;
   if (!active && profile?.midtrans_order_id !== order.order_id) {
+    console.log('Webhook: ignoring inactive order not current plan', { order_id: orderId });
     return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'inactive_order_not_current_plan' });
   }
 
@@ -233,9 +238,11 @@ export async function POST(req) {
     }
   }
 
-  if (!updatedProfiles?.length) {
+   if (!updatedProfiles?.length) {
+    console.log('Webhook: profile update returned 0 rows', { order_id: orderId, active: entitlement.active, reason: 'concurrent_profile_change' });
     return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'concurrent_profile_change' });
   }
 
+  console.log('Webhook: profile updated successfully', { order_id: orderId, plan: active ? entitlement.planId : 'free', status: entitlement.midtransStatus });
   return NextResponse.json({ success: true, status: entitlement.midtransStatus, plan: active ? entitlement.planId : undefined });
 }
