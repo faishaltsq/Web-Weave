@@ -15,16 +15,29 @@ export async function POST(req) {
   const config = getMidtransConfig();
 
   if (!notification) {
+    console.error('Webhook: invalid JSON body');
     return NextResponse.json({ success: false, error: 'Invalid notification payload.' }, { status: 400 });
   }
 
   if (!config.checkoutConfigured) {
+    console.error('Webhook: payment gateway not configured');
     return NextResponse.json({ success: false, error: 'Payment gateway is not configured yet.' }, { status: 503 });
   }
 
   if (!verifyMidtransSignature(notification, config.serverKey)) {
+    console.error('Webhook: signature verification failed', {
+      order_id: notification?.order_id,
+      status_code: notification?.status_code,
+      gross_amount: notification?.gross_amount,
+      has_signature_key: typeof notification?.signature_key === 'string',
+      sig_length: notification?.signature_key?.length,
+      transaction_status: notification?.transaction_status,
+      source_route: req.headers.get('x-midtrans-source') || 'unknown',
+    });
     return NextResponse.json({ success: false, error: 'Invalid signature.' }, { status: 401 });
   }
+
+  console.log('Webhook: signature OK, processing', { order_id: notification?.order_id, transaction_status: notification?.transaction_status });
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) return NextResponse.json({ success: false, error: 'Supabase is not configured.' }, { status: 503 });
