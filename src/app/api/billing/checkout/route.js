@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/supabase/server';
-import { createMidtransSnapCheckout } from '@/lib/billing/midtrans';
+import { createMidtransSnapCheckout, createMidtransInvoice, generateOrderId } from '@/lib/billing/midtrans';
 import { getPlanConfig, normalizeBillingCycle } from '@/lib/billing/plans';
 import { getRequestOrigin, validateOrigin } from '@/lib/server/security';
 
@@ -49,17 +49,19 @@ export async function POST(req) {
   if (!plan) return NextResponse.json({ success: false, error: 'Unknown billing plan.' }, { status: 400 });
   if (!plan.checkoutEnabled) return NextResponse.json({ success: false, error: 'This plan is not available for checkout.' }, { status: 400 });
 
+  const orderId = generateOrderId(auth.user.id, planId, billingCycle);
+
   const requestOrigin = getRequestOrigin(req);
   const checkoutEnv = requestOrigin
     ? { ...process.env, NEXT_PUBLIC_APP_URL: requestOrigin }
     : process.env;
-  const checkout = await createMidtransSnapCheckout({ planId, billingCycle, user: auth.user, env: checkoutEnv });
+  const checkout = await createMidtransSnapCheckout({ planId, billingCycle, user: auth.user, env: checkoutEnv, orderId });
   if (!checkout.success) {
     return NextResponse.json({ success: false, error: checkout.error || 'Failed to create checkout.' }, { status: checkout.configured === false ? 503 : 400 });
   }
 
   const orderRecord = {
-    order_id: checkout.orderId,
+    order_id: orderId,
     owner_id: auth.user.id,
     plan: plan.id,
     billing_cycle: billingCycle,
@@ -69,15 +71,22 @@ export async function POST(req) {
     midtrans_snap_token: checkout.token,
   };
 
+  const invoice = await createMidtransInvoice({ orderId, planId, billingCycle, user: auth.user, env: checkoutEnv });
+  if (invoice.success) {
+    orderRecord.midtrans_invoice_id = invoice.invoice_id;
+    orderRecord.midtrans_invoice_pdf_url = invoice.pdf_url;
+    orderRecord.midtrans_invoice_payment_link_url = invoice.payment_link_url;
+  }
+
   let { error: orderError } = await auth.supabase.from('billing_orders').insert(orderRecord);
 
-  if (orderError && /midtrans_(redirect_url|snap_token)/i.test(orderError.message || '')) {
-    const { midtrans_redirect_url, midtrans_snap_token, ...legacyOrderRecord } = orderRecord;
+  if (orderError && /midtrans_(?:redirect_url|snap_token|invoice_)/i.test(orderError.message || '')) {
+    const { midtrans_redirect_url, midtrans_snap_token, midtrans_invoice_id, midtrans_invoice_pdf_url, midtrans_invoice_payment_link_url, ...legacyOrderRecord } = orderRecord;
     ({ error: orderError } = await auth.supabase.from('billing_orders').insert(legacyOrderRecord));
   }
 
   if (orderError) {
-    console.error('Failed to store Midtrans billing order', { orderId: checkout.orderId, error: orderError.message });
+    console.error('Failed to store Midtrans billing order', { orderId, error: orderError.message });
     return NextResponse.json({ success: false, error: 'Failed to create checkout.' }, { status: 500 });
   }
 
