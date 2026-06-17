@@ -82,7 +82,7 @@ export async function POST(req) {
   console.log('Webhook: fetching profile', { userId: entitlement.userId });
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('midtrans_order_id, midtrans_status')
+    .select('plan, midtrans_order_id, midtrans_status')
     .eq('id', entitlement.userId)
     .single();
 
@@ -113,6 +113,17 @@ export async function POST(req) {
   }
 
   const active = entitlement.active;
+
+  if (active) {
+    const PLAN_TIER = { free: 0, starter: 1, pro: 2, team: 3 };
+    const currentPlan = (profile?.plan || 'free').toLowerCase();
+    const currentTier = PLAN_TIER[currentPlan] ?? 0;
+    const targetTier = PLAN_TIER[entitlement.planId] ?? -1;
+    if (targetTier <= currentTier && profile?.midtrans_order_id !== order.order_id) {
+      console.log('Webhook: skipping profile update - already on same or higher plan', { order_id: orderId, currentPlan, targetPlan: entitlement.planId });
+      return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'already_on_higher_or_equal_plan' });
+    }
+  }
 
   if (!active && profile?.midtrans_order_id !== order.order_id) {
     console.log('Webhook: ignoring inactive order not current plan', { order_id: orderId });
