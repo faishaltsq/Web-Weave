@@ -45,11 +45,21 @@ export async function POST(req) {
   const orderId = notification?.order_id ? String(notification.order_id) : '';
   if (!orderId) return NextResponse.json({ success: false, error: 'Webhook missing order_id.' }, { status: 400 });
 
-  const { data: order, error: orderError } = await supabase
+  let { data: order, error: orderError } = await supabase
     .from('billing_orders')
     .select('order_id, owner_id, plan, billing_cycle, amount, status, billing_period_ends_at, created_at')
     .eq('order_id', orderId)
     .single();
+
+  if ((orderError || !order) && /-\d{10,13}$/.test(orderId)) {
+    const strippedOrderId = orderId.replace(/-\d{10,13}$/, '');
+    console.log('Webhook: retrying with stripped order_id', { original: orderId, stripped: strippedOrderId });
+    ({ data: order, error: orderError } = await supabase
+      .from('billing_orders')
+      .select('order_id, owner_id, plan, billing_cycle, amount, status, billing_period_ends_at, created_at')
+      .eq('order_id', strippedOrderId)
+      .single());
+  }
 
   if (orderError || !order) {
     return NextResponse.json({ success: false, error: 'Unknown payment order.' }, { status: 400 });
