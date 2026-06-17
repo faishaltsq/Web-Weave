@@ -5,6 +5,13 @@ import { getPlanConfig, getPlanPrice, normalizeBillingCycle } from './plans';
 const MIDTRANS_SANDBOX_SNAP_URL = 'https://app.sandbox.midtrans.com/snap/v1/transactions';
 const MIDTRANS_PRODUCTION_SNAP_URL = 'https://app.midtrans.com/snap/v1/transactions';
 
+export function generateOrderId(userId, planId, cycle) {
+  const prefix = String(userId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'user';
+  const payload = `${planId}_${cycle}_${Date.now()}_${crypto.randomBytes(4).toString('base64url')}`;
+  const hash = crypto.createHash('sha256').update(payload).digest('base64url').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 10);
+  return `ww_${prefix}_${hash}`;
+}
+
 function getMidtransErrorMessage(payload) {
   if (Array.isArray(payload?.error_messages)) return payload.error_messages[0] || null;
   if (typeof payload?.error_messages === 'string') return payload.error_messages;
