@@ -2,9 +2,6 @@ import { NextResponse } from 'next/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/server';
 import { getMidtransConfig, mapMidtransNotificationToEntitlement, verifyMidtransSignature } from '@/lib/billing/midtrans';
 
-const ACTIVE_MIDTRANS_STATUSES = new Set(['settlement', 'capture']);
-const REVOKED_MIDTRANS_STATUSES = new Set(['refund', 'partial_refund', 'chargeback', 'partial_chargeback']);
-
 export async function POST(req) {
   try {
   const contentLength = Number(req.headers.get('content-length') || 0);
@@ -91,49 +88,11 @@ export async function POST(req) {
 
   console.log('Webhook: profile fetched', { found: Boolean(profile), error: profileError?.message });
   if (profileError) {
-    console.error('Webhook: profile fetch error', { userId: entitlement.userId, error: profileError.message, details: profileError });
+    console.error('Webhook: profile fetch error', { userId: entitlement.userId, error: profileError.message });
     return NextResponse.json({ success: false, error: profileError.message }, { status: 500 });
   }
 
-  const existingActiveOrder = ACTIVE_MIDTRANS_STATUSES.has(String(order.status || '').toLowerCase()) && order.billing_period_ends_at;
-  const existingRevokedOrder = REVOKED_MIDTRANS_STATUSES.has(String(order.status || '').toLowerCase());
-   if (existingRevokedOrder && !entitlement.revokesEntitlement) {
-    console.log('Webhook: ignoring revoked order', { order_id: orderId });
-    return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'revoked_order_terminal' });
-  }
-
-  if (existingActiveOrder && !entitlement.active && !entitlement.revokesEntitlement) {
-    console.log('Webhook: ignoring settled order not downgraded', { order_id: orderId });
-    return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'settled_order_not_downgraded' });
-  }
-
-  if (entitlement.active && profile?.midtrans_order_id && profile.midtrans_order_id !== order.order_id) {
-    console.log('Webhook: checking stale order', { currentProfileOrderId: profile.midtrans_order_id, newOrderId: order.order_id });
-    const { data: currentOrder, error: currentOrderError } = await supabase
-      .from('billing_orders')
-      .select('order_id, created_at')
-      .eq('order_id', profile.midtrans_order_id)
-      .single();
-
-    console.log('Webhook: stale order check result', { found: Boolean(currentOrder), error: currentOrderError?.message });
-    if (currentOrderError || !currentOrder) {
-      console.error('Webhook: current billing order not found', { profileOrderId: profile.midtrans_order_id });
-      return NextResponse.json({ success: false, error: 'Current billing order was not found.' }, { status: 500 });
-    }
-
-    const orderCreatedAt = new Date(order.created_at).getTime();
-    const currentOrderCreatedAt = new Date(currentOrder.created_at).getTime();
-    const staleActiveOrder = Number.isFinite(currentOrderCreatedAt) && Number.isFinite(orderCreatedAt) && orderCreatedAt <= currentOrderCreatedAt;
-    console.log('Webhook: stale comparison', { orderCreatedAt, currentOrderCreatedAt, staleActiveOrder });
-    if (staleActiveOrder) {
-      console.log('Webhook: ignoring stale active order', { order_id: orderId, plan: order.plan });
-      return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'stale_active_order' });
-    }
-  }
-
-  const periodEnd = entitlement.active && existingActiveOrder
-    ? order.billing_period_ends_at
-    : entitlement.billingPeriodEndsAt;
+  const periodEnd = entitlement.billingPeriodEndsAt;
 
   const orderUpdate = {
     status: entitlement.midtransStatus,
@@ -142,30 +101,19 @@ export async function POST(req) {
     updated_at: new Date().toISOString(),
   };
 
-  let orderUpdateQuery = supabase
+  console.log('Webhook: updating billing_orders', { order_id: order.order_id, status: entitlement.midtransStatus });
+  await supabase
     .from('billing_orders')
     .update(orderUpdate)
     .eq('order_id', order.order_id);
 
-  if (entitlement.active) {
-    orderUpdateQuery = orderUpdateQuery.not('status', 'in', '("refund","partial_refund","chargeback","partial_chargeback")');
-  }
-
-  console.log('Webhook: updating billing_orders', { order_id: order.order_id, status: entitlement.midtransStatus });
-  const { data: updatedOrderRows, error: orderUpdateError } = await orderUpdateQuery.select('order_id');
-
-  if (orderUpdateError) return NextResponse.json({ success: false, error: orderUpdateError.message }, { status: 500 });
-   if (entitlement.active && !updatedOrderRows?.length) {
-    console.log('Webhook: order update blocked (revoked or active)', { order_id: orderId });
-    return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'revoked_order_not_reactivated' });
-  }
-
   if (!entitlement.active && !entitlement.terminalInactive) {
-    console.log('Webhook: ignoring non-terminal status', { order_id: orderId, status: entitlement.midtransStatus, active: entitlement.active, terminalInactive: entitlement.terminalInactive });
+    console.log('Webhook: ignoring non-terminal status', { order_id: orderId, status: entitlement.midtransStatus });
     return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'non_terminal_status' });
   }
 
   const active = entitlement.active;
+
   if (!active && profile?.midtrans_order_id !== order.order_id) {
     console.log('Webhook: ignoring inactive order not current plan', { order_id: orderId });
     return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'inactive_order_not_current_plan' });
@@ -195,64 +143,15 @@ export async function POST(req) {
         billing_updated_at: new Date().toISOString(),
       };
 
-  const applyProfileUpdate = async (expectedOrderId, expectedStatus) => {
-    let profileUpdateQuery = supabase
-      .from('profiles')
-      .update(update)
-      .eq('id', entitlement.userId);
+  console.log('Webhook: updating profile', { userId: entitlement.userId, plan: update.plan });
+  const { error: profileUpdateError } = await supabase
+    .from('profiles')
+    .update(update)
+    .eq('id', entitlement.userId);
 
-    profileUpdateQuery = expectedOrderId
-      ? profileUpdateQuery.eq('midtrans_order_id', expectedOrderId)
-      : profileUpdateQuery.is('midtrans_order_id', null);
-
-    profileUpdateQuery = expectedStatus
-      ? profileUpdateQuery.eq('midtrans_status', expectedStatus)
-      : profileUpdateQuery.is('midtrans_status', null);
-
-    return profileUpdateQuery.select('id');
-  };
-
-  let expectedOrderId = active ? profile?.midtrans_order_id || null : order.order_id;
-  let expectedStatus = profile?.midtrans_status || null;
-  console.log('Webhook: updating profile', { userId: entitlement.userId, plan: update.plan, expectedOrderId, expectedStatus });
-  let { data: updatedProfiles, error } = await applyProfileUpdate(expectedOrderId, expectedStatus);
-
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-
-  if (active && !updatedProfiles?.length) {
-    const { data: latestProfile, error: latestProfileError } = await supabase
-      .from('profiles')
-      .select('midtrans_order_id, midtrans_status')
-      .eq('id', entitlement.userId)
-      .single();
-
-    if (latestProfileError) return NextResponse.json({ success: false, error: latestProfileError.message }, { status: 500 });
-
-    if (latestProfile?.midtrans_order_id && latestProfile.midtrans_order_id !== order.order_id) {
-      const { data: latestCurrentOrder, error: latestCurrentOrderError } = await supabase
-        .from('billing_orders')
-        .select('created_at')
-        .eq('order_id', latestProfile.midtrans_order_id)
-        .single();
-
-      if (latestCurrentOrderError || !latestCurrentOrder) {
-        return NextResponse.json({ success: false, error: 'Current billing order was not found.' }, { status: 500 });
-      }
-
-      const orderCreatedAt = new Date(order.created_at).getTime();
-      const latestCurrentOrderCreatedAt = new Date(latestCurrentOrder.created_at).getTime();
-      if (Number.isFinite(latestCurrentOrderCreatedAt) && Number.isFinite(orderCreatedAt) && orderCreatedAt > latestCurrentOrderCreatedAt) {
-        expectedOrderId = latestProfile.midtrans_order_id;
-        expectedStatus = latestProfile.midtrans_status || null;
-        ({ data: updatedProfiles, error } = await applyProfileUpdate(expectedOrderId, expectedStatus));
-        if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-      }
-    }
-  }
-
-   if (!updatedProfiles?.length) {
-    console.log('Webhook: profile update returned 0 rows', { order_id: orderId, active: entitlement.active, reason: 'concurrent_profile_change' });
-    return NextResponse.json({ success: true, ignored: true, status: entitlement.midtransStatus, reason: 'concurrent_profile_change' });
+  if (profileUpdateError) {
+    console.error('Webhook: profile update failed', { userId: entitlement.userId, error: profileUpdateError.message });
+    return NextResponse.json({ success: false, error: profileUpdateError.message }, { status: 500 });
   }
 
   console.log('Webhook: profile updated successfully', { order_id: orderId, plan: active ? entitlement.planId : 'free', status: entitlement.midtransStatus });
