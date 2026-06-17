@@ -141,6 +141,14 @@ export async function createMidtransInvoice({ orderId, planId, billingCycle, use
   const config = getMidtransConfig(env);
   const price = getPlanPrice(planId, cycle);
 
+  if (!plan) {
+    return { success: false, error: 'Unknown billing plan.' };
+  }
+
+  if (!plan.checkoutEnabled) {
+    return { success: false, error: 'This plan is not available for checkout.' };
+  }
+
   if (!config.serverKey || price <= 0) {
     return { success: false, error: 'Payment gateway is not configured.' };
   }
@@ -215,7 +223,10 @@ export async function fetchMidtransInvoice(invoiceId, config) {
     });
 
     const data = await response.json().catch(() => null);
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error('Midtrans Invoice fetch non-ok response', { status: response.status, error: getMidtransErrorMessage(data) });
+      return null;
+    }
     return data;
   } catch (error) {
     console.error('Midtrans Invoice fetch failed', { error: error?.message || String(error) });
