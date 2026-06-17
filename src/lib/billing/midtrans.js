@@ -59,7 +59,7 @@ export function buildMidtransReturnUrl(orderId, env = process.env) {
   return url.toString();
 }
 
-export async function createMidtransSnapCheckout({ planId, billingCycle, user, env = process.env }) {
+export async function createMidtransSnapCheckout({ planId, billingCycle, user, env = process.env, orderId = null }) {
   const plan = getPlanConfig(planId);
   const cycle = normalizeBillingCycle(billingCycle);
   const config = getMidtransConfig(env);
@@ -73,11 +73,7 @@ export async function createMidtransSnapCheckout({ planId, billingCycle, user, e
     return { success: false, configured: false, error: 'Payment gateway is not configured yet.' };
   }
 
-  const timestamp = Date.now();
-  const userPrefix = String(user?.id || '')
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .slice(0, 12) || 'user';
-  const orderId = `ww_${userPrefix}_${plan.id}_${cycle}_${timestamp}`;
+  const id = orderId || generateOrderId(user?.id, plan.id, cycle);
   const authToken = Buffer.from(`${config.serverKey}:`).toString('base64');
 
   try {
@@ -90,7 +86,7 @@ export async function createMidtransSnapCheckout({ planId, billingCycle, user, e
       },
       body: JSON.stringify({
         transaction_details: {
-          order_id: orderId,
+          order_id: id,
           gross_amount: price,
         },
         customer_details: {
@@ -105,7 +101,7 @@ export async function createMidtransSnapCheckout({ planId, billingCycle, user, e
           },
         ],
         callbacks: {
-          finish: buildMidtransReturnUrl(orderId, env),
+          finish: buildMidtransReturnUrl(id, env),
         },
         custom_field1: user?.id || '',
         custom_field2: plan.id,
@@ -124,11 +120,11 @@ export async function createMidtransSnapCheckout({ planId, billingCycle, user, e
     }
 
     if (!payload?.redirect_url || !payload?.token) {
-      console.error('Midtrans Snap checkout returned incomplete payload', { orderId });
+      console.error('Midtrans Snap checkout returned incomplete payload', { orderId: id });
       return { success: false, configured: true, error: 'Failed to create checkout.' };
     }
 
-    return { success: true, configured: true, checkoutUrl: payload.redirect_url, orderId, token: payload.token, amount: price };
+    return { success: true, configured: true, checkoutUrl: payload.redirect_url, orderId: id, token: payload.token, amount: price };
   } catch (error) {
     console.error('Midtrans Snap checkout request failed', { error: error?.message || String(error) });
     return { success: false, configured: true, error: 'Failed to create checkout.' };
