@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser, hasSupabaseServerConfig } from '@/lib/supabase/server';
-import { getMidtransConfig } from '@/lib/billing/midtrans';
+import { getMidtransConfig, fetchMidtransInvoice, buildMidtransInvoiceUrl } from '@/lib/billing/midtrans';
 
 function pickMidtransUrl(payload) {
   const direct = payload?.invoice_url || payload?.receipt_url || payload?.redirect_url || payload?.payment_url;
@@ -18,6 +18,15 @@ function buildSnapUrl(token, config) {
     ? 'https://app.midtrans.com'
     : 'https://app.sandbox.midtrans.com';
   return `${baseUrl}/snap/v2/vtweb/${encodeURIComponent(token)}`;
+}
+
+function pickInvoiceUrl(invoiceData) {
+  if (!invoiceData) return '';
+  return invoiceData.pdf_url
+    || invoiceData.paid_pdf_url
+    || invoiceData.quotation_pdf_url
+    || invoiceData.payment_link_url
+    || '';
 }
 
 async function fetchMidtransStatus(orderId, config) {
@@ -64,12 +73,21 @@ export async function GET(req, { params }) {
 
   const { data: orderLinks } = await auth.supabase
     .from('billing_orders')
-    .select('midtrans_redirect_url, midtrans_snap_token')
+    .select('midtrans_redirect_url, midtrans_snap_token, midtrans_invoice_id')
     .eq('owner_id', auth.user.id)
     .eq('order_id', orderId)
     .single();
 
   const config = getMidtransConfig();
+
+  if (orderLinks?.midtrans_invoice_id && config.checkoutConfigured) {
+    const invoiceData = await fetchMidtransInvoice(orderLinks.midtrans_invoice_id, config);
+    const invoiceUrl = pickInvoiceUrl(invoiceData);
+    if (invoiceUrl) {
+      return NextResponse.json({ success: true, midtransUrl: invoiceUrl, source: 'midtrans_invoice' });
+    }
+  }
+
   if (config.checkoutConfigured) {
     const status = await fetchMidtransStatus(orderId, config);
     const statusUrl = status ? pickMidtransUrl(status) : '';
