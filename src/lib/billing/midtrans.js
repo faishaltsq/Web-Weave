@@ -190,7 +190,12 @@ export async function createMidtransInvoice({ orderId, planId, billingCycle, use
     if (!response.ok) {
       console.error('Midtrans Invoice creation failed', {
         status: response.status,
+        statusText: response.statusText,
         error: getMidtransErrorMessage(payload),
+        body: payload,
+        requestOrderId: orderId,
+        requestPlan: planId,
+        requestPrice: price,
       });
       return { success: false, error: 'Failed to create invoice.' };
     }
