@@ -136,6 +136,8 @@ export async function createMidtransInvoice({ orderId, planId, billingCycle, use
   const cycle = normalizeBillingCycle(billingCycle);
   const config = getMidtransConfig(env);
   const price = getPlanPrice(planId, cycle);
+  const merchantOrigin = getMerchantOrigin(env);
+  const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
 
   if (!plan) {
     return { success: false, error: 'Unknown billing plan.' };
@@ -164,7 +166,8 @@ export async function createMidtransInvoice({ orderId, planId, billingCycle, use
       },
       body: JSON.stringify({
         order_id: orderId,
-        invoice_number: orderId,
+        invoice_number: invoiceNumber,
+        invoice_title: `WebWeave ${plan.label} ${cycle}`,
         due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' +0700'),
         invoice_date: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' +0700'),
         customer_details: {
@@ -172,10 +175,15 @@ export async function createMidtransInvoice({ orderId, planId, billingCycle, use
           email: user?.email || '',
         },
         payment_type: 'payment_link',
+        payment_link: {
+          callbacks: {
+            finish: merchantOrigin,
+          },
+        },
         item_details: [
           {
             item_id: `${plan.id}_${cycle}`,
-            description: `WebWeave ${plan.label} ${cycle}`,
+            description: `WebWeave ${plan.label} - ${cycle === 'annual' ? 'Annual' : 'Monthly'} Plan`,
             quantity: 1,
             price,
           },
