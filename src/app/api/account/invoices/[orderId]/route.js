@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser, hasSupabaseServerConfig } from '@/lib/supabase/server';
-import { getMidtransConfig, fetchMidtransInvoice, buildMidtransInvoiceUrl } from '@/lib/billing/midtrans';
+import { getMidtransConfig, fetchMidtransInvoice } from '@/lib/billing/midtrans';
 
 function pickMidtransUrl(payload) {
   const direct = payload?.invoice_url || payload?.receipt_url || payload?.redirect_url || payload?.payment_url;
