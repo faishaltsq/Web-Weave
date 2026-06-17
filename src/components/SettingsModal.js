@@ -100,20 +100,13 @@ export default function SettingsModal({ onClose, onOpenPricing }) {
     try {
       const headers = await getAuthHeaders();
       const response = await fetch(`/api/account/invoices/${encodeURIComponent(orderId)}`, { headers });
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
         throw new Error(data.error || t('settings.invoiceDownloadError'));
       }
+      if (!data.midtransUrl) throw new Error(t('settings.invoiceDownloadError'));
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `webweave-invoice-${orderId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      window.open(data.midtransUrl, '_blank', 'noopener,noreferrer');
     } catch (err) {
       setInvoiceDownloadError(err.message || t('settings.invoiceDownloadError'));
     } finally {

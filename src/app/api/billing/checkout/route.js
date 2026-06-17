@@ -58,14 +58,23 @@ export async function POST(req) {
     return NextResponse.json({ success: false, error: checkout.error || 'Failed to create checkout.' }, { status: checkout.configured === false ? 503 : 400 });
   }
 
-  const { error: orderError } = await auth.supabase.from('billing_orders').insert({
+  const orderRecord = {
     order_id: checkout.orderId,
     owner_id: auth.user.id,
     plan: plan.id,
     billing_cycle: billingCycle,
     amount: checkout.amount,
     status: 'checkout_created',
-  });
+    midtrans_redirect_url: checkout.checkoutUrl,
+    midtrans_snap_token: checkout.token,
+  };
+
+  let { error: orderError } = await auth.supabase.from('billing_orders').insert(orderRecord);
+
+  if (orderError && /midtrans_(redirect_url|snap_token)/i.test(orderError.message || '')) {
+    const { midtrans_redirect_url, midtrans_snap_token, ...legacyOrderRecord } = orderRecord;
+    ({ error: orderError } = await auth.supabase.from('billing_orders').insert(legacyOrderRecord));
+  }
 
   if (orderError) {
     console.error('Failed to store Midtrans billing order', { orderId: checkout.orderId, error: orderError.message });
