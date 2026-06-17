@@ -195,6 +195,16 @@
   padding: 1rem;
 }
 
+.planText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.planValue {
+  display: block;
+}
+
 .planSummary span,
 .billingMetric span,
 .usageStrip,
@@ -292,6 +302,7 @@
 }
 
 .invoiceItem {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -299,7 +310,23 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface-2);
+  color: inherit;
   padding: 0.75rem;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.invoiceItem:hover:not(:disabled) {
+  border-color: var(--blue);
+  background: var(--surface-3);
+  transform: translateY(-1px);
+}
+
+.invoiceItem:disabled {
+  cursor: wait;
+  opacity: 0.75;
 }
 
 .invoiceMain,

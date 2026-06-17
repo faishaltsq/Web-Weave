@@ -41,6 +41,8 @@ export default function SettingsModal({ onClose, onOpenPricing }) {
   const [billing, setBilling] = useState(null);
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingError, setBillingError] = useState('');
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState('');
+  const [invoiceDownloadError, setInvoiceDownloadError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -89,6 +91,35 @@ export default function SettingsModal({ onClose, onOpenPricing }) {
       ? t('settings.noExpiration')
       : t('settings.notAvailable');
   const paymentLabel = billing?.billingProvider || t('settings.noPaymentMethod');
+
+  const handleDownloadInvoice = async (orderId) => {
+    if (!orderId || downloadingInvoiceId) return;
+    setDownloadingInvoiceId(orderId);
+    setInvoiceDownloadError('');
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/account/invoices/${encodeURIComponent(orderId)}`, { headers });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || t('settings.invoiceDownloadError'));
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `webweave-invoice-${orderId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setInvoiceDownloadError(err.message || t('settings.invoiceDownloadError'));
+    } finally {
+      setDownloadingInvoiceId('');
+    }
+  };
 
   return (
     <div className={styles.overlay}>
@@ -150,9 +181,9 @@ export default function SettingsModal({ onClose, onOpenPricing }) {
           ) : (
             <div className={styles.billingContent}>
               <div className={styles.planSummary}>
-                <div>
+                <div className={styles.planText}>
                   <span>{t('settings.currentPlan')}</span>
-                  <strong>{billing?.planLabel || t('pricing.freePlan')}</strong>
+                  <strong className={styles.planValue}>{billing?.planLabel || t('pricing.freePlan')}</strong>
                 </div>
                 {onOpenPricing && (
                   <button type="button" className={styles.manageButton} onClick={onOpenPricing}>
@@ -196,7 +227,14 @@ export default function SettingsModal({ onClose, onOpenPricing }) {
                 ) : (
                   <div className={styles.invoiceList}>
                     {orders.map((order) => (
-                      <div key={order.orderId} className={styles.invoiceItem}>
+                      <button
+                        key={order.orderId}
+                        type="button"
+                        className={styles.invoiceItem}
+                        onClick={() => handleDownloadInvoice(order.orderId)}
+                        disabled={Boolean(downloadingInvoiceId)}
+                        title={t('settings.invoiceDownloading')}
+                      >
                         <div className={styles.invoiceMain}>
                           <strong><ReceiptText size={14} /> {order.orderId}</strong>
                           <span>{order.plan} · {getCycleLabel(order.cycle, t)} · {formatDate(order.createdAt, lang)}</span>
@@ -205,10 +243,11 @@ export default function SettingsModal({ onClose, onOpenPricing }) {
                           <strong>{formatRupiah(order.amount)}</strong>
                           <span className={styles.invoiceStatus}>{getStatusLabel(order.status, t)}</span>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
+                {invoiceDownloadError && <div className={styles.billingError}>{invoiceDownloadError}</div>}
               </div>
             </div>
           )}
