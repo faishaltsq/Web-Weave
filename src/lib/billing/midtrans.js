@@ -175,11 +175,6 @@ export async function createMidtransInvoice({ orderId, planId, billingCycle, use
           email: user?.email || '',
         },
         payment_type: 'payment_link',
-        payment_link: {
-          callbacks: {
-            finish: merchantOrigin,
-          },
-        },
         item_details: [
           {
             item_id: `${plan.id}_${cycle}`,
