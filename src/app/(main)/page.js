@@ -1109,7 +1109,7 @@ export default function WebWeave() {
           </div>
         </div>
       )}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onOpenPricing={handleOpenPricing} />}
       <ConfirmDialog
         open={Boolean(pendingDeleteScriptId)}
         title={t('confirmDialog.deleteChatTitle')}

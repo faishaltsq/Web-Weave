@@ -17,14 +17,15 @@
 .modal {
   position: relative;
   z-index: 1;
-  width: min(440px, 92vw);
+  width: min(680px, 92vw);
   max-height: 90vh;
   overflow-y: auto;
-  border: 1px solid rgba(59, 130, 246, 0.35);
+  border: 1px solid var(--border);
   border-radius: 18px;
-  background: rgba(10, 10, 10, 0.96);
+  background: var(--surface);
+  color: var(--text);
   padding: 1.5rem;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 24px 80px var(--shadow), 0 0 0 1px rgba(59, 130, 246, 0.12);
   animation: slideUp 0.22s ease;
 }
 
@@ -44,6 +45,10 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1.5rem;
+}
+
+.modal > .section + .section {
+  margin-top: 1rem;
 }
 
 .title {
@@ -76,7 +81,7 @@
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 1.2rem;
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--surface-2);
 }
 
 .sectionHeader {
@@ -149,6 +154,187 @@
   color: #fff;
 }
 
+.billingContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.billingState,
+.billingError,
+.emptyInvoices {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 0.85rem;
+  font-size: 0.86rem;
+}
+
+.billingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.billingError {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--red);
+}
+
+.planSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 1rem;
+}
+
+.planSummary span,
+.billingMetric span,
+.usageStrip,
+.invoiceMain span,
+.invoiceStatus {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.planSummary strong,
+.billingMetric strong,
+.invoiceMain strong,
+.invoiceRight strong {
+  color: var(--text);
+}
+
+.manageButton {
+  border: 1px solid rgba(59, 130, 246, 0.55);
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--blue);
+  min-height: 36px;
+  padding: 0 0.8rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.manageButton:hover {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: var(--blue);
+}
+
+.billingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.billingMetric {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 0.8rem;
+}
+
+.billingMetric span,
+.billingMetric strong {
+  display: block;
+}
+
+.billingMetric strong {
+  margin-top: 0.25rem;
+  font-size: 0.92rem;
+}
+
+.usageStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.usageStrip span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  padding: 0.34rem 0.6rem;
+}
+
+.invoiceSection {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 0.9rem;
+}
+
+.invoiceHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.7rem;
+  color: var(--text);
+}
+
+.invoiceHeader h4 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.invoiceList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.invoiceItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  padding: 0.75rem;
+}
+
+.invoiceMain,
+.invoiceRight {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.invoiceMain strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.84rem;
+}
+
+.invoiceRight {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.invoiceStatus {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.14rem 0.45rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 520px) {
   .overlay {
     align-items: flex-start;
@@ -173,5 +359,24 @@
 
   .langOptions {
     flex-direction: column;
+  }
+
+  .planSummary,
+  .invoiceItem {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .billingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .invoiceRight {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .manageButton {
+    width: 100%;
   }
 }
