@@ -163,19 +163,21 @@ export async function createMidtransInvoice({ orderId, planId, billingCycle, use
         Authorization: `Basic ${authToken}`,
       },
       body: JSON.stringify({
-        transaction_details: {
-          order_id: orderId,
-          gross_amount: price,
-        },
+        order_id: orderId,
+        invoice_number: orderId,
+        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' +0700'),
+        invoice_date: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' +0700'),
         customer_details: {
+          name: user?.email?.split('@')[0] || 'Customer',
           email: user?.email || '',
         },
+        payment_type: 'payment_link',
         item_details: [
           {
-            id: `${plan.id}_${cycle}`,
-            price,
+            item_id: `${plan.id}_${cycle}`,
+            description: `WebWeave ${plan.label} ${cycle}`,
             quantity: 1,
-            name: `WebWeave ${plan.label} ${cycle}`,
+            price,
           },
         ],
       }),
