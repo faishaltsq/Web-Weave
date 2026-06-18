@@ -102,10 +102,12 @@ export async function POST(req) {
   };
 
   console.log('Webhook: updating billing_orders', { order_id: order.order_id, status: entitlement.midtransStatus });
-  await supabase
+  const { error: orderUpdateErr } = await supabase
     .from('billing_orders')
     .update(orderUpdate)
     .eq('order_id', order.order_id);
+
+  if (orderUpdateErr) console.error('Webhook: billing_orders update failed', { order_id: order.order_id, error: orderUpdateErr.message });
 
   if (!entitlement.active && !entitlement.terminalInactive) {
     console.log('Webhook: ignoring non-terminal status', { order_id: orderId, status: entitlement.midtransStatus });

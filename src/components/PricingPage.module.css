@@ -55,27 +55,7 @@
   text-align: center;
 }
 
-.backButton {
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--muted);
-  padding: 0.55rem 0.85rem;
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 850;
-  cursor: pointer;
-  transition: transform 0.18s ease, color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
-}
 
-.backButton:hover {
-  transform: translateY(-1px);
-  color: var(--text);
-  border-color: var(--blue);
-  background: var(--surface-2);
-}
-
-.eyebrow,
 .sectionLabel {
   color: var(--blue);
   text-transform: uppercase;
@@ -556,7 +536,6 @@
 }
 
 .toggleButton:focus-visible,
-.backButton:focus-visible,
 .ctaButton:focus-visible,
 .ctaButtonLarge:focus-visible {
   outline: 2px solid var(--blue);

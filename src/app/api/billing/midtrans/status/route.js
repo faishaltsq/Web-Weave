@@ -4,7 +4,6 @@ import { createSupabaseServiceClient, getAuthenticatedUser } from '@/lib/supabas
 import { getMidtransConfig, mapMidtransNotificationToEntitlement } from '@/lib/billing/midtrans';
 
 const ACTIVE_MIDTRANS_STATUSES = new Set(['settlement', 'capture']);
-const REVOKED_MIDTRANS_STATUSES = new Set(['refund', 'partial_refund', 'chargeback', 'partial_chargeback']);
 
 async function fetchMidtransStatus(orderId, config) {
   const baseUrl = config.isProduction
@@ -35,11 +34,13 @@ async function fetchMidtransStatus(orderId, config) {
 }
 
 async function applyEntitlementUpdate(supabase, order, entitlement) {
-  const { data: profile } = await supabase
+  const { data: profile, error: profileFetchError } = await supabase
     .from('profiles')
     .select('midtrans_order_id, midtrans_status')
     .eq('id', entitlement.userId)
     .single();
+
+  if (profileFetchError) console.error('Status route: profile fetch failed in applyEntitlementUpdate', { error: profileFetchError.message });
 
   const existingActiveOrder = ACTIVE_MIDTRANS_STATUSES.has(String(order.status || '').toLowerCase()) && order.billing_period_ends_at;
   const periodEnd = entitlement.active && existingActiveOrder
@@ -71,7 +72,11 @@ async function applyEntitlementUpdate(supabase, order, entitlement) {
         billing_updated_at: new Date().toISOString(),
       };
 
-  await supabase.from('profiles').update(update).eq('id', entitlement.userId);
+  const { error: profileErr } = await supabase.from('profiles').update(update).eq('id', entitlement.userId);
+  if (profileErr) {
+    console.error('Status route: profile update failed', { userId: entitlement.userId, error: profileErr.message });
+    return { active: false, planId: 'free', status: entitlement.midtransStatus, error: profileErr.message };
+  }
 
   await supabase
     .from('billing_orders')

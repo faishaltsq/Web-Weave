@@ -11,7 +11,9 @@ const rateLimitStore = new Map();
 function getClientId(req) {
   const forwardedFor = req.headers.get('x-forwarded-for');
   if (forwardedFor) return forwardedFor.split(',')[0].trim();
-  return req.headers.get('x-real-ip') || 'unknown';
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp) return realIp;
+  return Math.random().toString(36).slice(2);
 }
 
 function checkRateLimit(clientId) {
