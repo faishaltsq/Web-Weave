@@ -47,6 +47,21 @@ const translations = {
       pricing: 'Pricing',
       revision: 'revisi',
     },
+    templates: {
+      title: 'Templates',
+      searchPlaceholder: 'Search templates...',
+      categories: {
+        all: 'All',
+        login: 'Login',
+        forms: 'Forms',
+        e2e: 'E2E',
+        api: 'API',
+        navigation: 'Navigation',
+      },
+      useTemplate: 'Use Template',
+      empty: 'No templates found matching your search.',
+      error: 'Failed to load templates.',
+    },
     profile: {
       connectAccount: 'Connect account',
       supabaseNotConfigured: 'Supabase not configured',
@@ -295,6 +310,21 @@ const translations = {
       accountSettings: 'Pengaturan Akun',
       pricing: 'Harga',
       revision: 'revisi',
+    },
+    templates: {
+      title: 'Template',
+      searchPlaceholder: 'Cari template...',
+      categories: {
+        all: 'Semua',
+        login: 'Login',
+        forms: 'Formulir',
+        e2e: 'E2E',
+        api: 'API',
+        navigation: 'Navigasi',
+      },
+      useTemplate: 'Gunakan Template',
+      empty: 'Tidak ada template yang cocok.',
+      error: 'Gagal memuat template.',
     },
     profile: {
       connectAccount: 'Hubungkan akun',
