@@ -67,12 +67,11 @@ export function WebWeaveProvider({ children }) {
 
   const fetchTemplates = useCallback(async () => {
     if (!supabase) return;
-    try {
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/templates', { headers });
-      const data = await res.json();
-      if (data.success) setTemplates(data.templates || []);
-    } catch {}
+    const headers = await getAuthHeaders();
+    const res = await fetch('/api/templates', { headers });
+    if (!res.ok) throw new Error('Failed to fetch templates');
+    const data = await res.json();
+    if (data.success) setTemplates(data.templates || []);
   }, [supabase, getAuthHeaders]);
 
   useEffect(() => {

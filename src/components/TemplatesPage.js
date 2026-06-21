@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Code2, KeyRound, FileText, ShoppingCart, Globe, Menu, AlertCircle, RefreshCw } from 'lucide-react';
+import { Code2, KeyRound, FileText, ShoppingCart, Globe, Menu, Search, AlertCircle, RefreshCw } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import styles from './TemplatesPage.module.css';
@@ -156,7 +156,7 @@ export default function TemplatesPage({ onUseTemplate }) {
           <p>{t('templates.subtitle')}</p>
         </div>
         <div className={styles.searchWrap}>
-          <Menu size={16} />
+          <Search size={16} aria-hidden="true" />
           <input
             type="search"
             value={search}
