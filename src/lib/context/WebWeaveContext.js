@@ -18,6 +18,7 @@ export function WebWeaveProvider({ children }) {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [activeScriptId, setActiveScriptId] = useState('');
   const [pendingScript, setPendingScript] = useState(null);
+  const [templates, setTemplates] = useState([]);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -64,16 +65,28 @@ export function WebWeaveProvider({ children }) {
     } catch {} finally { setHistoryLoading(false); }
   }, [user, supabase, getAuthHeaders]);
 
+  const fetchTemplates = useCallback(async () => {
+    if (!supabase) return;
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/templates', { headers });
+      const data = await res.json();
+      if (data.success) setTemplates(data.templates || []);
+    } catch {}
+  }, [supabase, getAuthHeaders]);
+
   useEffect(() => {
     if (!user) {
       setProjects([]);
       setScripts([]);
+      setTemplates([]);
       setSelectedProjectId('');
       setUsageStatus(null);
       return;
     }
     loadPrivateData();
-  }, [user, loadPrivateData]);
+    fetchTemplates();
+  }, [user, loadPrivateData, fetchTemplates]);
 
   useEffect(() => {
     if (!user) return;
@@ -88,8 +101,9 @@ export function WebWeaveProvider({ children }) {
     usageStatus, setUsageStatus, selectedProjectId, setSelectedProjectId,
     activeScriptId, setActiveScriptId,
     pendingScript, setPendingScript,
+    templates, setTemplates, fetchTemplates,
     loadPrivateData, getAuthHeaders,
-  }), [supabase, SUPABASE_ENABLED, user, authSessionLoading, projects, scripts, historyLoading, usageStatus, selectedProjectId, activeScriptId, pendingScript, loadPrivateData, getAuthHeaders]);
+  }), [supabase, SUPABASE_ENABLED, user, authSessionLoading, projects, scripts, historyLoading, usageStatus, selectedProjectId, activeScriptId, pendingScript, templates, fetchTemplates, loadPrivateData, getAuthHeaders]);
 
   return <WebWeaveContext.Provider value={value}>{children}</WebWeaveContext.Provider>;
 }
