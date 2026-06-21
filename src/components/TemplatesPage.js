@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Code2, KeyRound, FileText, ShoppingCart, Globe, Menu, AlertCircle, RefreshCw } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
@@ -39,14 +39,25 @@ function TemplateCard({ template, onUse }) {
   const frameworkLabel = FRAMEWORK_LABEL[template.framework] || template.framework;
 
   return (
-    <div className={styles.card} onClick={() => onUse(template)}>
+    <div
+      className={styles.card}
+      tabIndex={0}
+      role="button"
+      onClick={() => onUse(template)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onUse(template);
+        }
+      }}
+    >
       <div className={styles.cardIcon}><Icon size={20} /></div>
       {frameworkLabel && (
         <span className={`${styles.badge} ${badgeClass}`}>{frameworkLabel}</span>
       )}
       <h3>{template.name}</h3>
       <p>{template.prompt}</p>
-      <button type="button" className={styles.useButton}>
+      <button type="button" className={styles.useButton} tabIndex={-1}>
         <Code2 size={14} /> {t('templates.useTemplate')}
       </button>
     </div>
@@ -66,14 +77,20 @@ function SkeletonCard() {
 
 export default function TemplatesPage({ onUseTemplate }) {
   const { t } = useLanguage();
-  const { templates, user } = useWebWeave();
+  const { templates, historyLoading, fetchTemplates } = useWebWeave();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [error, setError] = useState(false);
 
+  useEffect(() => {
+    fetchTemplates().catch(() => setError(true));
+  }, [fetchTemplates]);
+
   const filtered = useMemo(() => {
     return templates.filter((tpl) => {
-      const matchSearch = !search || tpl.name.toLowerCase().includes(search.toLowerCase()) || tpl.prompt.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = !search
+        || (tpl.name || '').toLowerCase().includes(search.toLowerCase())
+        || (tpl.prompt || '').toLowerCase().includes(search.toLowerCase());
       const matchCategory = category === 'all' || tpl.category === category;
       return matchSearch && matchCategory;
     });
@@ -85,9 +102,21 @@ export default function TemplatesPage({ onUseTemplate }) {
         <div className={styles.errorState}>
           <AlertCircle size={40} />
           <p>{t('templates.error')}</p>
-          <button type="button" className={styles.retryButton} onClick={() => setError(false)}>
-            <RefreshCw size={14} /> Retry
+          <button
+            type="button"
+            className={styles.retryButton}
+            onClick={() => { setError(false); fetchTemplates().catch(() => setError(true)); }}
+          >
+            <RefreshCw size={14} /> {t('templates.retry')}
           </button>
+        </div>
+      );
+    }
+
+    if (historyLoading) {
+      return (
+        <div className={styles.grid}>
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       );
     }
@@ -105,7 +134,7 @@ export default function TemplatesPage({ onUseTemplate }) {
       return (
         <div className={styles.emptyState}>
           <Menu size={40} />
-          <p>{t('templates.empty')}</p>
+          <p>{t('templates.noResults')}</p>
         </div>
       );
     }
@@ -124,7 +153,7 @@ export default function TemplatesPage({ onUseTemplate }) {
       <header className={styles.header}>
         <div>
           <h1>{t('templates.title')}</h1>
-          <p>Pick a template to jump-start your automation</p>
+          <p>{t('templates.subtitle')}</p>
         </div>
         <div className={styles.searchWrap}>
           <Menu size={16} />
@@ -133,6 +162,7 @@ export default function TemplatesPage({ onUseTemplate }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('templates.searchPlaceholder')}
+            aria-label={t('templates.searchPlaceholder')}
           />
         </div>
       </header>
@@ -144,6 +174,7 @@ export default function TemplatesPage({ onUseTemplate }) {
             type="button"
             className={`${styles.tab} ${category === cat ? styles.tabActive : ''}`}
             onClick={() => setCategory(cat)}
+            aria-pressed={category === cat}
           >
             {cat === 'all' ? t('templates.categories.all') : t(`templates.categories.${cat}`)}
           </button>

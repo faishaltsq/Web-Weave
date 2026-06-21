@@ -49,6 +49,7 @@ const translations = {
     },
     templates: {
       title: 'Templates',
+      subtitle: 'Pick a template to jump-start your automation',
       searchPlaceholder: 'Search templates...',
       categories: {
         all: 'All',
@@ -59,7 +60,9 @@ const translations = {
         navigation: 'Navigation',
       },
       useTemplate: 'Use Template',
-      empty: 'No templates found matching your search.',
+      empty: 'No templates available yet.',
+      noResults: 'No templates match your filters.',
+      retry: 'Retry',
       error: 'Failed to load templates.',
     },
     profile: {
@@ -313,6 +316,7 @@ const translations = {
     },
     templates: {
       title: 'Template',
+      subtitle: 'Pilih template untuk memulai otomatisasi',
       searchPlaceholder: 'Cari template...',
       categories: {
         all: 'Semua',
@@ -323,7 +327,9 @@ const translations = {
         navigation: 'Navigasi',
       },
       useTemplate: 'Gunakan Template',
-      empty: 'Tidak ada template yang cocok.',
+      empty: 'Belum ada template tersedia.',
+      noResults: 'Tidak ada template yang cocok dengan filter.',
+      retry: 'Coba lagi',
       error: 'Gagal memuat template.',
     },
     profile: {
