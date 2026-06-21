@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const SPA_ROUTES = ['/chats', '/projects', '/scripts'];
+const SPA_ROUTES = ['/chats', '/projects', '/scripts', '/templates'];
 
 export function middleware(req) {
   if (SPA_ROUTES.includes(req.nextUrl.pathname)) {
