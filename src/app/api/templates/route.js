@@ -7,14 +7,19 @@ export async function GET() {
   }
 
   const supabase = createSupabaseServiceClient();
+  if (!supabase) {
+    return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
+  }
 
   const { data, error } = await supabase
     .from('templates')
     .select('id, name, prompt, framework, category')
     .eq('visibility', 'public')
-    .order('name', { ascending: true });
+    .order('name', { ascending: true })
+    .limit(100);
 
   if (error) {
+    console.error('Templates query failed:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 
