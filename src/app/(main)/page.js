@@ -82,7 +82,6 @@ export default function WebWeave() {
     usageStatus, setUsageStatus, selectedProjectId, setSelectedProjectId,
     activeScriptId, setActiveScriptId, loadPrivateData,
     pendingScript, setPendingScript,
-    templates, fetchTemplates,
   } = useWebWeave();
 
   const [authMode, setAuthMode] = useState('sign_in');
@@ -450,8 +449,14 @@ export default function WebWeave() {
   };
 
   const handleUseTemplate = (template) => {
+    setResult(null);
+    setLogs([]);
+    setError('');
     setObjective(template.prompt);
+    setUrl('');
     setFramework(template.framework);
+    setGenerationFeedback('');
+    setActiveScriptId('');
     setActiveView('home');
     window.history.pushState(null, '', '/');
   };
