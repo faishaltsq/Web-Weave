@@ -40,6 +40,7 @@ import PricingPage from '@/components/PricingPage';
 import SettingsModal from '@/components/SettingsModal';
 import ProjectsPage from '@/components/ProjectsPage';
 import ScriptsPage from '@/components/ScriptsPage';
+import TemplatesPage from '@/components/TemplatesPage';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
@@ -81,6 +82,7 @@ export default function WebWeave() {
     usageStatus, setUsageStatus, selectedProjectId, setSelectedProjectId,
     activeScriptId, setActiveScriptId, loadPrivateData,
     pendingScript, setPendingScript,
+    templates, fetchTemplates,
   } = useWebWeave();
 
   const [authMode, setAuthMode] = useState('sign_in');
@@ -125,6 +127,7 @@ export default function WebWeave() {
     if (path === '/chats') return 'chats';
     if (path === '/projects') return 'projects';
     if (path === '/scripts') return 'scripts';
+    if (path === '/templates') return 'templates';
     return 'home';
   };
   const [activeView, setActiveView] = useState(() => deriveView(pathname));
@@ -446,6 +449,13 @@ export default function WebWeave() {
     setNewAutomationMenuOpen(false);
   };
 
+  const handleUseTemplate = (template) => {
+    setObjective(template.prompt);
+    setFramework(template.framework);
+    setActiveView('home');
+    window.history.pushState(null, '', '/');
+  };
+
   const requestDeleteScript = (scriptId) => {
     setContextMenuScript(null);
     setPendingDeleteScriptId(scriptId);
@@ -731,7 +741,7 @@ export default function WebWeave() {
             <button type="button" className={activeView === 'projects' ? styles.navActive : ''} onClick={() => { setActiveView('projects'); window.history.pushState(null, '', '/projects'); }} title="Projects"><Folder size={18} /> <span>Projects</span></button>
             <button type="button" className={activeView === 'chats' ? styles.navActive : ''} onClick={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }} title="Chats"><MessageSquare size={18} /> <span>Chats</span></button>
             <button type="button" className={activeView === 'scripts' ? styles.navActive : ''} onClick={() => { setActiveView('scripts'); window.history.pushState(null, '', '/scripts'); }} title="Automation Scripts"><FileCode2 size={18} /> <span>Automation Scripts</span></button>
-            <button type="button" className={styles.navDisabled} aria-disabled="true" data-tooltip="Coming in new Updates"><Code2 size={18} /> <span>Templates</span></button>
+            <button type="button" className={activeView === 'templates' ? styles.navActive : ''} onClick={() => { setActiveView('templates'); window.history.pushState(null, '', '/templates'); }} title="Templates"><Code2 size={18} /> <span>Templates</span></button>
           </nav>
 
           <div className={styles.sidebarSection}>
@@ -861,6 +871,8 @@ export default function WebWeave() {
             onBrowseChats={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }}
             onOpenScript={(script) => { handleOpenScript(script); setActiveView('home'); window.history.pushState(null, '', '/'); }}
           />
+        ) : activeView === 'templates' ? (
+          <TemplatesPage onUseTemplate={handleUseTemplate} />
         ) : hasWorkspace ? (
           <>
             <header className={styles.workspaceHeader}>
