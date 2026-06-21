@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient, hasSupabaseServerConfig } from '@/lib/supabase/server';
+import { createSupabaseServiceClient, hasSupabaseServerConfig } from '@/lib/supabase/server';
 
 export async function GET() {
   if (!hasSupabaseServerConfig()) {
     return NextResponse.json({ success: true, configured: false, templates: [] });
   }
 
-  const supabase = createServerSupabaseClient();
+  const supabase = createSupabaseServiceClient();
 
   const { data, error } = await supabase
     .from('templates')
