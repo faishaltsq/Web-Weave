@@ -2196,6 +2196,10 @@
 
 @media (max-width: 760px) {
   .container {
+    --mobile-font-xs: clamp(0.68rem, 2.15vw, 0.76rem);
+    --mobile-font-sm: clamp(0.74rem, 2.45vw, 0.84rem);
+    --mobile-font-md: clamp(0.82rem, 2.9vw, 0.95rem);
+    --mobile-font-lg: clamp(1rem, 4.5vw, 1.24rem);
     grid-template-columns: var(--mobile-rail-width) minmax(0, 1fr);
     min-height: 100dvh;
     height: 100dvh;
@@ -2318,8 +2322,32 @@
   }
 
   .heroContent h1 {
-    font-size: clamp(2rem, 12vw, 3rem);
-    line-height: 1;
+    font-size: clamp(1.8rem, 9.5vw, 2.6rem);
+    line-height: 1.02;
+  }
+
+  .heroContent p {
+    font-size: var(--mobile-font-md);
+    line-height: 1.55;
+    margin: 0.85rem 0 1.25rem;
+  }
+
+  .heroPrompt,
+  .inlineUrl,
+  .inlineSelect,
+  .input,
+  .textarea,
+  .select,
+  .feedbackTextarea {
+    font-size: var(--mobile-font-md);
+    padding: 0.72rem 0.78rem;
+  }
+
+  .sendButton,
+  .generateButton,
+  .regenerateButton {
+    font-size: var(--mobile-font-sm);
+    white-space: normal;
   }
 
   .composerMeta {
@@ -2338,6 +2366,41 @@
     min-height: 56px;
     flex-wrap: wrap;
     padding: 0.75rem;
+  }
+
+  .breadcrumbs {
+    font-size: var(--mobile-font-sm);
+  }
+
+  .publishPill,
+  .quotaPill {
+    font-size: var(--mobile-font-xs);
+  }
+
+  .chatCard h1 {
+    font-size: var(--mobile-font-lg);
+    line-height: 1.15;
+  }
+
+  .chatCard h2,
+  .codeToolbar h2 {
+    font-size: clamp(0.95rem, 3.6vw, 1.08rem);
+    line-height: 1.2;
+  }
+
+  .kicker,
+  .label {
+    font-size: var(--mobile-font-xs);
+  }
+
+  .securityNote,
+  .heroError,
+  .errorBanner,
+  .console,
+  .previewTopbar,
+  .locatorStrip,
+  .qualityPanel {
+    font-size: var(--mobile-font-sm);
   }
 
   .breadcrumbs,
@@ -2398,7 +2461,7 @@
 
   .code {
     min-height: 240px;
-    font-size: 0.78rem;
+    font-size: var(--mobile-font-xs);
   }
 
   .loadingPreviewShell,
@@ -2846,6 +2909,24 @@
     padding: 1rem;
   }
 
+  .chatsTitle {
+    font-size: clamp(1.2rem, 5.5vw, 1.45rem);
+    line-height: 1.15;
+  }
+
+  .chatsSubtitle,
+  .chatsSearchInput,
+  .chatsNewChatBtn,
+  .chatItemName {
+    font-size: clamp(0.8rem, 2.8vw, 0.9rem);
+  }
+
+  .chatItemPreview,
+  .chatItemTime,
+  .chatsSearchClear {
+    font-size: clamp(0.7rem, 2.3vw, 0.78rem);
+  }
+
   .chatsHeaderActions {
     width: 100%;
     flex-direction: column;
@@ -2862,6 +2943,7 @@
 
   .chatItem {
     align-items: flex-start;
+    padding: 0.85rem 0.75rem;
   }
 
   .chatItemMain {

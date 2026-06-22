@@ -22,3 +22,6 @@
 # IDE
 .vscode/
 .idea/
+
+# superpowers
+.superpowers/

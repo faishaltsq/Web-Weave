@@ -199,6 +199,14 @@
     gap: 0.75rem;
   }
 
+  .chatsTitle { font-size: clamp(1.2rem, 5.5vw, 1.45rem); line-height: 1.15; }
+  .chatsSubtitle,
+  .chatsSearchInput,
+  .chatsNewChatBtn,
+  .chatItemName { font-size: clamp(0.8rem, 2.8vw, 0.9rem); }
+  .chatItemPreview,
+  .chatItemTime { font-size: clamp(0.7rem, 2.3vw, 0.78rem); }
+
   .chatsHeaderActions {
     width: 100%;
     flex-direction: column;

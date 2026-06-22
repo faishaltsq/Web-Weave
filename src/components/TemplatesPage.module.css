@@ -50,3 +50,20 @@
 @keyframes cardFadeIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes shimmer { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 @media (max-width: 1024px) { .container { min-height: 100dvh; height: auto; overflow-x: hidden; } .grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); } .header { flex-direction: column; } }
+
+@media (max-width: 760px) {
+  .container { padding: clamp(0.85rem, 3.5vw, 1rem); }
+  .header { gap: 0.75rem; }
+  .header h1 { font-size: clamp(1.35rem, 6.5vw, 2rem); line-height: 1.1; }
+  .header p { font-size: clamp(0.78rem, 2.9vw, 0.9rem); line-height: 1.45; }
+  .searchWrap { width: 100%; box-sizing: border-box; }
+  .searchWrap input { width: 100%; font-size: clamp(0.78rem, 2.6vw, 0.87rem); }
+  .tabs { gap: 0.3rem; margin: 0.8rem 0; }
+  .tab { padding: 0.32rem 0.68rem; font-size: clamp(0.7rem, 2.3vw, 0.78rem); }
+  .grid { grid-template-columns: 1fr; gap: 0.75rem; }
+  .card { padding: clamp(0.9rem, 3.4vw, 1.05rem); border-radius: 18px; }
+  .card h3 { font-size: clamp(0.92rem, 3.2vw, 1rem); line-height: 1.2; }
+  .card p { font-size: clamp(0.76rem, 2.7vw, 0.84rem); line-height: 1.45; }
+  .badge { font-size: clamp(0.64rem, 2.1vw, 0.7rem); }
+  .useButton, .retryButton { font-size: clamp(0.72rem, 2.4vw, 0.8rem); }
+}

@@ -70,6 +70,20 @@
     padding: 1rem;
   }
 
+  .header h1 { font-size: clamp(1.35rem, 6.5vw, 2rem); line-height: 1.1; }
+  .header p { font-size: clamp(0.78rem, 2.9vw, 0.9rem); line-height: 1.45; }
+  .kicker { font-size: clamp(0.68rem, 2.2vw, 0.76rem); }
+  .summaryCard span,
+  .statusPill,
+  .metaRow { font-size: clamp(0.68rem, 2.2vw, 0.76rem); }
+  .summaryCard strong { font-size: clamp(1.05rem, 4.6vw, 1.28rem); }
+  .scriptCard h3 { font-size: clamp(0.92rem, 3.2vw, 1rem); line-height: 1.2; }
+  .scriptCard p,
+  .runnerNotice,
+  .primaryButton,
+  .secondaryButton,
+  .disabledRunButton { font-size: clamp(0.76rem, 2.7vw, 0.84rem); }
+
   .header {
     flex-direction: column;
   }
