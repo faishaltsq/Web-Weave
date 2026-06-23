@@ -768,6 +768,22 @@ function extractGeneratedCode(textResponse) {
   return normalized.trim();
 }
 
+function sanitizeOutputAscii(code) {
+  return String(code || '')
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+    .replace(/\u2014/g, '--')
+    .replace(/[\u2013\u2012]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/\u2022/g, '-')
+    .replace(/\u00A0/g, ' ')
+    .replace(/[\u2713\u2714\u2705]/g, '')
+    .replace(/[\u274C\u2717\u2718]/g, '')
+    .replace(/[\u26A0\u26A1]/g, '')
+    .replace(/[\u2192\u2190\u2191\u2193]/g, '->')
+    .replace(/[^\x00-\x7F]/g, '');
+}
+
 function hasBalancedSyntaxMarkers(code, framework) {
   if (!code) return false;
   if (framework === 'playwright_python' || framework === 'selenium_python') {
@@ -1261,7 +1277,8 @@ export async function POST(req) {
           }
         } catch (scrapeError) {
           console.error('Scrape error:', scrapeError);
-          pushLog(`Warning: Scraping failed (${scrapeError.message}). Falling back to generic code generation.`);
+          const shortMsg = String(scrapeError.message || '').split('\n')[0].split('╔')[0].trim().substring(0, 200);
+          pushLog(`Warning: Scraping failed (${shortMsg || 'unknown error'}). Falling back to generic code generation.`);
         } finally {
           if (browser) {
             await browser.close();
@@ -1280,8 +1297,8 @@ export async function POST(req) {
         const textResponse = await callAIProvider(activeProvider, systemPrompt, userPrompt, activeApiKey, activeModelId);
         pushLog('Code generated successfully!');
 
-        // ── Phase 3: Extract code + quality checks ──
-        const generatedCode = extractGeneratedCode(textResponse);
+        // ── Phase 3: Extract code + sanitize ASCII + quality checks ──
+        const generatedCode = sanitizeOutputAscii(extractGeneratedCode(textResponse));
         if (/```/.test(generatedCode)) {
           pushLog('Warning: Generated code still contains markdown fences after extraction.');
         }
