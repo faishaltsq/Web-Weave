@@ -538,7 +538,7 @@ function getFrameworkDetails(framework) {
   const frameworks = {
     playwright_js: {
       name: 'Playwright (JavaScript)',
-      ext: 'js',
+      ext: 'spec.js',
       details: `Playwright in JavaScript — standalone script (NOT @playwright/test runner).
 Use: const { chromium } = require('playwright'); browser = await chromium.launch(); page = await browser.newPage();
 Selectors: USE ID/name from DOM FIRST. page.fill('#exactId', val) > page.locator('#id') > page.getByRole() > page.getByPlaceholder().

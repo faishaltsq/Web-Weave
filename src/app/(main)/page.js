@@ -56,7 +56,7 @@ const FRAMEWORKS = [
 
 function getFileExtension(frameworkValue) {
   const extMap = {
-    playwright_js: 'js',
+    playwright_js: 'spec.js',
     playwright_python: 'py',
     puppeteer_js: 'js',
     selenium_python: 'py',
