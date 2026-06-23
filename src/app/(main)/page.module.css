@@ -1479,6 +1479,23 @@
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
+.promptCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.promptCardHeader > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.promptCardHeader .quotaPill {
+  flex-shrink: 0;
+}
+
 .promptCard:focus-within,
 .promptCard.promptPulse {
   border-color: var(--blue);

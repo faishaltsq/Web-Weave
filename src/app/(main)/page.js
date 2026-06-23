@@ -898,8 +898,16 @@ export default function WebWeave() {
             <main className={styles.workspaceLayout}>
               <section className={`${styles.promptRail} ${styles.appearIn}`}>
                 <div className={`${styles.chatCard} ${styles.promptCard} ${activePromptArea === 'workspace' ? styles.promptPulse : ''}`} onPointerDown={() => triggerPromptAnimation('workspace')}>
-                  <p className={styles.kicker}>Prompt</p>
-                  <h1>Automation objective</h1>
+                  <div className={styles.promptCardHeader}>
+                    <div>
+                      <p className={styles.kicker}>Prompt</p>
+                      <h1>Automation objective</h1>
+                    </div>
+                    <div className={styles.quotaPill} title={usageStatus?.planLabel ? `${usageStatus.planLabel} plan` : 'Monthly quota'}>
+                      <ShieldCheck size={14} />
+                      <span>{quotaLabel}</span>
+                    </div>
+                  </div>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>Target URL</label>
                     <input type="url" value={url} onChange={(event) => setUrl(event.target.value)} onFocus={() => triggerPromptAnimation('workspace')} className={styles.input} disabled={loading} />
@@ -936,12 +944,43 @@ export default function WebWeave() {
                   </button>
                 </div>
 
-                <div className={styles.generateRow}>
-                  <div className={styles.quotaPill} title={usageStatus?.planLabel ? `${usageStatus.planLabel} plan` : 'Monthly quota'}>
-                    <ShieldCheck size={14} />
-                    <span>{quotaLabel}</span>
+                {result?.aiFeedback && (
+                  <div className={`${styles.aiFeedbackCard} ${styles.appearInSlow}`}>
+                    <div className={styles.aiFeedbackHeader}>
+                      <Sparkles size={16} />
+                      <span>AI Analysis</span>
+                    </div>
+
+                    {result.aiFeedback.overview && (
+                      <div className={styles.aiFeedbackSection}>
+                        <p className={styles.aiFeedbackKicker}>Overview</p>
+                        <p className={styles.aiFeedbackText}>{result.aiFeedback.overview}</p>
+                      </div>
+                    )}
+
+                    {result.aiFeedback.strengths?.length > 0 && (
+                      <div className={styles.aiFeedbackSection}>
+                        <p className={styles.aiFeedbackKicker}>Strengths</p>
+                        <ul className={styles.aiFeedbackList}>
+                          {result.aiFeedback.strengths.map((item, i) => (
+                            <li key={`strength-${i}`} className={styles.aiFeedbackItem}><CheckCircle size={14} />{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {result.aiFeedback.considerations?.length > 0 && (
+                      <div className={styles.aiFeedbackSection}>
+                        <p className={styles.aiFeedbackKicker}>Considerations</p>
+                        <ul className={styles.aiFeedbackList}>
+                          {result.aiFeedback.considerations.map((item, i) => (
+                            <li key={`consideration-${i}`} className={`${styles.aiFeedbackItem} ${styles.aiFeedbackConsideration}`}><AlertCircle size={14} />{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
                 <div className={styles.chatCard}>
                   <p className={styles.kicker}>Run logs</p>
@@ -1056,44 +1095,6 @@ export default function WebWeave() {
                     {result?.code ? <pre className={styles.code}><code>{result.code}</code></pre> : <div className={styles.codeEmptyState}>Code will appear below the headless browser preview.</div>}
                   </div>
                 </div>
-
-                {result?.aiFeedback && (
-                  <div className={`${styles.aiFeedbackCard} ${styles.appearInSlow}`}>
-                    <div className={styles.aiFeedbackHeader}>
-                      <Sparkles size={16} />
-                      <span>AI Analysis</span>
-                    </div>
-
-                    {result.aiFeedback.overview && (
-                      <div className={styles.aiFeedbackSection}>
-                        <p className={styles.aiFeedbackKicker}>Overview</p>
-                        <p className={styles.aiFeedbackText}>{result.aiFeedback.overview}</p>
-                      </div>
-                    )}
-
-                    {result.aiFeedback.strengths?.length > 0 && (
-                      <div className={styles.aiFeedbackSection}>
-                        <p className={styles.aiFeedbackKicker}>Strengths</p>
-                        <ul className={styles.aiFeedbackList}>
-                          {result.aiFeedback.strengths.map((item, i) => (
-                            <li key={`strength-${i}`} className={styles.aiFeedbackItem}><CheckCircle size={14} />{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {result.aiFeedback.considerations?.length > 0 && (
-                      <div className={styles.aiFeedbackSection}>
-                        <p className={styles.aiFeedbackKicker}>Considerations</p>
-                        <ul className={styles.aiFeedbackList}>
-                          {result.aiFeedback.considerations.map((item, i) => (
-                            <li key={`consideration-${i}`} className={`${styles.aiFeedbackItem} ${styles.aiFeedbackConsideration}`}><AlertCircle size={14} />{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
               </section>
             </main>
           </>
