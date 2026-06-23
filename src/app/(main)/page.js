@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   AlertCircle,
@@ -75,6 +75,27 @@ function getTargetDomain(rawUrl) {
   }
 }
 
+const GEN_PHASES = [
+  { key: 'launch', label: 'Launching browser', match: /launching headless/i },
+  { key: 'navigate', label: 'Opening target page', match: /navigating to:/i },
+  { key: 'extract', label: 'Reading interactive DOM', match: /extracting interactive dom|page loaded/i },
+  { key: 'rank', label: 'Ranking locator candidates', match: /scraped successfully|ranked \d+ locator|preview captured/i },
+  { key: 'generate', label: 'AI generating script', match: /sending request to|code generated/i },
+  { key: 'validate', label: 'Quality validation', match: /quality gate|markdown fences|generated code still/i },
+  { key: 'analyze', label: 'AI analysis feedback', match: /generating ai analysis|ai feedback/i },
+];
+
+function deriveActivePhase(logLines) {
+  let active = 0;
+  for (let i = 0; i < logLines.length; i += 1) {
+    const line = logLines[i];
+    for (let p = 0; p < GEN_PHASES.length; p += 1) {
+      if (GEN_PHASES[p].match.test(line)) { active = p; break; }
+    }
+  }
+  return active;
+}
+
 export default function WebWeave() {
   const {
     supabase, SUPABASE_ENABLED, user, setUser, authSessionLoading,
@@ -123,6 +144,7 @@ export default function WebWeave() {
   const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
+  const activePhaseIndex = useMemo(() => (loading ? deriveActivePhase(logs) : -1), [loading, logs]);
   const deriveView = (path) => {
     if (path === '/chats') return 'chats';
     if (path === '/projects') return 'projects';
@@ -1071,13 +1093,28 @@ export default function WebWeave() {
                             <strong>Scanning target page</strong>
                             <span className={styles.liveProcessUrl}>{url || 'target-site.example'}</span>
                           </div>
-                          <div className={styles.liveLogFeed}>
-                            {logs.map((log, index) => (
-                              <div key={`live-${index}`} className={styles.liveLogLine}>
-                                <span className={styles.liveLogPrompt}>{'>'}</span>
-                                <span>{log}</span>
-                              </div>
-                            ))}
+                          <div className={styles.phaseProgressTrack}>
+                            <div
+                              className={styles.phaseProgressFill}
+                              style={{ width: `${(activePhaseIndex / GEN_PHASES.length) * 100}%` }}
+                            />
+                          </div>
+                          <div className={styles.phaseList}>
+                            {GEN_PHASES.map((phase, i) => {
+                              const isDone = i < activePhaseIndex;
+                              const isActive = i === activePhaseIndex;
+                              return (
+                                <div
+                                  key={phase.key}
+                                  className={`${styles.phaseCard} ${isActive ? styles.phaseActive : ''} ${isDone ? styles.phaseDone : ''}`}
+                                >
+                                  <span className={styles.phaseIcon}>
+                                    {isDone ? <CheckCircle size={16} /> : isActive ? <Loader size={16} className={styles.spinner} /> : <span className={styles.phaseDotPending} />}
+                                  </span>
+                                  <span className={styles.phaseLabel}>{phase.label}</span>
+                                </div>
+                              );
+                            })}
                           </div>
                           {streamLocators.length > 0 && (
                             <div className={styles.liveLocators}>
