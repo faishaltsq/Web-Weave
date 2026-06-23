@@ -1094,8 +1094,11 @@ Return JSON:
 }
 
 export async function POST(req) {
-  let browser = null;
   const lang = detectLang(req);
+
+  // ── Validation Phase (non-streaming JSON errors) ──
+  let safeUrl, safePrompt, auth = null, activeProvider, activeApiKey, activeModelId, framework;
+
   try {
     const retryAfter = checkRateLimit(getClientId(req));
     if (retryAfter) {
@@ -1114,23 +1117,23 @@ export async function POST(req) {
       }, { status: 413 });
     }
 
-    const { url, prompt, framework, provider: userProvider, modelId: userModelId } = await req.json();
+    const body = await req.json();
+    framework = body.framework;
+    const userProvider = body.provider;
+    const userModelId = body.modelId;
 
     const VALID_FRAMEWORKS = ['playwright_js', 'playwright_python', 'puppeteer_js', 'selenium_python', 'cypress_js'];
     if (!VALID_FRAMEWORKS.includes(framework ?? '')) {
       return NextResponse.json({ error: `Invalid framework: ${framework}. Valid: ${VALID_FRAMEWORKS.join(', ')}` }, { status: 400 });
     }
 
-    let safeUrl;
-    let safePrompt;
     try {
-      safeUrl = await validateTargetUrl(url);
-      safePrompt = validatePrompt(prompt);
+      safeUrl = await validateTargetUrl(body.url);
+      safePrompt = validatePrompt(body.prompt);
     } catch (validationError) {
       return NextResponse.json({ error: validationError.message }, { status: 400 });
     }
 
-    let auth = null;
     if (hasSupabaseServerConfig()) {
       auth = await getAuthenticatedUser(req);
       if (auth.error) {
@@ -1152,186 +1155,210 @@ export async function POST(req) {
       }
     }
 
-    // Auto-detect provider from server env keys (user can override via request)
     const detected = autoDetectProvider();
     if (!detected && !userProvider) {
-      return NextResponse.json({ 
-        error: 'No AI provider configured. Set API keys in .env.local' 
+      return NextResponse.json({
+        error: 'No AI provider configured. Set API keys in .env.local'
       }, { status: 500 });
     }
 
-    const activeProvider = userProvider || detected;
-    const { modelId } = userModelId 
-      ? { modelId: userModelId } 
+    activeProvider = userProvider || detected;
+    const { modelId } = userModelId
+      ? { modelId: userModelId }
       : (PROVIDER_DEFAULTS[activeProvider] || { modelId: null });
-    const activeModelId = modelId;
+    activeModelId = modelId;
 
-    // Resolve API Key
-    const activeApiKey = resolveApiKey(activeProvider, undefined);
+    activeApiKey = resolveApiKey(activeProvider, undefined);
     if (!activeApiKey) {
       const providerNames = { gemini: 'Gemini', openai: 'OpenAI', anthropic: 'Anthropic', openrouter: 'OpenRouter', opencode: 'OpenCode Go' };
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: msg(lang, 'apiKeyNotConfigured', providerNames[activeProvider] || activeProvider)
       }, { status: 400 });
     }
-
-    let pageTitle = '';
-    let interactiveData = null;
-    let scrapeLogs = [];
-    let scrapeSuccess = false;
-    let browserPreview = null;
-    let locatorSummary = [];
-
-    // ── Phase 1: DOM Scraping with Playwright ──
-    try {
-      scrapeLogs.push('Launching headless browser...');
-      browser = await chromium.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-      });
-      const context = await browser.newContext({
-        viewport: { width: 1280, height: 800 },
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
-      });
-      const page = await context.newPage();
-      const expectedHost = new URL(safeUrl).hostname.toLowerCase();
-      const expectedAddresses = await getPublicAddressSet(safeUrl);
-      await context.route('**/*', async (route) => {
-        try {
-          await validateBrowserRequestUrl(route.request().url(), expectedHost, expectedAddresses);
-          await route.continue();
-        } catch {
-          await route.abort();
-        }
-      });
-      
-      scrapeLogs.push(`Navigating to: ${safeUrl}...`);
-      await page.goto(safeUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-      await validatePostNavigationUrl(page.url());
-      
-      // Wait a bit for dynamic content to render
-      await page.waitForTimeout(1500);
-      scrapeLogs.push('Page loaded. Extracting interactive DOM elements...');
-      
-      interactiveData = await page.evaluate(getInteractiveElementsJS());
-      
-      if (interactiveData && interactiveData.elements) {
-        pageTitle = interactiveData.title || '';
-        locatorSummary = buildLocatorSummary(interactiveData);
-        scrapeLogs.push(`Scraped successfully! Found ${interactiveData.elements.length} interactive elements.`);
-        scrapeLogs.push(`Ranked ${locatorSummary.length} locator candidates by confidence.`);
-        scrapeSuccess = true;
-
-        await page.evaluate(() => {
-          const selectors = 'input, select, textarea, button, a, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [tabindex="0"]';
-          document.querySelectorAll(selectors).forEach((el) => {
-            const style = window.getComputedStyle(el);
-            if (style.display === 'none' || style.visibility === 'hidden' || el.offsetWidth === 0 || el.offsetHeight === 0) return;
-            el.style.outline = '2px solid #8b5cf6';
-            el.style.outlineOffset = '2px';
-            el.style.boxShadow = '0 0 0 4px rgba(139, 92, 246, 0.18)';
-          });
-        });
-
-        const screenshot = await page.screenshot({ type: 'jpeg', quality: 72, fullPage: false });
-        browserPreview = `data:image/jpeg;base64,${screenshot.toString('base64')}`;
-        scrapeLogs.push('Browser preview captured with locator highlights.');
-      } else {
-        scrapeLogs.push('Warning: DOM extraction returned empty data. Falling back to generic generation.');
-      }
-    } catch (scrapeError) {
-      console.error('Scrape error:', scrapeError);
-      scrapeLogs.push(`Warning: Scraping failed (${scrapeError.message}). Falling back to generic code generation.`);
-    } finally {
-      if (browser) {
-        await browser.close();
-        browser = null;
-      }
-    }
-
-    // ── Phase 2: AI Code Generation ──
-    const systemPrompt = buildSystemPrompt();
-    const domContext = limitText(sanitizeUntrustedInstructionText(buildDomContext(safeUrl, scrapeSuccess, interactiveData)), MAX_DOM_CONTEXT_LENGTH);
-    const userPrompt = buildUserPrompt(safeUrl, safePrompt, framework, domContext);
-
-    const providerLabel = { gemini: 'Gemini', openai: 'OpenAI', anthropic: 'Claude', openrouter: 'OpenRouter', opencode: 'OpenCode Go' };
-    scrapeLogs.push(`Sending request to ${providerLabel[activeProvider] || activeProvider} API...`);
-    
-    const textResponse = await callAIProvider(activeProvider, systemPrompt, userPrompt, activeApiKey, activeModelId);
-    scrapeLogs.push('Code generated successfully!');
-
-    // ── Phase 3: Extract code block from response ──
-    const generatedCode = extractGeneratedCode(textResponse);
-    if (/```/.test(generatedCode)) {
-      scrapeLogs.push('Warning: Generated code still contains markdown fences after extraction.');
-    }
-
-    const qualityChecks = runStaticCodeChecks(generatedCode, framework);
-    const qualityGate = buildQualityGate(qualityChecks);
-    if (qualityGate.status === 'fail') {
-      scrapeLogs.push(`Quality gate failed: ${qualityGate.failures.join(', ')}`);
-      return NextResponse.json({
-        error: 'Generated code failed safety checks. Refine the prompt and try again.',
-        logs: scrapeLogs,
-        qualityChecks,
-        qualityGate
-      }, { status: 422 });
-    } else if (qualityGate.status === 'warn') {
-      scrapeLogs.push(`Quality gate warnings: ${qualityGate.warnings.join(', ')}`);
-    }
-
-    const fw = getFrameworkDetails(framework);
-
-    // ── Phase 4: AI Feedback Analysis ──
-    let aiFeedback = null;
-    try {
-      scrapeLogs.push('Generating AI analysis feedback...');
-      aiFeedback = await generateAIFeedback(activeProvider, generatedCode, framework, safeUrl, safePrompt, activeApiKey, activeModelId);
-      if (aiFeedback) {
-        scrapeLogs.push('AI feedback generated.');
-      } else {
-        scrapeLogs.push('AI feedback returned empty (skipped).');
-      }
-    } catch (feedbackError) {
-      console.error('AI Feedback generation failed:', feedbackError);
-      scrapeLogs.push('AI feedback generation skipped (non-critical).');
-    }
-
-    try {
-      await recordGenerationRequested(auth);
-    } catch (recordError) {
-      console.error('Failed to record generation usage:', recordError);
-      scrapeLogs.push('Warning: Failed to record generation usage.');
-    }
-
-    return NextResponse.json({
-      success: true,
-      title: pageTitle || 'Target Site',
-      code: generatedCode,
-      fileExtension: fw.ext,
-      logs: scrapeLogs,
-      provider: activeProvider,
-      browserPreview,
-      locatorSummary,
-      qualityChecks,
-      qualityGate,
-      aiFeedback
-    });
-
   } catch (error) {
-    console.error('API Router Error:', String(error?.message || 'Unknown error'));
-
-    const status = error?.status || error?.statusCode || error?.response?.status;
-    const statusMap = {
-      401: 'apiKeyInvalid',
-      429: 'providerRateLimited',
-      403: 'providerForbidden',
-    };
-    const key = statusMap[status];
-    const errorMessage = key ? msg(lang, key) : msg(lang, 'requestFailed', 'An unexpected error occurred.');
-
-    return NextResponse.json({
-      error: errorMessage
-    }, { status: 500 });
+    console.error('Validation error:', String(error?.message || 'Unknown error'));
+    return NextResponse.json({ error: msg(lang, 'requestFailed', 'An unexpected error occurred.') }, { status: 500 });
   }
+
+  // ── Work Phase (streaming SSE) ──
+  const encoder = new TextEncoder();
+  const scrapeLogs = [];
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (obj) => {
+        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`)); } catch { /* controller closed */ }
+      };
+      const pushLog = (message) => { scrapeLogs.push(message); send({ type: 'log', message }); };
+
+      let browser = null;
+      let pageTitle = '';
+      let interactiveData = null;
+      let scrapeSuccess = false;
+      let browserPreview = null;
+      let locatorSummary = [];
+
+      try {
+        // ── Phase 1: DOM Scraping with Playwright ──
+        try {
+          pushLog('Launching headless browser...');
+          browser = await chromium.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+          });
+          const context = await browser.newContext({
+            viewport: { width: 1280, height: 800 },
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+          });
+          const page = await context.newPage();
+          const expectedHost = new URL(safeUrl).hostname.toLowerCase();
+          const expectedAddresses = await getPublicAddressSet(safeUrl);
+          await context.route('**/*', async (route) => {
+            try {
+              await validateBrowserRequestUrl(route.request().url(), expectedHost, expectedAddresses);
+              await route.continue();
+            } catch {
+              await route.abort();
+            }
+          });
+
+          pushLog(`Navigating to: ${safeUrl}...`);
+          await page.goto(safeUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+          await validatePostNavigationUrl(page.url());
+
+          await page.waitForTimeout(1500);
+          pushLog('Page loaded. Extracting interactive DOM elements...');
+
+          interactiveData = await page.evaluate(getInteractiveElementsJS());
+
+          if (interactiveData && interactiveData.elements) {
+            pageTitle = interactiveData.title || '';
+            locatorSummary = buildLocatorSummary(interactiveData);
+            pushLog(`Scraped successfully! Found ${interactiveData.elements.length} interactive elements.`);
+            pushLog(`Ranked ${locatorSummary.length} locator candidates by confidence.`);
+            scrapeSuccess = true;
+
+            if (locatorSummary.length > 0) {
+              send({ type: 'locators', locators: locatorSummary.slice(0, 4).map((l) => ({ selector: l.selector, score: l.score, tag: l.tag, text: l.text })) });
+            }
+
+            await page.evaluate(() => {
+              const selectors = 'input, select, textarea, button, a, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [tabindex="0"]';
+              document.querySelectorAll(selectors).forEach((el) => {
+                const style = window.getComputedStyle(el);
+                if (style.display === 'none' || style.visibility === 'hidden' || el.offsetWidth === 0 || el.offsetHeight === 0) return;
+                el.style.outline = '2px solid #8b5cf6';
+                el.style.outlineOffset = '2px';
+                el.style.boxShadow = '0 0 0 4px rgba(139, 92, 246, 0.18)';
+              });
+            });
+
+            const screenshot = await page.screenshot({ type: 'jpeg', quality: 72, fullPage: false });
+            browserPreview = `data:image/jpeg;base64,${screenshot.toString('base64')}`;
+            pushLog('Browser preview captured with locator highlights.');
+          } else {
+            pushLog('Warning: DOM extraction returned empty data. Falling back to generic generation.');
+          }
+        } catch (scrapeError) {
+          console.error('Scrape error:', scrapeError);
+          pushLog(`Warning: Scraping failed (${scrapeError.message}). Falling back to generic code generation.`);
+        } finally {
+          if (browser) {
+            await browser.close();
+            browser = null;
+          }
+        }
+
+        // ── Phase 2: AI Code Generation ──
+        const systemPrompt = buildSystemPrompt();
+        const domContext = limitText(sanitizeUntrustedInstructionText(buildDomContext(safeUrl, scrapeSuccess, interactiveData)), MAX_DOM_CONTEXT_LENGTH);
+        const userPrompt = buildUserPrompt(safeUrl, safePrompt, framework, domContext);
+
+        const providerLabel = { gemini: 'Gemini', openai: 'OpenAI', anthropic: 'Claude', openrouter: 'OpenRouter', opencode: 'OpenCode Go' };
+        pushLog(`Sending request to ${providerLabel[activeProvider] || activeProvider} API...`);
+
+        const textResponse = await callAIProvider(activeProvider, systemPrompt, userPrompt, activeApiKey, activeModelId);
+        pushLog('Code generated successfully!');
+
+        // ── Phase 3: Extract code + quality checks ──
+        const generatedCode = extractGeneratedCode(textResponse);
+        if (/```/.test(generatedCode)) {
+          pushLog('Warning: Generated code still contains markdown fences after extraction.');
+        }
+
+        const qualityChecks = runStaticCodeChecks(generatedCode, framework);
+        const qualityGate = buildQualityGate(qualityChecks);
+        if (qualityGate.status === 'fail') {
+          pushLog(`Quality gate failed: ${qualityGate.failures.join(', ')}`);
+          send({ type: 'error', status: 422, error: 'Generated code failed safety checks. Refine the prompt and try again.', logs: scrapeLogs, qualityChecks, qualityGate });
+          return;
+        } else if (qualityGate.status === 'warn') {
+          pushLog(`Quality gate warnings: ${qualityGate.warnings.join(', ')}`);
+        }
+
+        const fw = getFrameworkDetails(framework);
+
+        // ── Phase 4: AI Feedback Analysis ──
+        let aiFeedback = null;
+        try {
+          pushLog('Generating AI analysis feedback...');
+          aiFeedback = await generateAIFeedback(activeProvider, generatedCode, framework, safeUrl, safePrompt, activeApiKey, activeModelId);
+          if (aiFeedback) {
+            pushLog('AI feedback generated.');
+          } else {
+            pushLog('AI feedback returned empty (skipped).');
+          }
+        } catch (feedbackError) {
+          console.error('AI Feedback generation failed:', feedbackError);
+          pushLog('AI feedback generation skipped (non-critical).');
+        }
+
+        try {
+          await recordGenerationRequested(auth);
+        } catch (recordError) {
+          console.error('Failed to record generation usage:', recordError);
+          pushLog('Warning: Failed to record generation usage.');
+        }
+
+        send({ type: 'result', data: {
+          success: true,
+          title: pageTitle || 'Target Site',
+          code: generatedCode,
+          fileExtension: fw.ext,
+          logs: scrapeLogs,
+          provider: activeProvider,
+          browserPreview,
+          locatorSummary,
+          qualityChecks,
+          qualityGate,
+          aiFeedback
+        }});
+      } catch (error) {
+        console.error('API Router Error:', String(error?.message || 'Unknown error'));
+
+        const status = error?.status || error?.statusCode || error?.response?.status;
+        const statusMap = {
+          401: 'apiKeyInvalid',
+          429: 'providerRateLimited',
+          403: 'providerForbidden',
+        };
+        const key = statusMap[status];
+        const errorMessage = key ? msg(lang, key) : msg(lang, 'requestFailed', 'An unexpected error occurred.');
+        send({ type: 'error', status: status || 500, error: errorMessage });
+      } finally {
+        if (browser) {
+          try { await browser.close(); } catch { /* already closed */ }
+        }
+        try { controller.close(); } catch { /* already closed */ }
+      }
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+    }
+  });
 }

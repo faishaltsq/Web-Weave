@@ -101,6 +101,7 @@ export default function WebWeave() {
   const [copied, setCopied] = useState(false);
   const [isDark, setIsDark] = useState(true);
   const [generationFeedback, setGenerationFeedback] = useState('');
+  const [streamLocators, setStreamLocators] = useState([]);
   const [activePromptArea, setActivePromptArea] = useState('');
   const [activeDropdown, setActiveDropdown] = useState('');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -510,6 +511,7 @@ export default function WebWeave() {
     setError('');
     setResult(null);
     setLogs([t('generate.startingGeneration')]);
+    setStreamLocators([]);
 
     const feedbackText = typeof options.feedback === 'string' ? options.feedback.trim() : '';
     const requestPrompt = feedbackText
@@ -526,9 +528,10 @@ export default function WebWeave() {
         body: JSON.stringify({ url, prompt: requestPrompt, framework }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
 
-      if (!response.ok) {
+      if (!contentType.includes('text/event-stream')) {
+        const data = await response.json();
         if (response.status === 402 || response.status === 403) {
           setShowPricing(true);
           return;
@@ -536,9 +539,49 @@ export default function WebWeave() {
         throw new Error(data.error || t('errors.serverError'));
       }
 
-      if (!data.success) {
-        throw new Error(data.error || t('errors.generationFailed'));
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalData = null;
+      let streamError = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const events = buffer.split('\n\n');
+        buffer = events.pop();
+
+        for (const eventChunk of events) {
+          const line = eventChunk.split('\n').find((l) => l.startsWith('data: '));
+          if (!line) continue;
+          try {
+            const evt = JSON.parse(line.slice(6));
+            if (evt.type === 'log') {
+              setLogs((prev) => [...prev, evt.message]);
+            } else if (evt.type === 'locators') {
+              setStreamLocators(evt.locators);
+            } else if (evt.type === 'result') {
+              finalData = evt.data;
+            } else if (evt.type === 'error') {
+              streamError = evt;
+            }
+          } catch { /* ignore malformed chunk */ }
+        }
       }
+
+      if (streamError) {
+        if (streamError.status === 402 || streamError.status === 403) {
+          setShowPricing(true);
+          return;
+        }
+        throw new Error(streamError.error || t('errors.serverError'));
+      }
+
+      if (!finalData) throw new Error(t('errors.generationFailed'));
+
+      const data = finalData;
 
       let savedScript = null;
       let saveError = '';
@@ -550,8 +593,8 @@ export default function WebWeave() {
 
       setResult(savedScript ? { ...data, savedScriptId: savedScript.id } : data);
       if (savedScript) setActiveScriptId(savedScript.id);
-      setLogs([
-        ...(data.logs || []),
+      setLogs((prev) => [
+        ...prev,
         ...(savedScript ? [`Saved to project history (${savedScript.id}).`] : []),
         ...(saveError ? [`History save skipped: ${saveError}`] : []),
       ]);
@@ -562,6 +605,7 @@ export default function WebWeave() {
       setLogs((prev) => [...prev, `Error: ${err.message}`]);
     } finally {
       setLoading(false);
+      setStreamLocators([]);
     }
   };
 
@@ -1021,26 +1065,34 @@ export default function WebWeave() {
                   <div className={styles.previewContainer}>
                     {loading ? (
                       <div className={styles.loadingState}>
-                        <div className={styles.headlessRunner}>
-                          <div className={styles.runnerHeader}>
-                            <span className={styles.runnerDot} />
-                            <strong>Playwright Chromium</strong>
-                            <code>headless: true</code>
+                        <div className={styles.liveProcessPanel}>
+                          <div className={styles.liveProcessHeader}>
+                            <span className={styles.liveProcessDot} />
+                            <strong>Scanning target page</strong>
+                            <span className={styles.liveProcessUrl}>{url || 'target-site.example'}</span>
                           </div>
-                          <div className={styles.runnerBody}>
-                            <div className={styles.runnerCommand}>await chromium.launch({'{ headless: true }'})</div>
-                            <div className={styles.runnerStep}><span />Opening target URL</div>
-                            <div className={styles.runnerStep}><span />Extracting interactive DOM</div>
-                            <div className={styles.runnerStep}><span />Ranking locator candidates</div>
-                            <div className={styles.runnerStep}><span />Sending grounded prompt to AI</div>
-                            <div className={styles.locatorRadar}>
-                              <div>input[name=&quot;username&quot;]</div>
-                              <div>button[type=&quot;submit&quot;]</div>
-                              <div>a[href*=&quot;pim&quot;]</div>
+                          <div className={styles.liveLogFeed}>
+                            {logs.map((log, index) => (
+                              <div key={`live-${index}`} className={styles.liveLogLine}>
+                                <span className={styles.liveLogPrompt}>{'>'}</span>
+                                <span>{log}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {streamLocators.length > 0 && (
+                            <div className={styles.liveLocators}>
+                              <p className={styles.liveLocatorsLabel}>Locators found</p>
+                              <div className={styles.liveLocatorGrid}>
+                                {streamLocators.map((loc, i) => (
+                                  <div key={`live-loc-${i}`} className={styles.liveLocatorChip}>
+                                    <span className={styles.liveLocatorScore}>{loc.score}</span>
+                                    <code>{loc.selector}</code>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
-                        <p className={styles.scanningText}>AI is running Playwright in headless mode and searching stable locators...</p>
                       </div>
                     ) : result?.browserPreview ? (
                       <img src={result.browserPreview} alt="Locator preview" className={styles.previewImage} />

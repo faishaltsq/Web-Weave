@@ -1699,153 +1699,133 @@
   color: var(--text);
 }
 
-.scanAnimation {
-  width: 340px;
-  height: 210px;
-  border: 1px solid var(--border-strong);
-  border-radius: 16px;
-  position: relative;
-  background: #0b1220;
-  overflow: hidden;
-}
-
-.headlessRunner {
+.liveProcessPanel {
   width: min(700px, 100%);
   border: 1px solid var(--border-strong);
   border-radius: 18px;
-  background: #050816;
+  background: var(--surface-2);
   overflow: hidden;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
-  transform-origin: center;
+  box-shadow: 0 24px 70px var(--shadow);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
 }
 
-.runnerHeader {
+.liveProcessHeader {
   min-height: 52px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   padding: 0 1rem;
-  background: #0b1220;
-  color: #f8fafc;
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: 0.88rem;
 }
 
-.runnerHeader code {
-  margin-left: auto;
-  border: 1px solid rgba(59, 130, 246, 0.5);
-  border-radius: 999px;
-  color: #bfdbfe;
-  background: rgba(59, 130, 246, 0.14);
-  padding: 0.28rem 0.62rem;
-  font-size: 0.78rem;
-}
-
-.runnerDot {
-  width: 10px;
-  height: 10px;
+.liveProcessDot {
+  width: 9px;
+  height: 9px;
   border-radius: 999px;
   background: var(--green);
   box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
   animation: pulseDot 1.4s ease-out infinite;
+  flex-shrink: 0;
 }
 
-.runnerBody {
-  padding: 1.25rem;
-  display: grid;
-  gap: 0.82rem;
-}
-
-.runnerCommand {
-  border: 1px solid rgba(59, 130, 246, 0.28);
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.92);
-  color: #93c5fd;
-  padding: 0.85rem;
+.liveProcessUrl {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.76rem;
   font-family: Consolas, 'Fira Code', monospace;
-  font-size: 0.86rem;
-  text-align: left;
-}
-
-.runnerStep {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  color: #dbeafe;
-  font-size: 0.9rem;
-  text-align: left;
-  opacity: 0.65;
-  animation: stepGlow 3.2s ease-in-out infinite;
-}
-
-.runnerStep:nth-child(3) { animation-delay: 0.4s; }
-.runnerStep:nth-child(4) { animation-delay: 0.8s; }
-.runnerStep:nth-child(5) { animation-delay: 1.2s; }
-
-.runnerStep span {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--blue);
-  box-shadow: 0 0 18px rgba(59, 130, 246, 0.8);
-}
-
-.locatorRadar {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.55rem;
-  margin-top: 0.25rem;
-  max-width: 100%;
-}
-
-.locatorRadar div {
-  min-width: 0;
-  border: 1px solid rgba(34, 197, 94, 0.34);
-  border-radius: 10px;
-  color: #bbf7d0;
-  background: rgba(34, 197, 94, 0.1);
-  padding: 0.62rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 50%;
+}
+
+.liveLogFeed {
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 260px;
+  overflow-y: auto;
   font-family: Consolas, 'Fira Code', monospace;
-  font-size: 0.76rem;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.liveLogLine {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: var(--output-log-text);
+  line-height: 1.5;
+  animation: stepGlow 0.4s ease-out both;
+}
+
+.liveLogPrompt {
+  color: var(--output-prompt);
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.liveLocators {
+  border-top: 1px solid var(--border);
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+}
+
+.liveLocatorsLabel {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 0.6rem;
+}
+
+.liveLocatorGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.liveLocatorChip {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  padding: 0.5rem 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
   animation: locatorBlink 1.8s ease-in-out infinite;
 }
 
-.locatorRadar div:nth-child(2) { animation-delay: 0.25s; }
-.locatorRadar div:nth-child(3) { animation-delay: 0.5s; }
+.liveLocatorChip:nth-child(2) { animation-delay: 0.25s; }
+.liveLocatorChip:nth-child(3) { animation-delay: 0.5s; }
+.liveLocatorChip:nth-child(4) { animation-delay: 0.75s; }
 
-.scanLine {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--blue);
-  animation: scan 1.6s ease-in-out infinite;
+.liveLocatorScore {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--green);
+  background: rgba(34, 197, 94, 0.12);
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
 }
 
-.locatorBoxOne,
-.locatorBoxTwo,
-.locatorBoxThree {
-  position: absolute;
-  border: 2px solid var(--blue);
-  color: #bfdbfe;
-  border-radius: 8px;
-  padding: 0.25rem 0.45rem;
-  font-size: 0.75rem;
-  font-family: Consolas, monospace;
-}
-
-.locatorBoxOne { top: 42px; left: 40px; }
-.locatorBoxTwo { top: 94px; right: 46px; border-color: var(--green); color: #bbf7d0; }
-.locatorBoxThree { bottom: 34px; left: 96px; border-color: var(--amber); color: #fde68a; }
-
-.scanningText {
-  margin: 0;
-  color: var(--muted);
-  max-width: 680px;
-  line-height: 1.55;
+.liveLocatorChip code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  color: var(--text);
 }
 
 @keyframes workspaceAppear {
@@ -2560,20 +2540,21 @@
     min-height: auto;
   }
 
-  .headlessRunner {
+  .liveProcessPanel {
     width: 100%;
   }
 
-  .runnerHeader {
+  .liveProcessHeader {
     flex-wrap: wrap;
     padding: 0.8rem;
   }
 
-  .runnerHeader code {
+  .liveProcessUrl {
     margin-left: 0;
+    max-width: 100%;
   }
 
-  .locatorRadar {
+  .liveLocatorGrid {
     grid-template-columns: 1fr;
   }
 
