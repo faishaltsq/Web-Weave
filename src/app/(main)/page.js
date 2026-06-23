@@ -642,13 +642,12 @@ export default function WebWeave() {
     if (!result?.code) return;
 
     const ext = result.fileExtension || 'txt';
-    const frameworkSlug = framework.replace(/_/g, '-');
     const blob = new Blob([result.code], { type: 'text/plain;charset=utf-8' });
     const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
 
     link.href = blobUrl;
-    link.download = `${frameworkSlug}_automation.${ext}`;
+    link.download = `${getTargetDomain(url)}.${ext}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
