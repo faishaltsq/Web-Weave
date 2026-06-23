@@ -1,0 +1,41 @@
+name: Run WebWeave Playwright Script
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Supabase runs.id to execute
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  run-playwright-script:
+    name: Run Playwright JavaScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run generated Playwright script
+        run: node tools/github-runner/run-playwright-script.mjs
+        env:
+          WEBWEAVE_RUN_ID: ${{ inputs.run_id }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
