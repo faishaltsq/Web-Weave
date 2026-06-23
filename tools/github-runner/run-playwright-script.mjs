@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 
 const RUN_TIMEOUT_MS = 120_000;
 const MAX_LOG_LENGTH = 30_000;
+const VIDEO_WIDTH = 1280;
+const VIDEO_HEIGHT = 720;
 
 function requireEnv(name) {
   const value = process.env[name];
@@ -29,6 +31,29 @@ function createChildEnv() {
     NEXT_PUBLIC_SUPABASE_URL: undefined,
     GITHUB_TOKEN: undefined,
   };
+}
+
+function injectRecordVideo(code, videosDir) {
+  const escaped = videosDir.replace(/\\/g, '\\\\');
+  let modified = code;
+
+  const newContextCall = /(const\s+(\w+)\s*=\s*await\s+browser\.newContext\s*\()/;
+  const match = modified.match(newContextCall);
+  if (match) {
+    const contextVar = match[2];
+    const recordOpts = `{ recordVideo: { dir: '${escaped}', size: { width: ${VIDEO_WIDTH}, height: ${VIDEO_HEIGHT} } }`;
+    if (match[1].endsWith('()')) {
+      modified = modified.replace(`${match[1]})`, `${match[1]}${recordOpts})`);
+    } else {
+      modified = modified.replace(match[1], `${match[1]}${recordOpts}, `);
+    }
+    const closeBrowser = /await\s+browser\.close\s*\(\s*\)/;
+    if (closeBrowser.test(modified)) {
+      modified = modified.replace(closeBrowser, `await ${contextVar}.close();\n  await browser.close()`);
+    }
+  }
+
+  return modified;
 }
 
 async function updateRun(supabase, runId, patch) {
@@ -110,6 +135,40 @@ function runNodeScript(filePath, cwd) {
   });
 }
 
+async function uploadVideoArtifact(supabase, ownerId, runId, videoPath) {
+  const videoBuffer = await readFile(videoPath);
+  const storagePath = `${ownerId}/${runId}/video.webm`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('artifacts')
+    .upload(storagePath, videoBuffer, { contentType: 'video/webm', upsert: true });
+
+  if (uploadError) throw new Error(`Failed to upload video: ${uploadError.message}`);
+
+  await supabase.from('artifacts').insert({
+    owner_id: ownerId,
+    run_id: runId,
+    type: 'video',
+    storage_path: storagePath,
+    mime_type: 'video/webm',
+    size_bytes: videoBuffer.length,
+  });
+}
+
+async function findAndUploadVideo(supabase, ownerId, runId, workdir) {
+  try {
+    const entries = await readdir(workdir, { recursive: true });
+    const videoFile = entries.find((f) => f.endsWith('.webm'));
+    if (videoFile) {
+      await uploadVideoArtifact(supabase, ownerId, runId, join(workdir, videoFile));
+      return true;
+    }
+  } catch {
+    // video recording may not produce output if script errors before context.close()
+  }
+  return false;
+}
+
 async function main() {
   const runId = process.env.WEBWEAVE_RUN_ID || process.argv[2];
   if (!runId) throw new Error('WEBWEAVE_RUN_ID is required.');
@@ -126,13 +185,27 @@ async function main() {
   try {
     const { run, script } = await fetchRunAndScript(supabase, runId);
     workdir = await mkdtemp(join(process.cwd(), '.webweave-run-'));
+
+    const videosDir = join(workdir, 'videos');
+
+    const patchedCode = injectRecordVideo(script.code, videosDir);
     const scriptPath = join(workdir, 'generated-script.cjs');
-    await writeFile(scriptPath, script.code, 'utf8');
+    await writeFile(scriptPath, patchedCode, 'utf8');
 
     const result = await runNodeScript(scriptPath, workdir);
+
+    let logMessage = result.logs;
+    let videoUploaded = false;
+    try {
+      videoUploaded = await findAndUploadVideo(supabase, run.owner_id, run.id, workdir);
+      if (videoUploaded) logMessage = `${result.logs}\nVideo artifact saved.`;
+    } catch {
+      logMessage = `${result.logs}\nVideo upload skipped.`;
+    }
+
     await updateRun(supabase, runId, {
       status: result.status,
-      logs: result.logs,
+      logs: logMessage,
       error_message: result.errorMessage,
       duration_ms: result.durationMs,
     });
@@ -141,7 +214,7 @@ async function main() {
       owner_id: run.owner_id,
       event_type: 'run_completed',
       quantity: 1,
-      metadata: { run_id: runId, status: result.status, runner: 'github_actions', duration_ms: result.durationMs },
+      metadata: { run_id: runId, status: result.status, runner: 'github_actions', duration_ms: result.durationMs, video: videoUploaded },
     });
 
     if (result.status !== 'passed') process.exitCode = 1;

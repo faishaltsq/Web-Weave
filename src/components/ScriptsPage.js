@@ -1,6 +1,6 @@
 'use client';
 
-import { Code2, Crown, FileCode2, Loader, Lock, Play, Sparkles, TerminalSquare, Zap } from 'lucide-react';
+import { Code2, Crown, FileCode2, Loader, Lock, Play, Sparkles, TerminalSquare, Video, Zap } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import { getScriptSlotLimit } from '@/lib/billing/plans';
@@ -107,6 +107,8 @@ export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseCh
         <div className={styles.summaryCard}><span>{t('scripts.runnerStatus')}</span><strong>{t('scripts.runnerPreparing')}</strong></div>
       </section>
 
+      <div className={styles.retentionNotice}>Run artifacts (video) are automatically deleted after 3 days.</div>
+
       <div className={styles.runnerNotice}><TerminalSquare size={17} /> {t('scripts.runnerNotice')}</div>
 
       {historyLoading ? (
@@ -166,6 +168,18 @@ export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseCh
                         {runState?.status ? `Run: ${runState.status}` : 'Run'}
                       </button>
                     );
+                  })()}
+                  {(() => {
+                    const runState = scriptRunStates?.[script.id];
+                    const videoArtifact = runState?.artifacts?.find((a) => a.type === 'video');
+                    if (videoArtifact?.url) {
+                      return (
+                        <a href={videoArtifact.url} target="_blank" rel="noopener noreferrer" className={styles.videoButton} title="Download video recording">
+                          <Video size={14} /> Video
+                        </a>
+                      );
+                    }
+                    return null;
                   })()}
                 </div>
               </article>

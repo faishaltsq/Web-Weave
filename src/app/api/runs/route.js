@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedUser, hasSupabaseServerConfig } from '@/lib/supabase/server';
 
 const MAX_LOG_LENGTH = 30000;
+const ARTIFACT_RETENTION_DAYS = 3;
 
 function getGithubConfig() {
   return {
@@ -43,6 +44,19 @@ async function dispatchWorkflow(runId) {
   }
 }
 
+async function fetchArtifactsForRuns(supabase, runIds, ownerId) {
+  if (!runIds.length) return [];
+  const { data, error } = await supabase
+    .from('artifacts')
+    .select('id, run_id, type, storage_path, mime_type, size_bytes, created_at')
+    .in('run_id', runIds)
+    .eq('owner_id', ownerId)
+    .order('created_at', { ascending: false });
+
+  if (error) return [];
+  return data || [];
+}
+
 export async function GET(req) {
   if (!hasSupabaseServerConfig()) {
     return NextResponse.json({ success: true, configured: false, runs: [] });
@@ -65,10 +79,46 @@ export async function GET(req) {
   if (runId) query = query.eq('id', runId).limit(1);
   if (scriptId) query = query.eq('script_id', scriptId);
 
-  const { data, error } = await query;
+  const { data: runs, error } = await query;
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
 
-  return NextResponse.json({ success: true, configured: true, runs: data || [] });
+  const runIds = (runs || []).map((r) => r.id);
+  const artifactsRaw = await fetchArtifactsForRuns(auth.supabase, runIds, auth.user.id);
+  const artifacts = [];
+  for (const a of artifactsRaw) {
+    const { data: urlData } = auth.supabase.storage.from('artifacts').getPublicUrl(a.storage_path);
+    artifacts.push({ ...a, url: urlData?.publicUrl || '' });
+  }
+  const artifactsByRun = {};
+  for (const artifact of artifacts) {
+    if (!artifactsByRun[artifact.run_id]) artifactsByRun[artifact.run_id] = [];
+    artifactsByRun[artifact.run_id].push(artifact);
+  }
+
+  const runsWithArtifacts = (runs || []).map((run) => ({
+    ...run,
+    artifacts: artifactsByRun[run.id] || [],
+  }));
+
+  return NextResponse.json({ success: true, configured: true, runs: runsWithArtifacts });
+}
+
+async function cleanupOldArtifacts(supabase, ownerId) {
+  const cutoff = new Date(Date.now() - ARTIFACT_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: oldArtifacts, error } = await supabase
+    .from('artifacts')
+    .select('id, storage_path')
+    .eq('owner_id', ownerId)
+    .lt('created_at', cutoff);
+
+  if (error || !oldArtifacts?.length) return;
+
+  const storagePaths = oldArtifacts.map((a) => a.storage_path);
+  await supabase.storage.from('artifacts').remove(storagePaths);
+
+  const ids = oldArtifacts.map((a) => a.id);
+  await supabase.from('artifacts').delete().in('id', ids);
 }
 
 export async function POST(req) {
@@ -97,6 +147,8 @@ export async function POST(req) {
   if (script.framework !== 'playwright_js') {
     return NextResponse.json({ success: false, error: 'Cloud run validation currently supports Playwright JavaScript only.' }, { status: 400 });
   }
+
+  await cleanupOldArtifacts(auth.supabase, auth.user.id);
 
   const { data: activeRuns, error: activeError } = await auth.supabase
     .from('runs')
