@@ -110,7 +110,7 @@ const content = {
       },
     ],
     contact: 'Questions about the terms? Contact us at',
-    email: 'support@webweave.app',
+    email: 'faishaltsq@gmail.com',
   },
   id: {
     title: 'Syarat & Ketentuan',
@@ -209,7 +209,7 @@ const content = {
       },
     ],
     contact: 'Pertanyaan tentang syarat dan ketentuan? Hubungi kami di',
-    email: 'support@webweave.app',
+    email: 'faishaltsq@gmail.com',
   },
 };
 

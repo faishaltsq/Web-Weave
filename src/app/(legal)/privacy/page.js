@@ -81,7 +81,7 @@ const content = {
       },
     ],
     contact: 'Privacy questions? Contact us at',
-    email: 'support@webweave.app',
+    email: 'faishaltsq@gmail.com',
   },
   id: {
     title: 'Kebijakan Privasi',
@@ -151,7 +151,7 @@ const content = {
       },
     ],
     contact: 'Pertanyaan tentang privasi? Hubungi kami di',
-    email: 'support@webweave.app',
+    email: 'faishaltsq@gmail.com',
   },
 };
 

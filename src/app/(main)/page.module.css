@@ -2074,6 +2074,80 @@
   animation: spin 1s linear infinite;
 }
 
+.aiFeedbackCard {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px var(--shadow);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.aiFeedbackHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--violet);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.aiFeedbackSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.aiFeedbackKicker {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.aiFeedbackText {
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.aiFeedbackList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.aiFeedbackItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text);
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.aiFeedbackItem svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: var(--green);
+}
+
+.aiFeedbackConsideration svg {
+  color: var(--amber);
+}
+
 @keyframes profileMenuIn {
   from {
     opacity: 0;

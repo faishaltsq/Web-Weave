@@ -1037,6 +1037,62 @@ Generate using resilient selectors. Prefer id/name-based selectors. Add comments
   return result;
 }
 
+async function generateAIFeedback(provider, code, framework, url, objective, apiKey, modelId) {
+  const fwLabels = { playwright_js: 'Playwright JS', playwright_python: 'Playwright Python', puppeteer_js: 'Puppeteer JS', selenium_python: 'Selenium Python', cypress_js: 'Cypress JS' };
+  const fwLabel = fwLabels[framework] || framework;
+
+  const codeSample = code.length > 10000 ? code.substring(0, 10000) : code;
+
+  const systemPrompt = `You are a senior QA automation engineer. Review generated test scripts and provide concise, actionable technical feedback. Be specific — reference actual selectors, patterns, and framework features from the script. Return ONLY valid JSON (no markdown fences, no extra text before or after the JSON object).
+JSON keys:
+- "overview": string (2-3 sentences summarizing what the script automates)
+- "strengths": string[] (3-5 specific technical strengths observed — good selector choices, proper wait patterns, robust helpers, error handling, assertions, clean structure)
+- "considerations": string[] (3-5 concrete issues or improvement suggestions — brittle selectors, missing edge cases, race condition risks, timing concerns, maintenance issues, framework misuse)
+If no meaningful issues exist, return an empty considerations array.
+Focus on real-world reliability and maintainability. Never invent weaknesses that don't exist.`;
+
+  const userPrompt = `Review this ${fwLabel} automation script:
+
+Target URL: ${url}
+Objective: ${objective}
+
+\`\`\`
+${codeSample}
+\`\`\`
+
+Return JSON:
+{
+  "overview": "2-3 sentence summary of what this script does",
+  "strengths": ["specific technical strength with detail", ...],
+  "considerations": ["specific issue or improvement with detail", ...]
+}`;
+
+  const textResponse = await callAIProvider(provider, systemPrompt, userPrompt, apiKey, modelId || null);
+
+  let jsonStr = String(textResponse || '').trim();
+  const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch) jsonStr = fenceMatch[1].trim();
+
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    const braceStart = jsonStr.indexOf('{');
+    const braceEnd = jsonStr.lastIndexOf('}');
+    if (braceStart !== -1 && braceEnd > braceStart) {
+      parsed = JSON.parse(jsonStr.substring(braceStart, braceEnd + 1));
+    } else {
+      return null;
+    }
+  }
+
+  return {
+    overview: typeof parsed.overview === 'string' ? parsed.overview.trim() : '',
+    strengths: Array.isArray(parsed.strengths) ? parsed.strengths.filter(function (s) { return typeof s === 'string' && s.trim(); }).map(function (s) { return s.trim(); }) : [],
+    considerations: Array.isArray(parsed.considerations) ? parsed.considerations.filter(function (s) { return typeof s === 'string' && s.trim(); }).map(function (s) { return s.trim(); }) : [],
+  };
+}
+
 export async function POST(req) {
   let browser = null;
   const lang = detectLang(req);
@@ -1226,6 +1282,21 @@ export async function POST(req) {
 
     const fw = getFrameworkDetails(framework);
 
+    // ── Phase 4: AI Feedback Analysis ──
+    let aiFeedback = null;
+    try {
+      scrapeLogs.push('Generating AI analysis feedback...');
+      aiFeedback = await generateAIFeedback(activeProvider, generatedCode, framework, safeUrl, safePrompt, activeApiKey, activeModelId);
+      if (aiFeedback) {
+        scrapeLogs.push('AI feedback generated.');
+      } else {
+        scrapeLogs.push('AI feedback returned empty (skipped).');
+      }
+    } catch (feedbackError) {
+      console.error('AI Feedback generation failed:', feedbackError);
+      scrapeLogs.push('AI feedback generation skipped (non-critical).');
+    }
+
     try {
       await recordGenerationRequested(auth);
     } catch (recordError) {
@@ -1243,7 +1314,8 @@ export async function POST(req) {
       browserPreview,
       locatorSummary,
       qualityChecks,
-      qualityGate
+      qualityGate,
+      aiFeedback
     });
 
   } catch (error) {
