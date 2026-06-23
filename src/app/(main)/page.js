@@ -948,6 +948,9 @@ export default function WebWeave() {
             onNewAutomation={() => { startNewAutomation(); setActiveView('home'); window.history.pushState(null, '', '/'); }}
             onBrowseChats={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }}
             onOpenScript={(script) => { handleOpenScript(script); setActiveView('home'); window.history.pushState(null, '', '/'); }}
+            handleRunScript={handleRunScript}
+            scriptRunStates={scriptRunStates}
+            scriptRunLoadingId={scriptRunLoadingId}
           />
         ) : activeView === 'templates' ? (
           <TemplatesPage onUseTemplate={handleUseTemplate} />
