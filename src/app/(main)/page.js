@@ -647,7 +647,7 @@ export default function WebWeave() {
     const link = document.createElement('a');
 
     link.href = blobUrl;
-    link.download = `${getTargetDomain(url)}.${ext}`;
+    link.download = `${getTargetDomain(url).replace(/\.[^.]+$/, '')}.${ext}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
