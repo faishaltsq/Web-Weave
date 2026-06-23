@@ -138,6 +138,8 @@ export default function WebWeave() {
   const [contextMenuScript, setContextMenuScript] = useState(null);
   const [pendingDeleteScriptId, setPendingDeleteScriptId] = useState('');
   const [deletingScript, setDeletingScript] = useState(false);
+  const [scriptRunStates, setScriptRunStates] = useState({});
+  const [scriptRunLoadingId, setScriptRunLoadingId] = useState('');
   const promptAnimationTimer = useRef(null);
   const dropdownAnimationTimer = useRef(null);
   const profileMenuRef = useRef(null);
@@ -268,6 +270,7 @@ export default function WebWeave() {
     const scriptLabel = getScriptDisplayName(script).toLowerCase();
     return !scriptSearchTerm || scriptLabel.includes(scriptSearchTerm) || (script.prompt || '').toLowerCase().includes(scriptSearchTerm);
   });
+  const activeSavedScript = activeScriptId ? scripts.find((script) => script.id === activeScriptId) : null;
 
   const triggerTemporaryAnimation = (setter, timerRef, value) => {
     setter('');
@@ -505,6 +508,65 @@ export default function WebWeave() {
       }
     } finally {
       setDeletingScript(false);
+    }
+  };
+
+  const pollScriptRun = async (runId, scriptId, attempt = 0) => {
+    if (attempt > 40) return;
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/runs?id=${encodeURIComponent(runId)}`, { headers });
+      const data = await response.json();
+      const run = data.runs?.[0];
+
+      if (response.ok && data.success && run) {
+        setScriptRunStates((prev) => ({ ...prev, [scriptId]: run }));
+
+        if (activeScriptId === scriptId) {
+          setLogs((run.logs || '').split('\n').filter(Boolean));
+        }
+
+        if (run.status === 'queued' || run.status === 'running') {
+          window.setTimeout(() => pollScriptRun(runId, scriptId, attempt + 1), 3000);
+        }
+      }
+    } catch (err) {
+      setScriptRunStates((prev) => ({
+        ...prev,
+        [scriptId]: { id: runId, script_id: scriptId, status: 'error', error_message: err.message, logs: err.message },
+      }));
+    }
+  };
+
+  const handleRunScript = async (script) => {
+    if (!script?.id) return;
+
+    if (script.framework !== 'playwright_js') {
+      setError('Cloud run validation currently supports Playwright JavaScript only.');
+      return;
+    }
+
+    setScriptRunLoadingId(script.id);
+    setError('');
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/runs', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ script_id: script.id }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Failed to start cloud run.');
+
+      setScriptRunStates((prev) => ({ ...prev, [script.id]: data.run }));
+      setLogs((data.run.logs || 'Queued GitHub Actions Playwright run.').split('\n').filter(Boolean));
+      pollScriptRun(data.run.id, script.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setScriptRunLoadingId('');
     }
   };
 
@@ -929,6 +991,17 @@ export default function WebWeave() {
                     >
                       <Trash2 size={14} />
                     </button>
+                    {script.framework === 'playwright_js' && (
+                      <button
+                        type="button"
+                        className={styles.chatItemRun}
+                        onClick={(e) => { e.stopPropagation(); handleRunScript(script); }}
+                        disabled={scriptRunLoadingId === script.id || ['queued', 'running'].includes(scriptRunStates[script.id]?.status)}
+                        title="Run in GitHub Actions"
+                      >
+                        {scriptRunLoadingId === script.id || ['queued', 'running'].includes(scriptRunStates[script.id]?.status) ? <Loader size={14} className={styles.spinner} /> : <Zap size={14} />}
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -1161,6 +1234,18 @@ export default function WebWeave() {
                           <span className={`${styles.gateBadge} ${styles[`gate${result.qualityGate.status}`] || ''}`}>
                             Gate: {result.qualityGate.status}
                           </span>
+                        )}
+                        {activeSavedScript && framework === 'playwright_js' && (
+                          <button
+                            type="button"
+                            onClick={() => handleRunScript(activeSavedScript)}
+                            className={styles.actionButton}
+                            disabled={scriptRunLoadingId === activeScriptId || ['queued', 'running'].includes(scriptRunStates[activeScriptId]?.status)}
+                            title="Run in GitHub Actions"
+                          >
+                            {scriptRunLoadingId === activeScriptId || ['queued', 'running'].includes(scriptRunStates[activeScriptId]?.status) ? <Loader size={16} className={styles.spinner} /> : <Zap size={16} />}
+                            {scriptRunStates[activeScriptId]?.status ? `Run: ${scriptRunStates[activeScriptId].status}` : 'Run'}
+                          </button>
                         )}
                         <button type="button" onClick={handleCopyCode} className={styles.actionButton} title={t('generate.copyCode')}>                       {copied ? <CheckCircle size={16} /> : <Copy size={16} />}{copied ? t('generate.copied') : t('generate.copyCode')}</button>
                         <button type="button" onClick={handleDownloadCode} className={styles.actionButton} title={t('generate.downloadScript')}><Download size={16} />Download</button>

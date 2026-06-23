@@ -3022,6 +3022,37 @@
   color: #ef4444;
 }
 
+.chatItemRun {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--muted);
+  padding: 0.35rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+  margin-left: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chatItemRow:hover .chatItemRun,
+.chatItemRun:disabled {
+  opacity: 1;
+}
+
+.chatItemRun:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--green);
+  transform: translateY(-1px);
+}
+
+.chatItemRun:disabled {
+  cursor: not-allowed;
+}
+
 @media (max-width: 760px) {
   .chatsView {
     min-height: 100dvh;
