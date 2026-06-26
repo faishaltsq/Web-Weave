@@ -53,6 +53,8 @@ Staging deployment: [web-weave-lake.vercel.app](https://web-weave-lake.vercel.ap
 - Global Chats view for saved/generated scripts.
 - Automation Scripts page with paid-plan cloud-slot limits.
 - Custom confirmation dialogs for destructive actions.
+- GitHub Actions cloud runner for Playwright JavaScript scripts with video recording and artifact storage.
+- Run artifacts auto-delete after 3 days.
 - English/Indonesian language switcher in Account Settings.
 - Mobile/tablet responsive shell with persistent icon rail and verified mobile profile/workspace popovers.
 - Theme-aware logs, generated code, pricing, and output panels.
@@ -64,7 +66,9 @@ Staging deployment: [web-weave-lake.vercel.app](https://web-weave-lake.vercel.ap
 - Midtrans sandbox checkout, merchant return URL, webhook/status verification, and immediate sandbox plan upgrades are implemented.
 - Free-plan quota UX is stable: pricing opens only when the user tries to generate after quota exhaustion.
 - Projects, Chats, and Automation Scripts pages are implemented as SPA routes with refresh-safe middleware rewrites.
-- Automation Scripts is UI-first: paid users see saved scripts from account history with plan-based slot limits; real cloud execution is still future work.
+- Automation Scripts: paid users see saved scripts with plan-based slot limits and one-click GitHub Actions runner for Playwright JavaScript.
+- GitHub Actions runner: authenticated users can execute generated Playwright JS scripts in the cloud with video recording, logs, and Supabase artifact storage.
+- Run artifacts (video recordings) auto-delete after 3 days to save storage.
 - Mobile/tablet pass completed: app shell, workspace, chats, projects, scripts, pricing, settings, confirmation dialog, and profile/workspace popovers are responsive.
 - Latest mobile fix: Android Chrome profile button now opens the profile popover; root cause was tablet CSS still hiding `.profileMenu` under mobile.
 - Verification scripts added for quota behavior, confirmation dialogs, checkout origin security, Midtrans redirects/integration, compact sidebar, output panel theming, and mobile/tablet responsiveness.

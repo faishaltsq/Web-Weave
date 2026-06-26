@@ -1013,6 +1013,9 @@ export default function WebWeave() {
             onNewAutomation={() => { startNewAutomation(); setActiveView('home'); window.history.pushState(null, '', '/'); }}
             onBrowseChats={() => { setActiveView('chats'); window.history.pushState(null, '', '/chats'); }}
             onOpenScript={(script) => { handleOpenScript(script); setActiveView('home'); window.history.pushState(null, '', '/'); }}
+            handleRunScript={handleRunScript}
+            scriptRunStates={scriptRunStates}
+            scriptRunLoadingId={scriptRunLoadingId}
           />
         ) : activeView === 'templates' ? (
           <TemplatesPage onUseTemplate={handleUseTemplate} />
@@ -1247,6 +1250,18 @@ export default function WebWeave() {
                             {scriptRunStates[activeScriptId]?.status ? `Run: ${scriptRunStates[activeScriptId].status}` : 'Run'}
                           </button>
                         )}
+                        {(() => {
+                          const runState = scriptRunStates[activeScriptId];
+                          const videoArtifact = runState?.artifacts?.find((a) => a.type === 'video');
+                          if (videoArtifact?.url) {
+                            return (
+                              <a href={videoArtifact.url} target="_blank" rel="noopener noreferrer" className={styles.actionButton} title="Download video recording">
+                                <Download size={16} /> Video
+                              </a>
+                            );
+                          }
+                          return null;
+                        })()}
                         <button type="button" onClick={handleCopyCode} className={styles.actionButton} title={t('generate.copyCode')}>                       {copied ? <CheckCircle size={16} /> : <Copy size={16} />}{copied ? t('generate.copied') : t('generate.copyCode')}</button>
                         <button type="button" onClick={handleDownloadCode} className={styles.actionButton} title={t('generate.downloadScript')}><Download size={16} />Download</button>
                       </div>

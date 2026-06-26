@@ -1,6 +1,6 @@
 'use client';
 
-import { Code2, Crown, FileCode2, Lock, Play, Sparkles, TerminalSquare } from 'lucide-react';
+import { Code2, Crown, FileCode2, Loader, Lock, Play, Sparkles, TerminalSquare, Video, Zap } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/context';
 import { useWebWeave } from '@/lib/context/WebWeaveContext';
 import { getScriptSlotLimit } from '@/lib/billing/plans';
@@ -21,7 +21,7 @@ function getScriptName(script) {
   return `${domain}${isRevision ? ' (revisi)' : ''}`;
 }
 
-export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseChats, onOpenScript }) {
+export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseChats, onOpenScript, handleRunScript, scriptRunStates, scriptRunLoadingId }) {
   const { t } = useLanguage();
   const { SUPABASE_ENABLED, user, scripts, historyLoading, usageStatus } = useWebWeave();
   const planId = usageStatus?.planId || 'free';
@@ -107,6 +107,8 @@ export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseCh
         <div className={styles.summaryCard}><span>{t('scripts.runnerStatus')}</span><strong>{t('scripts.runnerPreparing')}</strong></div>
       </section>
 
+      <div className={styles.retentionNotice}>Run artifacts (video) are automatically deleted after 3 days.</div>
+
       <div className={styles.runnerNotice}><TerminalSquare size={17} /> {t('scripts.runnerNotice')}</div>
 
       {historyLoading ? (
@@ -145,7 +147,40 @@ export default function ScriptsPage({ onOpenPricing, onNewAutomation, onBrowseCh
                   ) : (
                     <button type="button" className={styles.secondaryButton} onClick={() => onOpenScript(script)}>{t('scripts.viewCode')}</button>
                   )}
-                  <button type="button" className={styles.disabledRunButton} disabled><Play size={14} /> {t('scripts.comingSoon')}</button>
+                  {script.framework !== 'playwright_js' ? (
+                    <button type="button" className={styles.disabledRunButton} disabled><Play size={14} /> Playwright JS only</button>
+                  ) : locked ? (
+                    <button type="button" className={styles.disabledRunButton} disabled><Play size={14} /> {t('scripts.lockedOverflow')}</button>
+                  ) : (() => {
+                    const runState = scriptRunStates?.[script.id];
+                    const isLoading = scriptRunLoadingId === script.id;
+                    const isActive = runState && ['queued', 'running'].includes(runState.status);
+                    const disabled = isLoading || isActive;
+                    return (
+                      <button
+                        type="button"
+                        className={disabled ? styles.disabledRunButton : styles.runButton}
+                        onClick={() => handleRunScript(script)}
+                        disabled={disabled}
+                        title="Run in GitHub Actions"
+                      >
+                        {isLoading || isActive ? <Loader size={14} className={styles.spinner} /> : <Zap size={14} />}
+                        {runState?.status ? `Run: ${runState.status}` : 'Run'}
+                      </button>
+                    );
+                  })()}
+                  {(() => {
+                    const runState = scriptRunStates?.[script.id];
+                    const videoArtifact = runState?.artifacts?.find((a) => a.type === 'video');
+                    if (videoArtifact?.url) {
+                      return (
+                        <a href={videoArtifact.url} target="_blank" rel="noopener noreferrer" className={styles.videoButton} title="Download video recording">
+                          <Video size={14} /> Video
+                        </a>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </article>
             );
