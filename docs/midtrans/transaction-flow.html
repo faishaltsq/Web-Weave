@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 36px 44px; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; font-size: 11px; color: #1e293b; line-height: 1.55; margin: 0; }
+  h1 { font-size: 16px; text-align: center; margin: 0 0 2px 0; color: #0f172a; }
+  .subtitle { font-size: 11px; text-align: center; margin: 0 0 6px 0; color: #475569; }
+  .doc-meta { text-align: center; font-size: 9.5px; color: #94a3b8; margin: 0 0 24px 0; }
+  h2 { font-size: 13px; color: #0f172a; border-bottom: 2px solid #2563eb; padding-bottom: 3px; margin: 24px 0 10px 0; }
+  h3 { font-size: 11.5px; color: #1e293b; margin: 14px 0 6px 0; }
+  p { margin: 4px 0; }
+  ul { margin: 4px 0 10px 0; padding-left: 22px; }
+  li { margin-bottom: 3px; }
+  code { font-family: 'SF Mono', 'Consolas', monospace; font-size: 9.5px; background: #f1f5f9; padding: 1px 4px; border-radius: 3px; color: #334155; }
+  .note { font-size: 10px; color: #64748b; font-style: italic; }
+
+  /* Flow diagram */
+  .flow-container { margin: 12px 0 16px 0; }
+  .flow-step { display: flex; gap: 10px; margin-bottom: 8px; page-break-inside: avoid; }
+  .flow-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: #2563eb; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .flow-body { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; background: #f8fafc; }
+  .flow-title { font-weight: 700; font-size: 11px; color: #0f172a; margin: 0 0 3px 0; }
+  .flow-desc { font-size: 10px; color: #475569; margin: 0; line-height: 1.5; }
+  .flow-tech { font-size: 9.5px; color: #2563eb; margin: 4px 0 0 0; padding-top: 4px; border-top: 1px dashed #cbd5e1; }
+  .arrow { text-align: center; font-size: 14px; color: #94a3b8; margin: 2px 0; }
+
+  /* UI mockup */
+  .mockup { border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; margin: 10px 0; page-break-inside: avoid; }
+  .mockup-bar { background: #1e293b; color: #fff; font-size: 9px; padding: 4px 10px; display: flex; align-items: center; gap: 6px; }
+  .mockup-bar .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .mockup-bar .dot.r { background: #ef4444; }
+  .mockup-bar .dot.y { background: #fbbf24; }
+  .mockup-bar .dot.g { background: #22c55e; }
+  .mockup-bar .url { flex: 1; text-align: center; color: #94a3b8; font-size: 8.5px; }
+  .mockup-content { padding: 12px; background: #fff; min-height: 60px; }
+  .mockup-sidebar { display: inline-block; width: 16%; vertical-align: top; background: #0f172a; color: #94a3b8; padding: 8px 6px; font-size: 8px; min-height: 80px; border-radius: 4px; }
+  .mockup-sidebar div { padding: 3px 0; }
+  .mockup-main { display: inline-block; width: 80%; vertical-align: top; padding: 0 8px; }
+  .mockup-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin: 4px 0; background: #f8fafc; }
+  .mockup-btn { display: inline-block; background: #2563eb; color: #fff; font-size: 9px; padding: 3px 10px; border-radius: 4px; font-weight: 600; }
+  .mockup-btn.outline { background: transparent; border: 1px solid #cbd5e1; color: #475569; }
+  .mockup-price { font-size: 14px; font-weight: 800; color: #0f172a; }
+  .mockup-badge { font-size: 8px; background: #dbeafe; color: #2563eb; padding: 1px 6px; border-radius: 999px; font-weight: 600; }
+  .mockup-input { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 8px; font-size: 9px; color: #64748b; display: inline-block; width: 180px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 12px 0; font-size: 10px; }
+  table.kv td { padding: 5px 8px; border: 1px solid #cbd5e1; vertical-align: top; }
+  table.kv td:first-child { background: #f1f5f9; font-weight: 600; width: 30%; }
+  table.seq th { background: #1e293b; color: #fff; padding: 5px 8px; font-weight: 600; text-align: left; font-size: 9.5px; }
+  table.seq td { padding: 4px 8px; border: 1px solid #cbd5e1; vertical-align: top; font-size: 9.5px; }
+  table.seq tr:nth-child(even) td { background: #f8fafc; }
+
+  /* Summary flow bar */
+  .summary-flow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 10px 0; padding: 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; }
+  .summary-flow .step { font-size: 9px; font-weight: 600; color: #1e40af; background: #fff; border: 1px solid #bfdbfe; border-radius: 999px; padding: 3px 8px; }
+  .summary-flow .sep { color: #93c5fd; font-size: 10px; }
+
+  hr { border: none; border-top: 1px solid #cbd5e1; margin: 16px 0; }
+  .footer { text-align: center; font-size: 9px; color: #94a3b8; margin-top: 16px; }
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>FLOW TRANSAKSI — CUSTOMER JOURNEY</h1>
+<p class="subtitle">Dokumen Tambahan Aktivasi Payment Gateway Midtrans</p>
+<p class="doc-meta">WebWeave — AI Web Automation Code Generator | Staging: https://web-weave-lake.vercel.app | Juni 2026</p>
+
+<!-- ========== SEKSI 1: RINGKASAN ========== -->
+<h2>1. Ringkasan Alur Transaksi</h2>
+<p>WebWeave adalah layanan SaaS (Software as a Service) berbasis subscription. Customer melakukan <b>pembelian paket langganan digital</b> melalui website. Tidak ada barang fisik, keranjang belanja tradisional, atau pengiriman logistik. Konsep "pilih produk → checkout → bayar" dipetakan ke alur SaaS berikut:</p>
+
+<div class="summary-flow">
+  <span class="step">1. Buka WebWeave</span><span class="sep">→</span>
+  <span class="step">2. Login / Daftar</span><span class="sep">→</span>
+  <span class="step">3. Buka halaman Pricing</span><span class="sep">→</span>
+  <span class="step">4. Pilih Paket & Siklus</span><span class="sep">→</span>
+  <span class="step">5. Cek Pending Order</span><span class="sep">→</span>
+  <span class="step">6. Server buat Invoice Midtrans</span><span class="sep">→</span>
+  <span class="step">7. Popup "Pay Now"</span><span class="sep">→</span>
+  <span class="step">8. Redirect ke Midtrans</span><span class="sep">→</span>
+  <span class="step">9. Pilih Metode Bayar</span><span class="sep">→</span>
+  <span class="step">10. Webhook → Aktivasi Paket</span>
+</div>
+
+<table class="kv">
+  <tr><td>URL Website</td><td>https://web-weave-lake.vercel.app</td></tr>
+  <tr><td>Jenis Transaksi</td><td>Subscription digital (paket bulanan/tahunan)</td></tr>
+  <tr><td>Metode Integrasi</td><td>Midtrans Invoice API (server-side) + Payment Link</td></tr>
+  <tr><td>Endpoint Checkout</td><td><code>POST /api/billing/checkout</code></td></tr>
+  <tr><td>Endpoint Webhook</td><td><code>POST /api/billing/midtrans/webhook</code></td></tr>
+  <tr><td>Endpoint Status</td><td><code>GET /api/billing/midtrans/status?order_id=...</code></td></tr>
+</table>
+
+<!-- ========== SEKSI 2: DETAIL CUSTOMER JOURNEY ========== -->
+<div class="page-break"></div>
+<h2>2. Detail Customer Journey — Step by Step</h2>
+
+<div class="flow-container">
+
+  <div class="flow-step">
+    <div class="flow-num">1</div>
+    <div class="flow-body">
+      <p class="flow-title">Customer Membuka Website WebWeave</p>
+      <p class="flow-desc">Customer membuka browser dan mengakses <code>https://web-weave-lake.vercel.app</code>. Halaman utama (hero mode) ditampilkan dengan tagline "AI Web Automation Code Generator" dan form input objective.</p>
+      <p class="flow-tech">URL: <code>/</code> | Next.js 14 App Router | Vercel hosting (HTTPS)</p>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <div class="flow-step">
+    <div class="flow-num">2</div>
+    <div class="flow-body">
+      <p class="flow-title">Customer Login / Registrasi</p>
+      <p class="flow-desc">Customer klik avatar di sidebar → login form muncul. Customer bisa login dengan Google OAuth atau email/password via Supabase Auth. Akun baru otomatis mendapat paket Free (5 generasi/bulan).</p>
+      <p class="flow-tech">Auth: Supabase (Google OAuth + Email/Password) | Session disimpan di browser</p>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <div class="flow-step">
+    <div class="flow-num">3</div>
+    <div class="flow-body">
+      <p class="flow-title">Customer Membuka Halaman Pricing</p>
+      <p class="flow-desc">Customer klik tombol "Pricing" di profile menu, atau tombol "Upgrade" di sidebar. Modal Pricing muncul menampilkan 2 paket berbayar: <b>Starter</b> (Rp49.000/bln) dan <b>Pro</b> (Rp129.000/bln). Toggle monthly/annual tersedia.</p>
+      <p class="flow-tech">UI: PricingPage modal component | Data paket dari <code>src/lib/billing/plans.js</code></p>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <!-- Mockup: Pricing page -->
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">web-weave-lake.vercel.app — Pricing Modal</span>
+    </div>
+    <div class="mockup-content">
+      <div style="text-align:center; margin-bottom:8px;">
+        <span class="mockup-badge">MONTHLY</span> <span class="mockup-badge" style="background:#fef3c7;color:#92400e;">ANNUAL — Save 20%</span>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <div class="mockup-card" style="flex:1;">
+          <div style="font-size:10px;font-weight:700;">Starter</div>
+          <div class="mockup-price">Rp49.000<span style="font-size:8px;color:#64748b;font-weight:400;">/bln</span></div>
+          <div style="font-size:8px;color:#64748b;margin:4px 0;">75 generasi • 5 project • 5 script slot</div>
+          <div class="mockup-btn">Pay Now</div>
+        </div>
+        <div class="mockup-card" style="flex:1;border-color:#2563eb;background:#eff6ff;">
+          <div style="font-size:10px;font-weight:700;">Pro <span class="mockup-badge">POPULAR</span></div>
+          <div class="mockup-price">Rp129.000<span style="font-size:8px;color:#64748b;font-weight:400;">/bln</span></div>
+          <div style="font-size:8px;color:#64748b;margin:4px 0;">300 generasi • 25 project • 12 script slot</div>
+          <div class="mockup-btn">Pay Now</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-step">
+    <div class="flow-num">4</div>
+    <div class="flow-body">
+      <p class="flow-title">Customer Memilih Paket & Siklus Billing</p>
+      <p class="flow-desc">Customer memilih paket (Starter atau Pro) dan siklus billing (monthly/annual). Customer klik tombol <b>"Pay Now"</b> pada paket pilihan. Sistem memvalidasi: (a) customer terautentikasi, (b) paket dipilih lebih tinggi dari paket saat ini — anti double billing, (c) origin request valid — anti CSRF.</p>
+      <p class="flow-tech">Validasi: <code>src/lib/server/security.js</code> (origin check) | <code>src/lib/billing/quota.js</code> (plan comparison)</p>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <div class="flow-step">
+    <div class="flow-num">5</div>
+    <div class="flow-body">
+      <p class="flow-title">Cek Pending Order (Anti Double-Charge)</p>
+      <p class="flow-desc">Sebelum checkout, frontend memanggil <code>GET /api/account/pending-order</code>. Jika ada order <code>checkout_created</code> sebelumnya: (a) jika status Midtrans sudah terminal (expire/cancel/deny) → server auto-cancel order, lanjut checkout; (b) jika masih aktif → tampilkan dialog "Resume Payment" atau "Cancel". Customer tidak bisa checkout baru sampai pending order diselesaikan.</p>
+      <p class="flow-tech">API: <code>GET /api/account/pending-order</code> → cek <code>billing_orders</code> status <code>checkout_created</code> | Midtrans status check: <code>GET /v2/{order_id}/status</code></p>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <!-- Mockup: Pending order dialog -->
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">web-weave-lake.vercel.app — Pending Order Dialog</span>
+    </div>
+    <div class="mockup-content" style="text-align:center; padding:16px;">
+      <div style="font-size:10px;font-weight:700;margin-bottom:6px;">You have a pending payment</div>
+      <div style="font-size:8px;color:#64748b;margin-bottom:8px;">Plan: Starter • Created: 2026-06-21</div>
+      <div style="margin-top:8px;"><span class="mockup-btn">Resume Payment</span> <span class="mockup-btn outline" style="margin-left:4px;">Cancel Pending</span></div>
+    </div>
+  </div>
+
+  <div class="flow-step">
+    <div class="flow-num">6</div>
+    <div class="flow-body">
+      <p class="flow-title">Server WebWeave Membuat Invoice Midtrans</p>
+      <p class="flow-desc">Frontend mengirim <code>POST /api/billing/checkout</code> dengan body <code>{ plan, billingCycle }</code> (email customer diambil dari session Supabase, bukan input manual). Server generate <code>order_id</code> unik (format: <code>ww_{12charUserIdPrefix}_{10charSha256Hash}</code>), lalu memanggil <b>Midtrans Invoice API</b> <code>POST /v1/invoices</code> dengan: item_details (nama paket, harga), customer_details (email dari session), payment_type = payment_link. Midtrans merespons dengan <code>payment_link_url</code>. Order disimpan di Supabase <code>billing_orders</code> dengan status <code>checkout_created</code>.</p>
+      <p class="flow-tech">API: <code>POST /api/billing/checkout</code> → <code>src/lib/billing/midtrans.js</code> (createInvoice) | Email: <code>auth.user.email</code> dari Supabase session</p>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <div class="flow-step">
+    <div class="flow-num">7</div>
+    <div class="flow-body">
+      <p class="flow-title">Email Konfirmasi & Tombol "Pay Now"</p>
+      <p class="flow-desc">Setelah invoice dibuat, popup konfirmasi muncul menampilkan pesan "Check your email" dan tombol <b>"Pay Now"</b>. Popup ini BUKAN form input email — email sudah diambil dari session. Customer klik "Pay Now" untuk langsung redirect ke halaman pembayaran Midtrans, atau cek email untuk link invoice.</p>
+      <p class="flow-tech">UI: <code>showEmailPopup</code> (post-checkout ConfirmDialog) | Redirect: <code>window.location.href = checkedOutPaymentUrl</code></p>
+    </div>
+  </div>
+
+  <!-- Mockup: Email confirmation popup (post-checkout) -->
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">web-weave-lake.vercel.app — Payment Confirmation</span>
+    </div>
+    <div class="mockup-content" style="text-align:center; padding:16px;">
+      <div style="font-size:10px;font-weight:700;margin-bottom:6px;">Check your email</div>
+      <div style="font-size:8px;color:#64748b;margin-bottom:8px;">We've sent your invoice and payment link to your registered email.</div>
+      <div style="margin-top:8px;"><span class="mockup-btn">Pay Now</span> <span class="mockup-btn outline" style="margin-left:4px;">Close</span></div>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <div class="flow-step">
+    <div class="flow-num">8</div>
+    <div class="flow-body">
+      <p class="flow-title">Customer Diarahkan ke Halaman Pembayaran Midtrans</p>
+      <p class="flow-desc">Customer klik "Pay Now" → browser redirect ke <code>payment_link_url</code> Midtrans. Halaman pembayaran Midtrans menampilkan: detail invoice (paket, harga), pilihan metode pembayaran (transfer bank, QRIS, GoPay, ShopeePay, Akulaku, dll). <b>Semua data pembayaran diproses oleh Midtrans — WebWeave tidak menyentuh data kartu/apapun.</b></p>
+      <p class="flow-tech">Redirect: <code>window.location.href = payment_link_url</code> | Domain Midtrans: <code>app.sandbox.midtrans.com</code> (sandbox) / <code>app.midtrans.com</code> (production)</p>
+    </div>
+  </div>
+
+  <!-- Mockup: Midtrans payment page -->
+  <div class="mockup">
+    <div class="mockup-bar" style="background:#3a55df;">
+      <span class="dot" style="background:#fff;opacity:0.5;"></span><span class="dot" style="background:#fff;opacity:0.5;"></span><span class="dot" style="background:#fff;opacity:0.5;"></span>
+      <span class="url" style="color:#fff;">app.midtrans.com — Payment Page</span>
+    </div>
+    <div class="mockup-content" style="background:#f5f7fb;">
+      <div style="text-align:center; margin-bottom:8px;">
+        <div style="font-size:10px;font-weight:700;">Midtrans</div>
+        <div style="font-size:8px;color:#64748b;">Invoice #ww_xxx_1234</div>
+      </div>
+      <div class="mockup-card" style="background:#fff;">
+        <div style="display:flex;justify-content:space-between;font-size:9px;">
+          <span>WebWeave Pro — Monthly</span><span style="font-weight:700;">Rp129.000</span>
+        </div>
+        <hr style="margin:4px 0;border:none;border-top:1px solid #e2e8f0;">
+        <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;">
+          <span>Total</span><span>Rp129.000</span>
+        </div>
+      </div>
+      <div style="font-size:8px;font-weight:600;margin:8px 0 4px;">Pilih Metode Pembayaran:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+        <div class="mockup-card" style="padding:4px 6px;font-size:8px;">🏦 Bank Transfer</div>
+        <div class="mockup-card" style="padding:4px 6px;font-size:8px;">📱 QRIS</div>
+        <div class="mockup-card" style="padding:4px 6px;font-size:8px;">💳 GoPay</div>
+        <div class="mockup-card" style="padding:4px 6px;font-size:8px;">🛒 ShopeePay</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <div class="flow-step">
+    <div class="flow-num">9</div>
+    <div class="flow-body">
+      <p class="flow-title">Customer Menyelesaikan Pembayaran di Midtrans</p>
+      <p class="flow-desc">Customer memilih metode pembayaran dan menyelesaikan transaksi sesuai instruksi Midtrans (transfer ke VA, scan QR, konfirmasi e-wallet, dll). Midtrans memproses pembayaran dan update status transaksi.</p>
+      <p class="flow-tech">Pemroses: Midtrans (full) | WebWeave tidak terlibat dalam tahap ini</p>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <div class="flow-step">
+    <div class="flow-num">10</div>
+    <div class="flow-body">
+      <p class="flow-title">Midtrans Mengirim Webhook Notifikasi ke WebWeave</p>
+      <p class="flow-desc">Midtrans mengirim HTTP POST notification ke endpoint webhook WebWeave. Server memverifikasi <code>signature_key</code> dengan SHA-512 hash (gabungan order_id + status_code + gross_amount + ServerKey). Jika valid dan status = <code>settlement</code> atau <code>capture</code>, akun customer otomatis di-upgrade.</p>
+      <p class="flow-tech">Endpoint: <code>POST /api/billing/midtrans/webhook</code> | Verifikasi: SHA-512 signature | Update: Supabase <code>profiles</code> table (plan_id, billing_expiry)</p>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <div class="flow-step">
+    <div class="flow-num">11</div>
+    <div class="flow-body">
+      <p class="flow-title">Paket Aktif — Customer Menggunakan Layanan</p>
+      <p class="flow-desc">Akun customer ter-upgrade. Kuota generasi bulanan, slot project, dan slot script langsung aktif. Customer kembali ke WebWeave dan dapat langsung menggunakan layanan: input URL target + objective → AI generate automation script. Saat tab browser kembali fokus, sistem auto-refresh status billing.</p>
+      <p class="flow-tech">Auto-refresh: <code>visibilitychange</code> event → <code>loadPrivateData()</code> | Kuota: <code>usage_events</code> table (monthly tracking)</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ========== SEKSI 3: API SEQUENCE ========== -->
+<div class="page-break"></div>
+<h2>3. Sequence Diagram — API Calls</h2>
+<p>Berikut adalah urutan panggilan API dari sisi teknis (backend-to-backend):</p>
+
+<table class="seq">
+  <thead>
+    <tr><th style="width:5%;">#</th><th style="width:18%;">Actor</th><th style="width:30%;">Action</th><th style="width:47%;">Detail</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Customer</td><td>Klik "Pay Now"</td><td>Frontend cek pending order via <code>GET /api/account/pending-order</code>. Jika ada pending aktif → dialog resume/cancel. Jika terminal → auto-cancel. Lanjut checkout.</td></tr>
+    <tr><td>2</td><td>Frontend → Server</td><td><code>POST /api/billing/checkout</code></td><td>Body: <code>{ plan, billingCycle }</code> (email diambil dari session Supabase, bukan input manual)</td></tr>
+    <tr><td>3</td><td>WebWeave Server</td><td>Validasi request</td><td>Cek auth token (Supabase), cek origin (anti-CSRF via <code>validateOrigin</code>), cek paket saat ini vs pilihan (anti downgrade/double billing via <code>PLAN_TIER</code>)</td></tr>
+    <tr><td>4</td><td>WebWeave Server</td><td>Generate order_id</td><td>Format: <code>ww_{12charUserIdPrefix}_{10charSha256Hash}</code> — hash dari planId + cycle + timestamp + random bytes. Contoh: <code>ww_a1b2c3d4e5f6_f8k2lm9p0q</code></td></tr>
+    <tr><td>4</td><td>WebWeave → Midtrans</td><td><code>POST /v1/invoices</code></td><td>Body: item_details (paket, harga), customer_details (email dari session Supabase <code>auth.user.email</code>), order_id, payment_type = "payment_link"</td></tr>
+    <tr><td>5</td><td>Midtrans</td><td>Response invoice</td><td>Return <code>payment_link_url</code>, <code>invoice_url</code>, <code>pdf_url</code></td></tr>
+    <tr><td>6</td><td>WebWeave Server</td><td>Simpan order</td><td>Insert ke Supabase <code>billing_orders</code>: order_id, user_id, plan_id, amount, status = "checkout_created"</td></tr>
+    <tr><td>7</td><td>WebWeave → Customer</td><td>Redirect</td><td>Return <code>payment_link_url</code> ke frontend → browser redirect ke Midtrans</td></tr>
+    <tr><td>8</td><td>Customer</td><td>Bayar di Midtrans</td><td>Pilih metode (VA/QRIS/e-wallet), selesaikan pembayaran. Midtrans proses.</td></tr>
+    <tr><td>9</td><td>Midtrans → WebWeave</td><td><code>POST /api/billing/midtrans/webhook</code></td><td>Notification JSON: order_id, transaction_status, signature_key, gross_amount</td></tr>
+    <tr><td>10</td><td>WebWeave Server</td><td>Verifikasi signature</td><td>SHA-512(order_id + status_code + gross_amount + ServerKey) == signature_key?</td></tr>
+    <tr><td>11</td><td>WebWeave Server</td><td>Update akun + cancel pending lain</td><td>Jika settlement/capture → update <code>profiles.plan_id</code>, <code>profiles.billing_expiry</code>, reset <code>usage_events</code> kuota. Cancel order <code>checkout_created</code> lain milik user yang sama (anti double-charge)</td></tr>
+    <tr><td>12</td><td>WebWeave Server → Midtrans</td><td>ACK webhook</td><td>Return HTTP 200 ke Midtrans (konfirmasi webhook diterima)</td></tr>
+    <tr><td>13</td><td>Customer</td><td>Kembali ke WebWeave</td><td>Tab fokus → auto-refresh → plan badge update → layanan aktif</td></tr>
+  </tbody>
+</table>
+
+<!-- ========== SEKSI 4: MAPPING E-COMMERCE → SaaS ========== -->
+<h2>4. Pemetaan Konsep E-Commerce ke SaaS WebWeave</h2>
+<p class="note">Midtrans meminta alur "pencarian produk → keranjang → checkout → pembayaran". Berikut pemetaannya ke model SaaS WebWeave:</p>
+
+<table class="seq">
+  <thead>
+    <tr><th style="width:30%;">Konsep E-Commerce (Midtrans)</th><th style="width:30%;">Padanan di WebWeave (SaaS)</th><th style="width:40%;">Penjelasan</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Customer membuka website/aplikasi</td><td>Customer buka <code>web-weave-lake.vercel.app</code></td><td>Akses halaman utama WebWeave via browser</td></tr>
+    <tr><td>Pencarian & pemilihan produk</td><td>Buka halaman Pricing, pilih paket (Starter/Pro)</td><td>"Produk" = paket subscription digital. "Pencarian" = browse pricing modal.</td></tr>
+    <tr><td>Menambahkan produk ke keranjang</td><td>Klik "Pay Now" pada paket pilihan</td><td>SaaS tidak punya keranjang. 1 paket = 1 transaksi. Klik "Pay Now" = commit to purchase.</td></tr>
+    <tr><td>Proses checkout</td><td>Isi email → server buat Invoice Midtrans</td><td>Server-side checkout via Invoice API. Email = customer detail untuk invoice.</td></tr>
+    <tr><td>Diarahkan ke halaman pembayaran</td><td>Redirect ke <code>payment_link_url</code> Midtrans</td><td>Customer lanjut bayar di halaman Midtrans (pilih metode, eksekusi)</td></tr>
+  </tbody>
+</table>
+
+<!-- ========== SEKSI 5: PAKET ========== -->
+<h2>5. Daftar Paket yang Dijual</h2>
+<table class="seq">
+  <thead>
+    <tr><th>Paket</th><th>Harga/Bulan</th><th>Harga/Tahun</th><th>Kuota Generasi</th><th>Project Slot</th><th>Script Slot</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Free</td><td>Rp0</td><td>Rp0</td><td>5/bln</td><td>1</td><td>0</td></tr>
+    <tr><td><b>Starter</b></td><td>Rp49.000</td><td>Rp470.000</td><td>75/bln</td><td>5</td><td>5</td></tr>
+    <tr><td><b>Pro</b></td><td>Rp129.000</td><td>Rp1.238.000</td><td>300/bln</td><td>25</td><td>12</td></tr>
+  </tbody>
+</table>
+<p class="note">Framework yang didukung: Playwright JS, Playwright Python, Puppeteer JS, Selenium Python, Cypress JS. Paket Free terbatas ke Playwright JS saja. Paket Starter: Playwright JS/Python, Selenium Python, Cypress JS (tidak termasuk Puppeteer JS). Paket Pro: semua 5 framework.</p>
+
+<!-- ========== SEKSI 6: CATATAN ========== -->
+<h2>6. Catatan Teknis untuk Midtrans</h2>
+<ul>
+  <li><b>Tipe integrasi:</b> Invoice API (bukan Snap popup, bukan Core API direct charge).</li>
+  <li><b>Environment:</b> Saat ini menggunakan Midtrans Sandbox untuk testing. Production key akan digunakan setelah aktivasi.</li>
+  <li><b>Webhook URL (production):</b> <code>https://web-weave-lake.vercel.app/api/billing/midtrans/webhook</code></li>
+  <li><b>Webhook retry:</b> WebWeave return HTTP 200 setelah berhasil verifikasi & update. Jika gagal, return non-200 → Midtrans retry.</li>
+  <li><b>Anti double-charge:</b> Sebelum checkout, frontend cek pending order via <code>GET /api/account/pending-order</code> — jika ada order <code>checkout_created</code> aktif, customer harus resume/cancel dulu. Setelah webhook settlement, server auto-cancel order <code>checkout_created</code> lain milik user yang sama.</li>
+  <li><b>Order ID format:</b> <code>ww_{12charUserIdPrefix}_{10charSha256Hash}</code> — hash dari planId + billingCycle + timestamp + random bytes. Contoh: <code>ww_a1b2c3d4e5f6_f8k2lm9p0q</code></li>
+  <li><b>Tidak ada Snap popup:</b> WebWeave menggunakan Invoice API yang menghasilkan payment link. Customer redirect ke halaman Midtrans, bukan popup di website WebWeave.</li>
+  <li><b>Data pembayaran:</b> WebWeave TIDAK menyimpan, memproses, atau mengakses data kartu/debit. 100% diproses Midtrans.</li>
+  <li><b>Refund:</b> WebWeave yang menginisiasi refund via dashboard Midtrans jika memenuhi syarat (double charge / downtime >72h). Tidak ada auto-refund.</li>
+</ul>
+
+<hr>
+<div class="footer">
+  <p>Dokumen Flow Transaksi — Customer Journey | Disusun untuk aktivasi Payment Gateway Midtrans</p>
+  <p>WebWeave — Juni 2026 | faishaltsq@gmail.com</p>
+</div>
+
+</body>
+</html>

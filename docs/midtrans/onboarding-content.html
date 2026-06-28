@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 40px 50px; }
+  body { font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; font-size: 11px; color: #1e293b; line-height: 1.5; }
+  h1 { font-size: 15px; text-align: center; margin: 0 0 4px 0; color: #0f172a; }
+  .subtitle { font-size: 12px; text-align: center; margin: 0 0 28px 0; color: #475569; }
+  h2 { font-size: 13px; color: #0f172a; border-bottom: 2px solid #2563eb; padding-bottom: 3px; margin: 22px 0 10px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 16px 0; font-size: 10.5px; }
+  table.kv td { padding: 5px 8px; border: 1px solid #cbd5e1; vertical-align: top; }
+  table.kv td:first-child { background: #f1f5f9; font-weight: 600; width: 32%; }
+  table.pkg th { background: #1e293b; color: #fff; padding: 6px 8px; font-weight: 600; text-align: left; font-size: 10px; }
+  table.pkg td { padding: 5px 8px; border: 1px solid #cbd5e1; vertical-align: top; }
+  ul { margin: 4px 0 12px 0; padding-left: 22px; font-size: 10.5px; }
+  li { margin-bottom: 3px; }
+  .flow { font-size: 10px; line-height: 1.7; margin: 8px 0; padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
+  .flow b { color: #2563eb; }
+  hr { border: none; border-top: 1px solid #94a3b8; margin: 4px 0; }
+  .note { font-size: 10px; color: #64748b; font-style: italic; }
+  .footer { text-align: center; font-size: 9.5px; color: #94a3b8; margin-top: 20px; }
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>FORMULIR DATA TAMBAHAN / DATA SUSULAN ONBOARDING</h1>
+<p class="subtitle">Verifikasi Pendaftaran Payment Gateway Midtrans — WebWeave</p>
+
+<!-- ========== A ========== -->
+<h2>A. Informasi Usaha &amp; Produk</h2>
+<table class="kv">
+  <tr><td>Nama Usaha / Produk</td><td>WebWeave</td></tr>
+  <tr><td>Jenis Produk</td><td>Layanan SaaS Digital — AI Web Automation Code Generator</td></tr>
+  <tr><td>URL Staging</td><td>https://web-weave-lake.vercel.app</td></tr>
+  <tr><td>Email Support</td><td>faishaltsq@gmail.com</td></tr>
+  <tr><td>Metode Checkout</td><td>Midtrans Invoice API + Payment Link</td></tr>
+  <tr><td>Integrasi Midtrans</td><td>Invoice API (server-side), Webhook notifikasi, Status verification</td></tr>
+</table>
+
+<!-- ========== B ========== -->
+<h2>B. Paket Layanan yang Dijual</h2>
+<p>WebWeave menyediakan 2 paket berbayar (<strong>produk digital</strong>, bukan barang fisik):</p>
+<table class="pkg">
+  <thead>
+    <tr><th>Paket</th><th>Harga/Bulan</th><th>Harga/Tahun</th><th>Kuota/Bulan</th><th>Fitur</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>Starter</b></td><td>Rp49.000</td><td>Rp470.000</td><td>75 generasi</td>
+      <td>Playwright JS/Python, Selenium Python, Cypress JS. 5 project. 5 script slot.</td>
+    </tr>
+    <tr>
+      <td><b>Pro</b></td><td>Rp129.000</td><td>Rp1.238.000</td><td>300 generasi</td>
+      <td>Semua framework (5 jenis). 25 project. 12 script slot.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ========== C ========== -->
+<div class="page-break"></div>
+<h2>C. End-to-End Process Customer (Dari Pesan Sampai Pembayaran)</h2>
+<p class="note">WebWeave adalah layanan SaaS self-service. 100% transaksi digital — tidak ada pengiriman barang fisik, tidak ada jadwal pengiriman, tidak ada logistik.</p>
+
+<p><b>Langkah 1 — Registrasi &amp; Login</b></p>
+<ul>
+  <li>Customer mengakses WebWeave melalui browser.</li>
+  <li>Registrasi/login menggunakan Google OAuth (via Supabase Auth).</li>
+  <li>Akun default masuk paket Free (5 generasi/bulan, 1 project).</li>
+</ul>
+
+<p><b>Langkah 2 — Pemilihan Paket</b></p>
+<ul>
+  <li>Dari halaman utama, customer klik tombol Upgrade atau menu Pricing.</li>
+  <li>Modal pricing menampilkan pilihan paket Starter dan Pro.</li>
+  <li>Customer memilih paket dan siklus billing (monthly/annual).</li>
+  <li>Tombol "Pay Now" / "Complete Payment" mengarah ke checkout.</li>
+  <li>Sistem memvalidasi: (a) customer terautentikasi, (b) paket yang dipilih lebih tinggi dari paket saat ini, (c) origin request valid (anti-CSRF).</li>
+</ul>
+
+<p><b>Langkah 3 — Checkout ke Midtrans</b></p>
+<ul>
+  <li>Server WebWeave memanggil <b>Midtrans Invoice API</b> (<code>POST /v1/invoices</code>) — BUKAN Snap popup.</li>
+  <li>Midtrans membuat invoice dengan: order_id unik, detail item (paket), detail customer (email), payment_type = payment_link.</li>
+  <li>Midtrans merespons dengan <code>payment_link_url</code> dan <code>pdf_url</code>.</li>
+  <li>Order disimpan di database Supabase (<code>billing_orders</code>) dengan status <code>checkout_created</code>.</li>
+  <li>Customer diarahkan ke <code>payment_link_url</code> milik Midtrans.</li>
+</ul>
+
+<p><b>Langkah 4 — Pembayaran di Midtrans</b></p>
+<ul>
+  <li>Customer memilih metode pembayaran di halaman Midtrans (transfer bank, QRIS, e-wallet, dll).</li>
+  <li>Customer menyelesaikan pembayaran sesuai instruksi Midtrans.</li>
+  <li><b>Seluruh data kartu/pembayaran diproses SEPENUHNYA oleh Midtrans.</b> WebWeave tidak menyimpan data pembayaran apapun.</li>
+</ul>
+
+<p><b>Langkah 5 — Verifikasi &amp; Aktivasi Layanan</b></p>
+<ul>
+  <li>Midtrans mengirim webhook notifikasi ke endpoint WebWeave: <code>POST /api/billing/midtrans/webhook</code>.</li>
+  <li>Server WebWeave memverifikasi <code>signature_key</code> notifikasi dengan SHA-512 hash.</li>
+  <li>Status <b>settlement / capture</b> → akun customer otomatis upgrade ke paket yang dibeli.</li>
+  <li>Kuota generasi bulanan, slot project, dan slot script langsung aktif.</li>
+  <li>Status non-terminal (pending) tidak mengubah akun.</li>
+  <li>Status terminal inaktif (expire, cancel, deny) tidak meng-upgrade akun.</li>
+  <li>Untuk local dev/testing: status dicek manual via <code>GET /api/billing/midtrans/status?order_id=xxx</code>.</li>
+</ul>
+
+<p><b>Langkah 6 — Penggunaan Layanan</b></p>
+<ul>
+  <li>Customer langsung menggunakan layanan WebWeave: memasukkan URL target + objective, menghasilkan script automation dengan AI.</li>
+  <li>Kuota monthly berlaku 30 hari (monthly) atau 365 hari (annual).</li>
+  <li>Masa aktif kedaluwarsa: akun kembali ke paket Free otomatis.</li>
+  <li>Customer dapat upgrade kapan saja, dicegah membeli paket yang sama/lebih rendah (menghindari double billing).</li>
+</ul>
+
+<!-- ========== D ========== -->
+<h2>D. Mekanisme Pengiriman (Delivery)</h2>
+<p>WebWeave adalah produk digital SaaS (Software as a Service). <b>Tidak ada pengiriman barang fisik, shipment, tracking number, jasa kurir, atau logistik apapun.</b> Layanan langsung aktif setelah pembayaran terverifikasi. Akses diberikan langsung melalui browser di <code>web-weave-lake.vercel.app</code>.</p>
+
+<!-- ========== E ========== -->
+<h2>E. Kebijakan Refund &amp; Pembatalan</h2>
+<p>Sesuai Terms of Service WebWeave:</p>
+<ul>
+  <li>Refund <b>HANYA</b> diberikan untuk: (a) <b>double charge</b> — full refund, (b) <b>layanan tidak dapat diakses > 72 jam berturut-turut</b> akibat kesalahan kami — refund prorata.</li>
+  <li>Refund diajukan via email ke <code>faishaltsq@gmail.com</code> maksimal 14 hari setelah pembayaran.</li>
+  <li>Karena layanan digital aktif langsung setelah pembayaran, tidak ada refund untuk alasan "berubah pikiran" atau "tidak puas".</li>
+  <li>Midtrans tidak perlu melakukan tindakan refund otomatis — WebWeave yang akan menginisiasi jika memenuhi syarat.</li>
+</ul>
+
+<!-- ========== F ========== -->
+<h2>F. Keamanan &amp; Kepatuhan</h2>
+<ul>
+  <li>Server-side checkout — tidak ada API key Midtrans yang terekspos ke browser.</li>
+  <li>Verifikasi signature SHA-512 pada setiap webhook notifikasi.</li>
+  <li>Validasi origin request untuk mencegah CSRF pada endpoint checkout.</li>
+  <li>Supabase Row Level Security (RLS) memastikan data pengguna hanya diakses oleh pemiliknya.</li>
+  <li>Semua komunikasi via HTTPS (Vercel hosting).</li>
+  <li><b>WebWeave TIDAK menyimpan, memproses, atau mengakses data kartu kredit/debit.</b> Seluruh pemrosesan pembayaran dilakukan oleh Midtrans.</li>
+  <li>Order ID digenerate menggunakan kombinasi user prefix + SHA-256 hash + timestamp untuk mencegah tabrakan.</li>
+  <li>Privacy Policy &amp; Terms of Service tersedia di <code>/privacy</code> dan <code>/terms</code>.</li>
+</ul>
+
+<!-- ========== G ========== -->
+<h2>G. Ringkasan Alur Transaksi</h2>
+<div class="flow">
+  <b>Customer</b> → <b>Login WebWeave</b> → <b>Pilih Paket</b> → <b>POST /api/billing/checkout</b> → <b>Server panggil Midtrans Invoice API</b> → <b>Customer diarahkan ke payment link Midtrans</b> → <b>Customer bayar di Midtrans</b> → <b>Midtrans kirim webhook ke WebWeave</b> → <b>WebWeave verifikasi signature</b> → <b>Akun otomatis di-upgrade</b> → <b>Layanan aktif langsung</b>
+</div>
+<hr>
+
+<div class="footer">
+  <p>Dokumen ini disusun sebagai data tambahan untuk proses verifikasi pendaftaran payment gateway Midtrans oleh WebWeave.</p>
+  <p>Juni 2026 — WebWeave</p>
+</div>
+
+</body>
+</html>
